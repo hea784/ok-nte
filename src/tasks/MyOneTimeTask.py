@@ -4,13 +4,29 @@ from qfluentwidgets import FluentIcon
 
 from src.tasks.BaseNTETask import BaseNTETask
 
+INST = r"""
+        <span style="color:red;">
+            <strong>本软件是免费开源的。</strong> 如果你被收费，请立即退款。请访问 QQ 频道或 GitHub 下载最新的官方版本。<br>
+            <strong>This software is free and open-source.</strong> If you were charged for it, please request a refund immediately. Visit the QQ channel or GitHub to download the latest official version.
+        </span>
+        <span style="color:red;">
+            <strong>本软件仅供个人使用，用于学习 Python 编程、计算机视觉、UI 自动化等。</strong> 请勿将其用于任何营利性或商业用途。<br>
+            <strong>This software is for personal use only, intended for learning Python programming, computer vision, UI automation, and similar purposes.</strong> Do not use it for any commercial or profit-seeking activities.
+        </span>
+        <span style="color:red;">
+            <strong>使用本软件可能会导致账号被封。</strong> 请在了解风险后再使用。<br>
+            <strong>Using this software may result in account bans.</strong> Please proceed only if you fully understand the risks.
+        </span>
+    """
 
 class MyOneTimeTask(BaseNTETask):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.name = "点击触发运行任务"
         self.description = "用户点击时调用run方法"
+        self.instructions = INST
         self.icon = FluentIcon.SYNC
+        self.support_schedule_task = True
         self.default_config.update(
             {
                 "下拉菜单选项": "第一",

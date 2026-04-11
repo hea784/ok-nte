@@ -7,7 +7,7 @@ from ok import Logger
 from ok.device.capture import BaseWindowsCaptureMethod, BrowserCaptureMethod
 from ok.gui.Communicate import communicate
 from ok.gui.util.Alert import alert_error
-from ok.util.process import is_admin, execute, read_game_gpu_pref, read_global_gpu_pref
+from ok.util.process import is_admin, execute
 
 logger = Logger.get_logger(__name__)
 
@@ -29,24 +29,29 @@ class StartController(QObject):
             logger.info(f'do_start: call do_refresh')
             og.device_manager.do_refresh(True)
         except Exception as e:
+            logger.error(f'do_start do_refresh exception: {e}', e)
             communicate.starting_emulator.emit(True, self.tr(str(e)), 0)
             return
 
-        if not self.start_device():
-            return
-
-        if isinstance(task, int):
-            task = og.executor.onetime_tasks[task]
-            logger.info(f"enable task {task}")
-            if exit_after and task:
-                task.exit_after_task = True
-                communicate.task.emit(task)
-        if task:
-            task.enable()
-            task.unpause()
-
-        og.executor.start()
-        communicate.starting_emulator.emit(True, None, 0)
+        try:
+            if not self.start_device():
+                return
+    
+            if isinstance(task, int):
+                task = og.executor.onetime_tasks[task]
+                logger.info(f"enable task {task}")
+                if exit_after and task:
+                    task.exit_after_task = True
+                    communicate.task.emit(task)
+            if task:
+                task.enable()
+                task.unpause()
+    
+            og.executor.start()
+            communicate.starting_emulator.emit(True, None, 0)
+        except Exception as e:
+            logger.error(f'do_start exception: {e}', e)
+            communicate.starting_emulator.emit(True, self.tr(f'Start failed: {e}'), 0)
 
     def start_device(self):
         device = og.device_manager.get_preferred_device()
@@ -63,7 +68,8 @@ class StartController(QObject):
             if path:
                 logger.info(f"starting game {path}")
                 args = None
-                if og.global_config.get_config('Launch with DX11').get('Launch with DX11'):
+                dx11_config = og.global_config.get_config('Launch with DX11')
+                if dx11_config and dx11_config.get('Launch with DX11'):
                     args = "-dx11 -d3d11 -force-d3d11"
                 if not execute(path, arguments=args):
                     communicate.starting_emulator.emit(True, self.tr("Start game failed, please start game first"), 0)
@@ -142,18 +148,16 @@ class StartController(QObject):
                 logger.error(f'Game window is not connected {og.device_manager.capture_method}')
                 return error_msg
             if isinstance(og.device_manager.capture_method, BaseWindowsCaptureMethod):
-                if self.config.get('windows', {}).get('check_hdr', False):
-                    path = og.device_manager.get_exe_path(device)
-                    if path:
-                        hdr_enabled, swap_enabled = read_game_gpu_pref(path)
-                        logger.info(f'hdr_enabled {path} {hdr_enabled}')
-                        if hdr_enabled == True or (hdr_enabled is None and read_global_gpu_pref()[0]):
-                            if self.config.get('windows', {}).get('force_no_hdr', False):
-                                return self.tr(f'Auto HDR is enabled, please turn it off first.')
-                            else:
-                                alert_error(self.tr('Auto HDR is enabled, tasks might not work correctly!'), True)
+
                 if not og.device_manager.capture_method.hwnd_window.pos_valid:
-                    return self.tr(f'Window is minimized or out of screen, and don\'t use full-screen exclusive mode!')
+                    hwnd_window = og.device_manager.capture_method.hwnd_window
+                    if hwnd_window.hwnd and hwnd_window.window_width > 0 and hwnd_window.window_height > 0:
+                        from ok.util.window import resize_window
+                        logger.info(f"Window pos invalid, trying to center window with size {hwnd_window.window_width}x{hwnd_window.window_height}")
+                        resize_window(hwnd_window.hwnd, hwnd_window.window_width, hwnd_window.window_height)
+                        hwnd_window.do_update_window_size()
+                    if not og.device_manager.capture_method.hwnd_window.pos_valid:
+                        return self.tr(f'Window is minimized or out of screen, and don\'t use full-screen exclusive mode!')
             frame = self.try_capture_a_frame()
             if frame is None:
                 logger.error(f'check_device_error: try_capture_a_frame returned None')
@@ -178,6 +182,8 @@ class StartController(QObject):
                 started = og.device_manager.adb_ensure_in_front()
                 if not started:
                     return self.tr("Can't start game, make sure the game is installed")
+        except FileNotFoundError as e:
+            raise e
         except Exception as e:
             logger.error(f'check_device_error exception: {str(e)}', e)
             return self.tr(str(e))

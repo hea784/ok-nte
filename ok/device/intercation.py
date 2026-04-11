@@ -195,7 +195,24 @@ class PyDirectInteraction(BaseInteraction):
 
 
 class PynputInteraction(BaseInteraction):
-
+    KEY_MAP = {
+        'lshift': 'shift_l',
+        'rshift': 'shift_r',
+        'lctrl': 'ctrl_l',
+        'rctrl': 'ctrl_r',
+        'lalt': 'alt_l',
+        'ralt': 'alt_r',
+        'return': 'enter',
+        'pageup': 'page_up',
+        'pagedown': 'page_down',
+        'capslock': 'caps_lock',
+        'numlock': 'num_lock',
+        'scrolllock': 'scroll_lock',
+        'printscreen': 'print_screen',
+        'windows': 'cmd',
+        'command': 'cmd',
+        'meta': 'cmd'
+    }
     def __init__(self, capture: BaseCaptureMethod, hwnd_window):
         super().__init__(capture)
         self.hwnd_window = hwnd_window
@@ -211,8 +228,12 @@ class PynputInteraction(BaseInteraction):
 
     def _parse_key(self, key):
         from pynput import keyboard
+        if not isinstance(key, str):
+            return key
+        key_lower = key.lower()
+        target_name = self.KEY_MAP.get(key_lower, key_lower)
         try:
-            return keyboard.Key[key.lower()]
+            return keyboard.Key[target_name]
         except KeyError:
             return key
 
@@ -383,16 +404,19 @@ class PostMessageInteraction(BaseInteraction):
         self.last_activate = 0
         self.activate_interval = 1
         self.lparam = 0x1e0001
-        self.activated = False
+        self.activated = 0
+        self._dynamic_target_hwnd = 0
         self.hwnd_window.visible_monitors.append(self)
 
     @property
     def hwnd(self):
-        return self.hwnd_window.hwnd
+        if self._dynamic_target_hwnd != 0:
+            if win32gui.IsWindow(self._dynamic_target_hwnd):
+                return self._dynamic_target_hwnd
+        return self.hwnd_window.top_hwnd if self.hwnd_window.top_hwnd else self.hwnd_window.hwnd
 
     def on_visible(self, visible):
-        if visible:
-            self.activated = False
+        self.activated = visible
 
     def send_key(self, key, down_time=0.01):
         super().send_key(key, down_time)
@@ -491,10 +515,11 @@ class PostMessageInteraction(BaseInteraction):
         self.post(win32con.WM_ACTIVATE, win32con.WA_INACTIVE, 0)
 
     def try_activate(self):
-        if not self.activated:
+        current_hwnd = self.hwnd
+        if self.activated != current_hwnd:
             if not self.hwnd_window.is_foreground():
-                self.activated = True
                 self.activate()
+            self.activated = current_hwnd
 
     def click(self, x=-1, y=-1, move_back=False, name=None, down_time=0.01, move=True, key="left"):
         super().click(x, y, name=name)
@@ -543,12 +568,46 @@ class PostMessageInteraction(BaseInteraction):
 
     def update_mouse_pos(self, x, y, activate=True):
         self.try_activate()
+        
+        base_hwnd = self.hwnd_window.top_hwnd if self.hwnd_window.top_hwnd else self.hwnd_window.hwnd
+        
         if x == -1 or y == -1:
-            x, y = self.mouse_pos
+            x, y = getattr(self, 'bg_mouse_pos', (0, 0))
         else:
-            self.mouse_pos = (x, y)
-        # logger.debug(f'mouse_pos: {x, y}')
-        return win32api.MAKELONG(x, y)
+            x, y = self.hwnd_window.get_top_window_cords(x, y)
+            self.bg_mouse_pos = (x, y)
+            
+        try:
+            abs_x, abs_y = win32gui.ClientToScreen(base_hwnd, (int(x), int(y)))
+            
+            found_child = None
+            if self.hwnd_window.top_hwnd and self.hwnd_window.top_hwnd != self.hwnd_window.hwnd:
+                def find_child_at_point(child, _):
+                    nonlocal found_child
+                    if win32gui.IsWindowVisible(child):
+                        rect = win32gui.GetWindowRect(child)
+                        if rect[0] <= abs_x < rect[2] and rect[1] <= abs_y < rect[3]:
+                            found_child = child
+                            return False
+                    return True
+                    
+                try:
+                    win32gui.EnumChildWindows(base_hwnd, find_child_at_point, None)
+                except Exception: pass
+                logger.debug(f'found_child {found_child}')
+                
+            target_hwnd = found_child if found_child else base_hwnd
+            self._dynamic_target_hwnd = target_hwnd
+            
+            local_x, local_y = win32gui.ScreenToClient(target_hwnd, (abs_x, abs_y))
+            
+            # logger.debug(f'mouse_pos dynamically aimed at {target_hwnd} ({win32gui.GetClassName(target_hwnd)}): {local_x}, {local_y}')
+            return win32api.MAKELONG(local_x, local_y)
+            
+        except Exception as e:
+            logger.error(f'update_mouse_pos conversion error targeting {base_hwnd}', e)
+            self._dynamic_target_hwnd = base_hwnd
+            return win32api.MAKELONG(int(x), int(y))
 
     def mouse_up(self, key="left"):
         if key == "left":
@@ -593,6 +652,7 @@ vk_key_dict = {
     'UP': win32con.VK_UP,
     'RIGHT': win32con.VK_RIGHT,
     'DOWN': win32con.VK_DOWN,
+    'BACKSPACE': win32con.VK_BACK,
     # Add more keys as needed
 }
 

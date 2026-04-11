@@ -1,11 +1,12 @@
 import os
 import re
 import threading
+from concurrent.futures import ThreadPoolExecutor
 
 import cv2
 import numpy as np
 
-from ok.device.capture import HwndWindow, find_hwnd, BrowserCaptureMethod, update_capture_method, NemuIpcCaptureMethod, \
+from ok.device.capture import HwndWindow, BrowserCaptureMethod, update_capture_method, NemuIpcCaptureMethod, \
     ADBCaptureMethod
 from ok.device.intercation import PostMessageInteraction, GenshinInteraction, ForegroundPostMessageInteraction, \
     PynputInteraction, PyDirectInteraction, BrowserInteraction, ADBInteraction
@@ -16,7 +17,7 @@ from ok.util.file import delete_if_exists
 from ok.util.handler import Handler
 from ok.util.logger import Logger
 from ok.util.process import kill_exe
-from ok.util.window import windows_graphics_available
+from ok.util.window import windows_graphics_available, find_hwnd
 
 logger = Logger.get_logger(__name__)
 
@@ -49,7 +50,7 @@ class DeviceManager:
             'browser' if app_config.get('browser') else 'adb')
         self.config = Config("devices",
                              {"preferred": "", "pc_full_path": "", 'capture': default_capture, 'selected_exe': '',
-                              'selected_hwnd': 0})
+                              'selected_hwnd': 0, 'interaction': ''})
         self.handler = Handler(exit_event, 'RefreshAdb')
         if self.windows_capture_config is not None:
             if isinstance(self.windows_capture_config.get('exe'), str):
@@ -58,26 +59,44 @@ class DeviceManager:
             self.hwnd_window = HwndWindow(exit_event, self.windows_capture_config.get('title'),
                                           self.windows_capture_config.get('exe'),
                                           hwnd_class=self.windows_capture_config.get('hwnd_class'),
-                                          global_config=self.global_config, device_manager=self)
-            if self.windows_capture_config.get(
-                    'interaction') == 'PostMessage':
-                self.win_interaction_class = PostMessageInteraction
-            elif self.windows_capture_config.get(
-                    'interaction') == 'Genshin':
-                self.win_interaction_class = GenshinInteraction
-            elif self.windows_capture_config.get(
-                    'interaction') == 'ForegroundPostMessage':
-                self.win_interaction_class = ForegroundPostMessageInteraction
-            elif self.windows_capture_config.get(
-                    'interaction') == 'Pynput':
-                self.win_interaction_class = PynputInteraction
-            elif self.windows_capture_config.get(
-                    'interaction') and self.windows_capture_config.get(
-                'interaction') != 'PyDirect':
-                self.win_interaction_class = self.windows_capture_config.get(
-                    'interaction')
+                                          global_config=self.global_config, device_manager=self,
+                                          top_hwnd_class=self.windows_capture_config.get('top_hwnd_class'))
+            interaction = self.windows_capture_config.get('interaction')
+            if isinstance(interaction, list):
+                if interaction:
+                    selected_interaction = interaction[0]
+                else:
+                    selected_interaction = 'Pynput'
             else:
+                selected_interaction = interaction
+
+            saved_interaction = self.config.get('interaction')
+            if saved_interaction:
+                if isinstance(interaction, list):
+                    for item in interaction:
+                        item_name = item.__name__ if isinstance(item, type) else item
+                        if saved_interaction == item_name:
+                            selected_interaction = item
+                            break
+                else:
+                    item_name = interaction.__name__ if isinstance(interaction, type) else interaction
+                    if saved_interaction == item_name:
+                        selected_interaction = interaction
+
+            if selected_interaction == 'PostMessage':
+                self.win_interaction_class = PostMessageInteraction
+            elif selected_interaction == 'Genshin':
+                self.win_interaction_class = GenshinInteraction
+            elif selected_interaction == 'ForegroundPostMessage':
+                self.win_interaction_class = ForegroundPostMessageInteraction
+            elif selected_interaction == 'Pynput':
+                self.win_interaction_class = PynputInteraction
+            elif selected_interaction == 'PyDirect':
                 self.win_interaction_class = PyDirectInteraction
+            elif selected_interaction:
+                self.win_interaction_class = selected_interaction
+            else:
+                self.win_interaction_class = PynputInteraction
         else:
             self.hwnd_window = None
 
@@ -159,33 +178,74 @@ class DeviceManager:
             logger.error(f"adb connect error return none {addr}", e)
 
     def get_devices(self):
-        return list(self.device_dict.values())
+        devices = list(self.device_dict.values())
+        def sort_key(d):
+            device_type = d.get('device')
+            if device_type == 'adb':
+                return 0
+            if device_type == 'windows':
+                return 1
+            if device_type == 'browser':
+                return 2
+            return 3
+        return sorted(devices, key=sort_key)
 
     def update_pc_device(self):
         if self.windows_capture_config is not None:
-            name, hwnd, full_path, x, y, width, height = find_hwnd(self.windows_capture_config.get('title'),
+            if not self.windows_capture_config.get('exe') and not self.windows_capture_config.get('hwnd_class') and not self.windows_capture_config.get('title'):
+                from ok.util.window import find_all_visible_windows, get_window_bounds
+                windows = find_all_visible_windows()
+                keys_to_remove = [k for k in self.device_dict if k.startswith('pc_')]
+                for k in keys_to_remove:
+                    del self.device_dict[k]
+                for hwnd, title, exe_name, full_path in windows:
+                    x, y, _, _, width, height, m_scaling = get_window_bounds(hwnd)
+                    if width > 0 and height > 0:
+                        imei = f"pc_{hwnd}"
+                        pc_device = {
+                            "address": "", "imei": imei, "device": "windows",
+                            "model": "", "nick": title, "width": width,
+                            "height": height, "hwnd": title, "capture": "windows",
+                            "connected": True, "full_path": full_path,
+                            "real_hwnd": hwnd, "exe": exe_name,
+                            "resolution": f"{width}x{height}"
+                        }
+                        self.device_dict[imei] = pc_device
+                return None
+
+            name, hwnd, full_path, x, y, width, height, hwnds = find_hwnd(self.windows_capture_config.get('title'),
                                                                    self.windows_capture_config.get(
                                                                        'exe') or self.config.get('selected_exe'), 0, 0,
                                                                    player_id=-1,
                                                                    class_name=self.windows_capture_config.get(
                                                                        'hwnd_class'),
-                                                                   selected_hwnd=self.config.get('selected_hwnd'))
-            nick = name or self.windows_capture_config.get('exe')
-            pc_device = {"address": "", "imei": 'pc', "device": "windows",
+                                                                   selected_hwnd=self.config.get('selected_hwnd'),
+                                                                   top_hwnd_class=self.windows_capture_config.get('top_hwnd_class'))
+            exe_list = self.windows_capture_config.get('exe') or self.config.get('selected_exe')
+            if isinstance(exe_list, str):
+                exe_list = [exe_list]
+            nick = name or (exe_list[0] if exe_list else "PC")
+            imei = f"pc_{hwnd}" if hwnd else "pc"
+            pc_device = {"address": "", "imei": imei, "device": "windows",
                          "model": "", "nick": nick, "width": width,
                          "height": height,
                          "hwnd": nick, "capture": "windows",
                          "connected": hwnd > 0,
-                         "full_path": full_path or self.config.get('pc_full_path')
+                         "full_path": full_path or self.config.get('pc_full_path'),
+                         "real_hwnd": hwnd,
+                         "exe": exe_list
                          }
-            logger.info(f'start update_pc_device {self.windows_capture_config}, pc_device: {pc_device}')
+            logger.info(f'update_pc_device pc_device: {pc_device}')
             if full_path and full_path != self.config.get('pc_full_path'):
                 logger.info(f'start update_pc_device pc_full_path {full_path}')
                 self.config['pc_full_path'] = full_path
 
             if width != 0:
                 pc_device["resolution"] = f"{width}x{height}"
-            self.device_dict['pc'] = pc_device
+            self.device_dict[imei] = pc_device
+            if imei != 'pc':
+                self.device_dict.pop('pc', None)
+            return imei
 
     def update_browser_device(self):
         if self.browser_config and windows_graphics_available():
@@ -207,10 +267,10 @@ class DeviceManager:
 
     def do_refresh(self, current=False):
         try:
-            self.update_pc_device()
-            self.update_browser_device()
             self.refresh_emulators(current)
             self.refresh_phones(current)
+            self.update_pc_device()
+            self.update_browser_device()
         except Exception as e:
             logger.error('refresh error', e)
 
@@ -223,13 +283,14 @@ class DeviceManager:
     def refresh_phones(self, current=False):
         if self.adb_capture_config is None:
             return
-        for adb_device in self.adb.iter_device():
+
+        def refresh_one(adb_device):
             imei = self.adb_get_imei(adb_device)
             if imei is not None:
                 preferred = self.get_preferred_device()
                 if current and preferred is not None and preferred['imei'] != imei:
                     logger.debug(f"refresh current only skip others {preferred['imei']} != {imei}")
-                    continue
+                    return None
                 found = False
                 for device in self.device_dict.values():
                     if device.get('adb_imei') == imei:
@@ -240,8 +301,27 @@ class DeviceManager:
                     logger.debug(f'refresh_phones found an phone {adb_device}')
                     phone_device = {"address": adb_device.serial, "device": "adb", "connected": True, "imei": imei,
                                     "nick": adb_device.prop.model or imei, "player_id": -1,
-                                    "resolution": f'{width}x{height}'}
-                    self.device_dict[imei] = phone_device
+                                    "resolution": f'{width}x{height}', "adb_imei": imei}
+                    return imei, phone_device
+            return None
+
+        devices = list(self.adb.iter_device())
+        if self.exit_event.is_set():
+            return
+            
+        try:
+            with ThreadPoolExecutor(max_workers=min(len(devices), 8) if devices else 1) as executor:
+                results = list(executor.map(refresh_one, devices))
+
+            for result in results:
+                if result:
+                    imei, device = result
+                    self.device_dict[imei] = device
+        except RuntimeError as e:
+            if 'shutdown' in str(e):
+                logger.debug(f'ThreadPoolExecutor failed during shutdown: {e}')
+            else:
+                raise
         logger.debug(f'refresh_phones done')
 
     def refresh_emulators(self, current=False):
@@ -251,17 +331,18 @@ class DeviceManager:
         manager = EmulatorManager()
         installed_emulators = manager.all_emulator_instances
         logger.info(f'installed emulators {installed_emulators}')
-        for emulator in installed_emulators:
+
+        def refresh_one(emulator):
             preferred = self.get_preferred_device()
             if current and preferred is not None and preferred['imei'] != emulator.name:
                 logger.debug(f"refresh current only skip others {preferred['imei']} != {emulator.name}")
-                continue
+                return None
             adb_device = self.adb_connect(emulator.serial)
             if adb_device is not None:
                 adb_width, adb_height = self.get_resolution(adb_device)
             else:
                 adb_width, adb_height = 0, 0
-            name, hwnd, full_path, x, y, width, height = find_hwnd(None,
+            name, hwnd, full_path, x, y, width, height, _ = find_hwnd(None,
                                                                    emulator.path, adb_width, adb_height,
                                                                    emulator.player_id)
             logger.info(
@@ -273,9 +354,25 @@ class DeviceManager:
             if adb_device is not None:
                 emulator_device["resolution"] = f"{adb_width}x{adb_height}"
                 emulator_device["adb_imei"] = self.adb_get_imei(adb_device)
-            self.device_dict[emulator.name] = emulator_device
-        logger.info(f'refresh emulators {self.device_dict}')
+            return emulator.name, emulator_device
 
+        if self.exit_event.is_set():
+            return
+            
+        try:
+            with ThreadPoolExecutor(max_workers=min(len(installed_emulators), 8) if installed_emulators else 1) as executor:
+                results = list(executor.map(refresh_one, installed_emulators))
+
+            for result in results:
+                if result:
+                    name, device = result
+                    self.device_dict[name] = device
+        except RuntimeError as e:
+            if 'shutdown' in str(e):
+                logger.debug(f'ThreadPoolExecutor failed during shutdown: {e}')
+            else:
+                raise
+        logger.info(f'refresh emulators {self.device_dict}')
     def get_resolution(self, device=None):
         if device is None:
             device = self.device
@@ -297,8 +394,6 @@ class DeviceManager:
 
     def set_preferred_device(self, imei=None, index=-1):
         logger.debug(f"set_preferred_device {imei} {index}")
-        if self.executor:
-            self.executor.stop_current_task()
         if index != -1:
             imei = self.get_devices()[index]['imei']
         elif imei is None:
@@ -317,27 +412,45 @@ class DeviceManager:
                 logger.warning(f'no devices')
                 return
         if self.config.get("preferred") != imei:
+            if self.executor:
+                self.executor.stop_current_task()
             logger.info(f'preferred device did change {imei}')
             self.config["preferred"] = imei
+            if preferred.get('device') == 'windows' and preferred.get('real_hwnd'):
+                self.select_hwnd(preferred.get('exe'), preferred.get('real_hwnd'))
             self.start()
         logger.debug(f'preferred device: {preferred}')
 
     def shell_device(self, device, *args, **kwargs):
         logger.debug(f'adb shell {device} {args} {kwargs}')
         if device is not None:
-            return device.shell(*args, **kwargs)
+            try:
+                return device.shell(*args, **kwargs)
+            except Exception as e:
+                error_msg = str(e).lower()
+                if 'offline' in error_msg or 'closed' in error_msg:
+                    logger.warning(f"shell_device: Device {device.serial} offline or closed, disconnecting to force reconnect. ({e})")
+                    try:
+                        self.adb.disconnect(device.serial)
+                    except Exception as disc_e:
+                        logger.error(f'shell_device disconnect failed: {disc_e}')
+                raise
         else:
             raise Exception('Device is none')
 
     def adb_get_imei(self, device):
-        return (self.shell_device(device, "settings get secure android_id") or
-                self.shell_device(device, "service call iphonesubinfo 4") or device.prop.model)
+        try:
+            return (self.shell_device(device, "settings get secure android_id", timeout=5) or
+                    self.shell_device(device, "service call iphonesubinfo 4", timeout=5) or device.prop.model)
+        except Exception as e:
+            logger.error(f"adb_get_imei exception: {e}")
+            return None
 
     def do_screencap(self, device) -> np.ndarray | None:
         if device is None:
             return None
         try:
-            png_bytes = self.shell_device(device, "screencap -p", encoding=None)
+            png_bytes = self.shell_device(device, "screencap -p", encoding=None, timeout=10)
             if png_bytes is not None and len(png_bytes) > 0:
                 image_data = np.frombuffer(png_bytes, dtype=np.uint8)
                 image = cv2.imdecode(image_data, cv2.IMREAD_COLOR)
@@ -352,7 +465,7 @@ class DeviceManager:
         device = self.device
         if device:
             try:
-                dump_output = self.shell_device(device, ["uiautomator", "dump"], encoding='utf-8')
+                dump_output = self.shell_device(device, ["uiautomator", "dump"], encoding='utf-8', timeout=60)
                 match = re.search(r"/sdcard/.*\.xml", dump_output)
                 if match:
                     dump_file_path = match.group(0)
@@ -399,19 +512,54 @@ class DeviceManager:
             self.config['capture'] = capture
             self.start()
 
+    def set_interaction(self, interaction):
+        interaction_name = interaction.__name__ if isinstance(interaction, type) else interaction
+        
+        config_interaction = self.windows_capture_config.get('interaction') if self.windows_capture_config else None
+        if isinstance(interaction, str):
+            if isinstance(config_interaction, list):
+                for item in config_interaction:
+                    if isinstance(item, type) and item.__name__ == interaction:
+                        interaction = item
+                        break
+            elif isinstance(config_interaction, type) and config_interaction.__name__ == interaction:
+                interaction = config_interaction
+
+        if self.config.get("interaction") != interaction_name:
+            if self.executor:
+                self.executor.stop_current_task()
+            self.config['interaction'] = interaction_name
+            if interaction == 'PostMessage':
+                self.win_interaction_class = PostMessageInteraction
+            elif interaction == 'Genshin':
+                self.win_interaction_class = GenshinInteraction
+            elif interaction == 'ForegroundPostMessage':
+                self.win_interaction_class = ForegroundPostMessageInteraction
+            elif interaction == 'Pynput':
+                self.win_interaction_class = PynputInteraction
+            elif interaction and interaction != 'PyDirect':
+                self.win_interaction_class = interaction
+            else:
+                self.win_interaction_class = PyDirectInteraction
+            self.start()
+
     def get_hwnd_name(self):
         preferred = self.get_preferred_device()
         return preferred.get('hwnd')
 
-    def ensure_hwnd(self, title, exe, frame_width=0, frame_height=0, player_id=-1, hwnd_class=None):
+    def ensure_hwnd(self, title, exe, frame_width=0, frame_height=0, player_id=-1, hwnd_class=None, top_hwnd_class=None):
         if self.hwnd_window is None:
             self.hwnd_window = HwndWindow(self.exit_event, title, exe, frame_width, frame_height, player_id,
-                                          hwnd_class, global_config=self.global_config, device_manager=self)
+                                          hwnd_class, global_config=self.global_config, device_manager=self, top_hwnd_class=top_hwnd_class)
         else:
-            self.hwnd_window.update_window(title, exe, frame_width, frame_height, player_id, hwnd_class)
+            self.hwnd_window.update_window(title, exe, frame_width, frame_height, player_id, hwnd_class, top_hwnd_class)
 
     def use_windows_capture(self):
-        selected_method = self.global_config.get_config('Basic Options').get('Windows Capture')
+        selected_method = self.config.get('capture')
+        valid_methods = self.windows_capture_config.get('capture_method', [])
+        if not selected_method or selected_method not in valid_methods:
+             if valid_methods:
+                 selected_method = valid_methods[0]
         self.capture_method = update_capture_method(self.windows_capture_config, self.capture_method, self.hwnd_window,
                                                     exit_event=self.exit_event, selected_method=selected_method)
         if self.capture_method is None:
@@ -433,8 +581,14 @@ class DeviceManager:
             return
 
         if preferred['device'] == 'windows':
-            self.ensure_hwnd(self.windows_capture_config.get('title'), self.windows_capture_config.get('exe'),
-                             hwnd_class=self.windows_capture_config.get('hwnd_class'))
+            title = self.windows_capture_config.get('title')
+            exe = self.windows_capture_config.get('exe')
+            if not exe and not title and preferred.get('real_hwnd'):
+                exe = preferred.get('exe')
+                
+            self.ensure_hwnd(title, exe,
+                             hwnd_class=self.windows_capture_config.get('hwnd_class'),
+                             top_hwnd_class=self.windows_capture_config.get('top_hwnd_class'))
             self.use_windows_capture()
             if not isinstance(self.interaction, self.win_interaction_class):
                 self.interaction = self.win_interaction_class(self.capture_method, self.hwnd_window)
@@ -546,7 +700,7 @@ class DeviceManager:
             return True
         elif self.device is not None:
             try:
-                state = self.shell('echo 1')
+                state = self.shell('echo 1', timeout=3)
                 logger.debug(f'device_connected check device state is {state}')
                 return state is not None
             except Exception as e:
@@ -577,7 +731,7 @@ class DeviceManager:
             return None
 
     def adb_check_installed(self, packages):
-        installed = self.shell('pm list packages')
+        installed = self.shell('pm list packages', timeout=30)
         if isinstance(packages, str):
             packages = [packages]
         for package in packages:
@@ -585,6 +739,8 @@ class DeviceManager:
                 return package
 
     def adb_check_in_front(self, packages):
+        if not packages:
+            return True
         front = self.device is not None and self.device.app_current()
         logger.debug(f'adb_check_in_front {front}')
         if front:
@@ -605,3 +761,119 @@ class DeviceManager:
         elif installed := self.adb_check_installed(self.packages):
             self.adb_start_package(installed)
             return True
+
+    def ensure_capture(self, config: dict):
+        import time
+        logger.info(f'ensure_capture {config}')
+        if 'windows' in config:
+            win_config = config['windows']
+            if 'exe' in win_config:
+                exe_val = win_config['exe']
+                self.windows_capture_config['exe'] = [exe_val] if isinstance(exe_val, str) else exe_val
+                self.config['selected_exe'] = exe_val if isinstance(exe_val, str) else exe_val[0]
+            if 'hwnd_class' in win_config:
+                self.windows_capture_config['hwnd_class'] = win_config['hwnd_class']
+            if 'title' in win_config:
+                self.windows_capture_config['title'] = win_config['title']
+            else:
+                self.windows_capture_config.pop('title', None)
+                
+            self.config['selected_hwnd'] = 0
+                
+            imei = self.update_pc_device()
+            if not imei:
+                raise Exception("Cannot find window")
+            
+            pc = self.device_dict.get(imei)
+            if not pc or not pc.get('connected'):
+                logger.error(f"Cannot find window. PC device data: {pc}, config: {self.windows_capture_config}")
+                raise Exception("Cannot find window")
+            
+            self.set_preferred_device(imei)
+            
+            if 'interaction' in win_config:
+                self.set_interaction(win_config['interaction'])
+            if 'capture_method' in win_config:
+                self.set_capture(win_config['capture_method'])
+            else:
+                self.set_capture('windows')
+                
+            if 'resolution' in win_config:
+                resolution = win_config['resolution']
+                if getattr(self, 'hwnd_window', None):
+                    for _ in range(50):
+                        if self.hwnd_window.hwnd:
+                            break
+                        time.sleep(0.1)
+                    if self.hwnd_window.hwnd:
+                        logger.info(f'ensure_capture try_resize_to {resolution}')
+                        res = self.hwnd_window.try_resize_to([resolution])
+                        if not res:
+                            raise Exception(f"Failed to resize window to {resolution}")
+            if getattr(self, 'hwnd_window', None):
+                self.hwnd_window.do_update_window_size()
+                logger.info(f'ensure_capture window size {self.hwnd_window.width}x{self.hwnd_window.height}')
+
+        elif 'adb' in config:
+            adb_config = config['adb']
+            if 'packages' in adb_config:
+                self.packages = adb_config['packages']
+                
+            self.refresh_phones()
+            self.refresh_emulators()
+            
+            connected_adb = None
+            for device in self.get_devices():
+                if device.get('device') == 'adb' and device.get('connected'):
+                    connected_adb = device
+                    break
+                    
+            if not connected_adb:
+                raise Exception("Cannot find an connected ADB device")
+                
+            self.set_preferred_device(connected_adb['imei'])
+            
+            if 'interaction' in adb_config:
+                self.set_interaction(adb_config['interaction'])
+            if 'capture_method' in adb_config:
+                self.set_capture(adb_config['capture_method'])
+            elif self.config.get('capture') not in ('adb', 'ipc'):
+                self.set_capture('adb')
+                
+            if self.packages:
+                if not self.adb_ensure_in_front():
+                    raise Exception("Failed to start app packages")
+                    
+            if 'resolution' in adb_config:
+                resolution = adb_config['resolution']
+                current_res = self.get_resolution()
+                if current_res[0] != resolution[0] or current_res[1] != resolution[1]:
+                    try:
+                        self.shell(f"wm size {resolution[0]}x{resolution[1]}")
+                        self.resolution_dict.clear() # clear cache
+                    except Exception as e:
+                        raise Exception(f"Failed to resize ADB to {resolution}: {e}")
+
+        elif 'browser' in config:
+            browser_config = config['browser']
+            if not getattr(self, 'browser_config', None):
+                self.browser_config = {}
+            self.browser_config.update(browser_config)
+            
+            self.update_browser_device()
+            bd = self.device_dict.get('browser')
+            if not bd:
+                 raise Exception("Cannot initialize browser device")
+            
+            self.set_preferred_device('browser')
+            self.set_capture('browser')
+            
+            if 'resolution' in browser_config:
+                resolution = browser_config['resolution']
+                try:
+                    if getattr(self, 'capture_method', None) and hasattr(self.capture_method, 'page'):
+                         async def _resize():
+                             await self.capture_method.page.set_viewport_size({'width': resolution[0], 'height': resolution[1]})
+                         self.capture_method.run_in_loop(_resize())
+                except Exception as e:
+                    raise Exception(f"Failed to resize browser to {resolution}: {e}")

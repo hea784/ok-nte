@@ -1,11 +1,13 @@
 import time
 
-import win32api
+import re
+import numpy as np
+import cv2
 
 from ok import find_boxes_by_name, Logger, calculate_color_percentage
 from ok import find_color_rectangles, get_mask_in_color_range, is_pure_black
 from src.Labels import Labels
-from src.tasks.BaseNTETask import BaseNTETask
+from src.tasks.BaseNTETask import BaseNTETask, binarize_bgr_by_brightness
 
 from typing import TYPE_CHECKING
 
@@ -73,12 +75,39 @@ class CombatCheck(BaseNTETask):
         return self.has_health_bar() or self.is_boss()
 
     def is_boss(self):
-        # return self.find_one('boss_break_shield') or self.find_one('boss_break_lock')
-        return False
+        def filter(image):
+            return binarize_bgr_by_brightness(image, threshold=180)
+        box = self.box_of_screen(0.3582, 0.0215, 0.4508, 0.0569)
+        is_boss = self.find_one(Labels.boss_lv_text, box=box, frame_processor=filter)
+        return bool(is_boss)
+    
+    def test_ocr_lv(self, boxes):
+        lv_text_boxes = []
+        lv_text_imgs = []
+        width = self.width
+        height = self.height
+        frame = self.frame
+        lv_regex = re.compile(r'lv', flags=re.IGNORECASE)
+        self.ocr(box=boxes[0], frame=frame, frame_processor=binarize_bgr_by_brightness)
+        for box in boxes:
+            box_xr = box.x / width + 0.01
+            box_yr = box.y / height - 0.035
+
+            lv_text_box = self.box_of_screen(box_xr, box_yr, width=0.03, height=0.038)
+            lv_text_imgs.append(lv_text_box.crop_frame(frame))
+            lv_text_boxes.append(lv_text_box)
+        img = merge_images_vertically(lv_text_imgs)
+        start = time.perf_counter()
+        texts = self.ocr(match=lv_regex, frame=img, frame_processor=binarize_bgr_by_brightness)
+        end = time.perf_counter()
+        logger.info(f'ocr: {end - start}')
+        if len(texts) > 0:
+            return True
+        self.draw_boxes('search_lv', lv_text_boxes, color='blue')
 
     def has_health_bar(self):
         if self._in_combat:
-            min_height = self.height_of_screen(9 / 2160)
+            min_height = self.height_of_screen(7 / 2160)
             max_height = min_height * 3
             min_width = self.width_of_screen(12 / 3840)
         else:
@@ -95,10 +124,6 @@ class CombatCheck(BaseNTETask):
             boxes = find_color_rectangles(self.frame, boss_health_color, min_width, min_height * 1.3,
                                           box=self.box_of_screen(0.3277, 0.0507, 0.4980, 0.0701))
             if len(boxes) == 1:
-                self.boss_health_box = boxes[0]
-                self.boss_health_box.width = 10
-                self.boss_health_box.x += 6
-                self.boss_health = self.boss_health_box.crop_frame(self.frame)
                 self.draw_boxes('boss_health', boxes, color='blue')
                 return True
         return False
@@ -155,3 +180,22 @@ boss_health_color = {
     "g": (50, 95),  # Green range
     "b": (40, 75),  # Blue range
 }
+
+def merge_images_vertically(img_list, bg_color=(255, 255, 255)):
+    # 1. 找到所有图片中的最大宽度
+    max_width = max(img.shape[1] for img in img_list)
+    
+    processed_imgs = []
+    for img in img_list:
+        _, w = img.shape[:2]
+        if w < max_width:
+            # 计算需要填充的宽度
+            pad_width = max_width - w
+            # 使用 cv2.copyMakeBorder 进行填充 (常数填充)
+            # 这里的 bg_color 如果是灰度图传一个值(0)，如果是彩色传 (0,0,0)
+            img = cv2.copyMakeBorder(img, 0, 0, 0, pad_width, 
+                                     cv2.BORDER_CONSTANT, value=bg_color)
+        processed_imgs.append(img)
+    
+    # 2. 垂直合并
+    return cv2.vconcat(processed_imgs)

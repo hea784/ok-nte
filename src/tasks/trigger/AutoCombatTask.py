@@ -23,15 +23,14 @@ class AutoCombatTask(BaseCombatTask, TriggerTask):
         super().__init__(*args, **kwargs)
         self.default_config = {'_enabled': True}
         self.trigger_interval = 0.1
-        self.name = "Auto Combat"
-        self.description = "Enable auto combat in Abyss, Game World etc"
+        self.name = "自动战斗"
         self.icon = FluentIcon.CALORIES
         self.last_is_click = False
         self.default_config.update({
-            'Auto Target': True,
+            '自动目标': True,
         })
         self.config_description = {
-            'Auto Target': 'Turn off to enable auto combat only when manually target enemy using middle click',
+            '自动目标': '关闭以仅在手动使用中键选择敌人时启用自动战斗',
         }
         self.op_index = 0
         self.origin_func = {}
@@ -66,18 +65,19 @@ class AutoCombatTask(BaseCombatTask, TriggerTask):
         manager = CustomCharManager()
         results = []
         frame = self.frame
+        is_single = count == 1
         for i in range(count):
-            feature_mat, w, h = get_char_feature_by_pos(self, i, frame=frame, scale_box=1.1)
+            feature_mat, w, h = get_char_feature_by_pos(self, i, frame=frame, single_char=is_single)
             if feature_mat is not None and feature_mat.size > 0:
-                is_match, match_name, _ = manager.match_feature(feature_mat, threshold=0.8)
-                feature_mat = get_char_feature_by_pos(self, i, frame=frame)[0]
+                is_match, match_name, confidence = manager.match_feature(self, feature_mat, threshold=0.8)
+                name = match_name if is_match else None
                 results.append({
                     "index": i,
                     "mat": feature_mat,
                     "width": w,
                     "height": h,
-                    "match": match_name if is_match else None
+                    "match": name
                 })
-        self.log_debug(f'scan_team {[r["match"] for r in results]}')
+                self.log_debug(f"char_{i + 1}: {name}, confidence={confidence:.2f}")
         scanner_signals.scan_done.emit(results)
         self.log_info("扫描完成！")

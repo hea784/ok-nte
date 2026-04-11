@@ -1,3 +1,4 @@
+from ok.gui.tasks.LabelAndButtons import LabelAndButtons
 from ok.gui.tasks.LabelAndDoubleSpinBox import LabelAndDoubleSpinBox
 from ok.gui.tasks.LabelAndDropDown import LabelAndDropDown
 from ok.gui.tasks.LabelAndGlobal import LabelAndGlobal
@@ -22,6 +23,11 @@ def config_widget(config_type, config_desc, config, key, value, task):
             return LabelAndGlobal(desc, config, key)
         elif the_type['type'] == 'text_edit':
             return LabelAndTextEdit(config_desc, config, key)
+        elif the_type['type'] == 'button':
+            buttons = the_type.get('buttons')
+            if not buttons:
+                buttons = [the_type]
+            return LabelAndButtons(config_desc, key, buttons)
         else:
             raise Exception('Unknown config type')
     value = config.get_default(key)

@@ -28,8 +28,6 @@ class DebugTab(Tab):
         super().__init__()
         self.config = Config('debug', {'target_task': "", 'target_images': [], 'target_function': ""}
                              )
-        self.log_window_config = Config('log_window', {'width': 800, 'height': 300, 'x': 0, 'y': 0, 'keyword': '',
-                                                       'level': 'ALL', 'show': True})
         tool_widget = QWidget()
         layout = FlowLayout(tool_widget, False)
 
@@ -51,17 +49,8 @@ class DebugTab(Tab):
         layout.addWidget(capture_button)
 
         ocr_button = PushButton("OCR")
-        ocr_button.clicked.connect(lambda: self.handler.post(self.ocr))
+        ocr_button.clicked.connect(lambda: self.handler.post(self.ocr_log))
         layout.addWidget(ocr_button)
-
-        self.log_window = None
-
-        log_window_button = PushButton(self.tr("Open Logs"))
-        log_window_button.clicked.connect(self.toggle_log_window)
-        layout.addWidget(log_window_button)
-
-        if self.log_window_config.get('show'):
-            self.toggle_log_window()
 
         gen_tr_button = PushButton(self.tr("Generate i18n files"))
         gen_tr_button.clicked.connect(self.gen_tr)
@@ -115,20 +104,6 @@ class DebugTab(Tab):
         self.handler.post(self.check_hotkey, 0.1)
 
         og.app.app.aboutToQuit.connect(self.unregister)
-
-    def toggle_log_window(self):
-        if self.log_window is None:
-            from ok.gui.debug.LogWindow import LogWindow
-            self.log_window = LogWindow(self.log_window_config)
-            self.log_window.show()
-            self.log_window_config['show'] = True
-        elif self.log_window.isVisible():
-            self.log_window.hide()
-            self.log_window_config['show'] = False
-        else:
-            self.log_window_config['show'] = True
-            self.log_window.show()
-        logger.debug('showing log_window')
 
     def gen_tr(self):
         folder = og.app.gen_tr_po_files()
@@ -203,22 +178,17 @@ class DebugTab(Tab):
         self.config['target_function'] = func_name
         alert_info(self.tr(f"call success: {result}"))
 
-    def ocr(self):
-        if not og.executor.ocr:
-            alert_error(self.tr('No OCR configured'))
+    def ocr_log(self):
+        try:
+            result = og.executor.get_all_tasks()[0].ocr(log=True)
+            self.update_result_text.emit(str(result))
+            alert_info(self.tr(f"OCR success (Logged): {result}"))
+            folder = og.ok.screenshot.screenshot_folder
+            if folder:
+                subprocess.Popen(r'explorer "{}"'.format(folder))
+        except Exception as e:
+            logger.error('debug ocr_log exception', e)
             return
-        if og.device_manager.capture_method is not None:
-            logger.info(f'og.device_manager.capture_method {og.device_manager.capture_method}')
-            capture = str(og.device_manager.capture_method)
-            frame = og.device_manager.capture_method.do_get_frame()
-            if frame is not None:
-                result = og.executor.ocr.ocr(frame=frame)
-                self.update_result_text.emit(str(result))
-                alert_info(self.tr(f"OCR success: {result}"))
-            else:
-                alert_error(self.tr('Capture returned None'))
-        else:
-            alert_error(self.tr('No Capture Available or Selected'))
 
     def task_changed(self, text):
         self.config['target_task'] = text
