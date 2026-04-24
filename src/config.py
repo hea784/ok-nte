@@ -6,7 +6,7 @@ from ok import ConfigOption
 from src.interaction.NTEInteraction import NTEInteraction
 from src.process_feature import process_feature
 
-version = "v0.0.3"
+version = "v0.0.4"
 # 不需要修改version, Github Action打包会自动修改
 
 key_config_option = ConfigOption(
@@ -158,6 +158,7 @@ config = {
     ],  # 可选. 全局单例对象, 可以存放加载的模型, 使用og.my_app调用
     "onetime_tasks": [  # 用户点击触发的任务
         ["src.tasks.DailyTask", "DailyTask"],
+        ["src.tasks.FishingTask", "FishingTask"],
         # ["src.tasks.MyOneTimeTask", "MyOneTimeTask"],
         # ["src.tasks.MyOneTimeWithAGroup", "MyOneTimeWithAGroup"],
         # ["src.tasks.MyOneTimeWithAGroup2", "MyOneTimeWithAGroup2"],

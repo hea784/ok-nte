@@ -5,16 +5,26 @@ from ok import color_range_to_bound
 from src import text_white_color
 
 dialog_white_color = {
-    'r': (220, 240),  # Red range
-    'g': (220, 240),  # Green range
-    'b': (220, 240)  # Blue range
+    "r": (220, 240),  # Red range
+    "g": (220, 240),  # Green range
+    "b": (220, 240),  # Blue range
+}
+
+lv_white_color = {
+    'r': (210, 240),  # Red range
+    'g': (210, 240),  # Green range
+    'b': (210, 240)  # Blue range
 }
 
 def isolate_cd_to_black(cv_image):
     return create_color_mask(cv_image, text_white_color, invert=True)
 
+def isolate_lv_to_black(cv_image):
+    return create_color_mask(cv_image, lv_white_color, invert=True)
+
 def isolate_dialog_to_white(cv_image):
     return create_color_mask(cv_image, dialog_white_color, invert=False)
+
 
 def binarize_bgr_by_brightness(image, threshold=180, binary=False):
     """
@@ -203,7 +213,9 @@ def mask_outside_white_rect(image):
     return mask
 
 
-def create_color_mask(cv_image: np.ndarray, color_range, invert: bool = False) -> np.ndarray:
+def create_color_mask(
+    cv_image: np.ndarray, color_range, invert: bool = False, gray: bool = False
+) -> np.ndarray:
     """
     根据指定颜色范围生成3通道BGR掩码图.
 
@@ -211,6 +223,7 @@ def create_color_mask(cv_image: np.ndarray, color_range, invert: bool = False) -
         cv_image (np.ndarray): 输入的OpenCV图像.
         color_range (Any): 目标颜色范围.
         invert (bool): 是否反转掩码, 默认为False.
+        gray (bool): 是否返回灰度图, 默认为False.
 
     Returns:
         np.ndarray: 3通道BGR掩码图(匹配区为白, 非匹配区为黑).
@@ -220,13 +233,21 @@ def create_color_mask(cv_image: np.ndarray, color_range, invert: bool = False) -
     match_mask = cv2.inRange(cv_image, lower_bound, upper_bound)
     if invert:
         match_mask = cv2.bitwise_not(match_mask)
+    if gray:
+        return match_mask
     output_image = cv2.cvtColor(match_mask, cv2.COLOR_GRAY2BGR)
 
     return output_image
 
 
-def display_image(image: np.ndarray, name="image", scale=None):
+def display_image(images, name="image", scale=None, wait_key=0):
+    if not isinstance(images, list):
+        images = [images]
     if isinstance(scale, float) or isinstance(scale, int):
-        image = cv2.resize(image, None, fx=scale, fy=scale, interpolation=cv2.INTER_NEAREST)
-    cv2.imshow(name, image)
-    cv2.waitKey(0)
+        images = [
+            cv2.resize(image, None, fx=scale, fy=scale, interpolation=cv2.INTER_NEAREST)
+            for image in images
+        ]
+    for i, image in enumerate(images):
+        cv2.imshow(f"{name}_{i}", image)
+    cv2.waitKey(wait_key)

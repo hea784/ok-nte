@@ -25,10 +25,7 @@ class AutoCombatTask(BaseCombatTask, TriggerTask):
         self.default_config = {"_enabled": True}
         self.trigger_interval = 0.1
         self.name = "自动战斗"
-        self.description = (
-            "受《异环》UI的特殊性影响, 部分场景下存在识别稳定性波动。\n"
-            "由于完成“照相馆”任务后角色UI将发生偏移, 目前仅针对任务达成后的UI布局进行适配。"
-        )
+        self.description = "受《异环》UI的特殊性影响, 部分场景下存在识别稳定性波动"
         self.icon = FluentIcon.CALORIES
         self.last_is_click = False
         self.default_config.update(
@@ -37,7 +34,7 @@ class AutoCombatTask(BaseCombatTask, TriggerTask):
             }
         )
         self.config_description = {
-            "自动目标": "关闭以仅在手动使用中键选择敌人时启用自动战斗",
+            "自动目标": "关闭时仅在中键选中敌人且画面识别到 'Lv' 文字时开启战斗",
         }
         self.op_index = 0
         self.origin_func = {}
