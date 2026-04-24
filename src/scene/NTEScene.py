@@ -1,10 +1,9 @@
-from ok import Logger, BaseScene
+from ok import BaseScene, Logger
 
 logger = Logger.get_logger(__name__)
 
 
 class NTEScene(BaseScene):
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._in_team = None

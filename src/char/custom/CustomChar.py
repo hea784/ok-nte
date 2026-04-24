@@ -1,8 +1,9 @@
 import ast
+from typing import Any, Callable, List, NamedTuple
 
 from src.char.BaseChar import BaseChar
 from src.char.custom.CustomCharManager import CustomCharManager
-from typing import NamedTuple, Callable, List, Any
+
 
 class Cmd(NamedTuple):
     name: str
@@ -12,11 +13,13 @@ class Cmd(NamedTuple):
     example: str
     if_capable: bool = False
 
+
 class CustomChar(BaseChar):
     """
     用户自定义的出招表角色。
     它从 CustomCharManager 获取出招表，并在 do_perform 中解析执行。
     """
+
     def __init__(self, task, index, char_name=None, confidence=1):
         super().__init__(task, index, char_name, confidence)
         self.manager = CustomCharManager()
@@ -40,7 +43,7 @@ class CustomChar(BaseChar):
         if not self.parsed_combo:
             super().do_perform()  # 降级到默认
             return
-            
+
         self._execute_parsed_combo()
 
     @classmethod
@@ -54,20 +57,65 @@ class CustomChar(BaseChar):
         return [
             Cmd("skill", cls.custom_click_skill, PARAM_NONE, "释放技能", "skill", True),
             Cmd("ultimate", cls.click_ultimate, PARAM_NONE, "释放终结技", "ultimate", True),
-            Cmd("l_click", cls.smart_left_click, PARAM_OPT_DURATION, "鼠标左键。带参数则连点鼠标左键指定秒数，无参数为单次点按", "l_click, l_click(3)"),
-            Cmd("r_click", cls.smart_right_click, PARAM_OPT_DURATION, "鼠标右键。带参数则连点鼠标右键指定秒数，无参数为单次点按", "r_click, r_click(2)"),
-            Cmd("l_hold", cls.heavy_attack, PARAM_OPT_DURATION, "按住鼠标左键。带参数则指定秒数", "l_hold, l_hold(2)"),
-            Cmd("r_hold", cls.hold_right_click, PARAM_OPT_DURATION, "按住鼠标右键。带参数则指定秒数", "r_hold, r_hold(2)"),
+            Cmd("arc", cls.click_arc, PARAM_NONE, "释放弧盘技能", "arc", False),
+            Cmd(
+                "l_click",
+                cls.smart_left_click,
+                PARAM_OPT_DURATION,
+                "鼠标左键。带参数则连点鼠标左键指定秒数，无参数为单次点按",
+                "l_click, l_click(3)",
+            ),
+            Cmd(
+                "r_click",
+                cls.smart_right_click,
+                PARAM_OPT_DURATION,
+                "鼠标右键。带参数则连点鼠标右键指定秒数，无参数为单次点按",
+                "r_click, r_click(2)",
+            ),
+            Cmd(
+                "l_hold",
+                cls.heavy_attack,
+                PARAM_OPT_DURATION,
+                "按住鼠标左键。带参数则指定秒数",
+                "l_hold, l_hold(2)",
+            ),
+            Cmd(
+                "r_hold",
+                cls.hold_right_click,
+                PARAM_OPT_DURATION,
+                "按住鼠标右键。带参数则指定秒数",
+                "r_hold, r_hold(2)",
+            ),
             Cmd("wait", cls.sleep, "等待时间(s)，必填", "休眠停顿等待指定时间", "wait(0.5)"),
             Cmd("jump", cls.jump, PARAM_NONE, "跳跃一下", "jump"),
-            Cmd("walk", cls.walk, "按键方向、持续时间(s)，必填", "控制角色向指定方向行走", "walk(w, 0.2)"),
-            Cmd("mousedown", cls.mousedown, PARAM_OPT_KEY, DOC_MOUSE_BUTTON, "mousedown, mousedown(left)"),
+            Cmd(
+                "walk",
+                cls.walk,
+                "按键方向、持续时间(s)，必填",
+                "控制角色向指定方向行走",
+                "walk(w, 0.2)",
+            ),
+            Cmd(
+                "mousedown",
+                cls.mousedown,
+                PARAM_OPT_KEY,
+                DOC_MOUSE_BUTTON,
+                "mousedown, mousedown(left)",
+            ),
             Cmd("mouseup", cls.mouseup, PARAM_OPT_KEY, DOC_MOUSE_BUTTON, "mouseup, mouseup(right)"),
-            Cmd("click", cls.command_click, PARAM_OPT_KEY, DOC_MOUSE_BUTTON, "click, click(middle)"),
+            Cmd(
+                "click", cls.command_click, PARAM_OPT_KEY, DOC_MOUSE_BUTTON, "click, click(middle)"
+            ),
             Cmd("keydown", cls.keydown, PARAM_REQ_KEY, "按下按键", "keydown(a)"),
             Cmd("keyup", cls.keyup, PARAM_REQ_KEY, "松开按键", "keyup(d)"),
             Cmd("keypress", cls.keypress, PARAM_REQ_KEY, "按下并松开按键", "keypress(f1)"),
-            Cmd("if_", cls._execute_if_command, "条件命令、一个或多个目标命令", "条件执行：仅可使用标记为（可用于 if_ 条件）的命令作为条件命令", "if_(ultimate, skill), if_(ultimate, l_click(2), wait(0.1))"),
+            Cmd(
+                "if_",
+                cls._execute_if_command,
+                "条件命令、一个或多个目标命令",
+                "条件执行：仅可使用标记为（可用于 if_ 条件）的命令作为条件命令",
+                "if_(ultimate, skill), if_(ultimate, l_click(2), wait(0.1))",
+            ),
         ]
 
     def _compile_combo(self):
@@ -124,19 +172,31 @@ class CustomChar(BaseChar):
         if node.keywords:
             return None, f"{cls._node_loc(node)}: if_ only supports positional arguments"
         if len(node.args) < 2:
-            return None, f"{cls._node_loc(node)}: if_ requires at least 2 positional arguments: if_(cond, then1, ...)"
+            return (
+                None,
+                f"{cls._node_loc(node)}: if_ requires at least 2 positional arguments: "
+                f"if_(cond, then1, ...)",
+            )
 
         cond_node = node.args[0]
         then_nodes = node.args[1:]
         if not isinstance(cond_node, ast.Name):
-            return None, f"{cls._node_loc(cond_node)}: if_ condition must be a command name without arguments"
+            return (
+                None,
+                f"{cls._node_loc(cond_node)}: if_ condition must be a command name "
+                f"without arguments",
+            )
 
         cond_name = cond_node.id
         cond_target = cls._resolve_target(cond_name, aliases)
         if cond_target is None:
             return None, f"{cls._node_loc(cond_node)}: unknown command '{cond_name}'"
         if not if_capable_map.get(cond_name, False):
-            return None, f"{cls._node_loc(cond_node)}: command '{cond_name}' is not enabled as if_ condition"
+            return (
+                None,
+                f"{cls._node_loc(cond_node)}: command '{cond_name}' is not enabled as "
+                f"if_ condition",
+            )
 
         cond_cmd_text = ast.get_source_segment(combo_str, cond_node) or cond_name
         cond_cmd = (cond_name, cond_target, [], {}, cond_cmd_text)
@@ -173,7 +233,11 @@ class CustomChar(BaseChar):
         if isinstance(node, ast.Name):
             func_name = node.id
             if func_name == "if_":
-                return None, f"{cls._node_loc(node)}: if_ must be called with arguments, e.g. if_(ultimate, skill, wait(0.1))"
+                return (
+                    None,
+                    f"{cls._node_loc(node)}: if_ must be called with arguments, "
+                    f"e.g. if_(ultimate, skill, wait(0.1))",
+                )
         elif isinstance(node, ast.Call):
             if not isinstance(node.func, ast.Name):
                 return None, f"{cls._node_loc(node)}: unsupported callable expression"
@@ -261,7 +325,7 @@ class CustomChar(BaseChar):
                 self._execute_compiled_command(command)
             except Exception as e:
                 cmd = command[4] if len(command) >= 5 else "unknown"
-                self.logger.error(f"Error executing command '{cmd}': {e}")
+                self.logger.error(f"Error executing command '{cmd}'", e)
 
             # 中途打断逻辑
             self.check_combat()
@@ -284,7 +348,8 @@ class CustomChar(BaseChar):
         cond_result = self._execute_compiled_command(condition_cmd)
         if not isinstance(cond_result, bool):
             self.logger.warning(
-                f"if_ condition command '{condition_cmd[0]}' returned non-bool value, treat as False"
+                f"if_ condition command '{condition_cmd[0]}' returned non-bool value, "
+                f"treat as False"
             )
             return False
 
@@ -304,7 +369,7 @@ class CustomChar(BaseChar):
 
     def jump(self):
         self.send_key("space")
-        
+
     def smart_left_click(self, duration=None):
         if duration is None:
             self.normal_attack()

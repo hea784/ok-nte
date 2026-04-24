@@ -2,7 +2,6 @@ from enum import Enum
 
 
 class Labels(str, Enum):
-    blue_element = 'blue_element'
     boss_lv_text = 'boss_lv_text'
     box_char_1 = 'box_char_1'
     box_char_2 = 'box_char_2'
@@ -14,10 +13,9 @@ class Labels(str, Enum):
     char_2_text = 'char_2_text'
     char_3_text = 'char_3_text'
     char_4_text = 'char_4_text'
-    green_element = 'green_element'
     health_bar_slash = 'health_bar_slash'
+    message = 'message'
+    message_dialog = 'message_dialog'
     mini_map_arrow = 'mini_map_arrow'
-    purple_element = 'purple_element'
-    red_element = 'red_element'
-    white_element = 'white_element'
-    yellow_element = 'yellow_element'
+    skip_dialog = 'skip_dialog'
+    skip_quest_confirm = 'skip_quest_confirm'

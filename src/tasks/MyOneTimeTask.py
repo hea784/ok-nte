@@ -19,6 +19,7 @@ INST = r"""
         </span>
     """
 
+
 class MyOneTimeTask(BaseNTETask):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -51,14 +52,10 @@ class MyOneTimeTask(BaseNTETask):
         self.log_info("日常任务运行完成!")
 
     def find_some_text_on_bottom_right(self):
-        return self.ocr(
-            box="bottom_right", match="商城", log=True
-        )  # 指定box以提高ocr速度
+        return self.ocr(box="bottom_right", match="商城", log=True)  # 指定box以提高ocr速度
 
     def find_some_text_with_relative_box(self):
-        return self.ocr(
-            0.5, 0.5, 1, 1, match=re.compile("招"), log=True
-        )  # 指定box以提高ocr速度
+        return self.ocr(0.5, 0.5, 1, 1, match=re.compile("招"), log=True)  # 指定box以提高ocr速度
 
     def test_find_one_feature(self):
         return self.find_one("box_battle_1")

@@ -41,7 +41,7 @@ class BuiltinComboRegistry:
             return None
         value = combo_ref.strip()
         if value.startswith(cls.REF_PREFIX):
-            key = value[len(cls.REF_PREFIX):].strip()
+            key = value[len(cls.REF_PREFIX) :].strip()
             return key or None
         return None
 
@@ -71,7 +71,9 @@ class BuiltinComboRegistry:
             return cls.make_ref(key)
 
         # Fallback: resolve by generated label only when mapping is unambiguous.
-        matched_refs = [combo_ref for combo_ref, combo_label in cls.iter_builtin_pairs() if combo_label == label]
+        matched_refs = [
+            combo_ref for combo_ref, combo_label in cls.iter_builtin_pairs() if combo_label == label
+        ]
         if len(matched_refs) == 1:
             return matched_refs[0]
         return None

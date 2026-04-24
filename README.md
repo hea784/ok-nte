@@ -9,8 +9,8 @@
   <p>
     <img src="https://img.shields.io/badge/platform-Windows-blue" alt="平台">
     <img src="https://img.shields.io/badge/python-3.12-skyblue" alt="Python版本">
-    <a href="https://github.com/BnanZ0/ok-neverness-to-everness/releases"><img src="https://img.shields.io/github/downloads/BnanZ0/ok-neverness-to-everness/total" alt="总下载量"></a>
-    <a href="https://github.com/BnanZ0/ok-neverness-to-everness/releases"><img src="https://img.shields.io/github/v/release/BnanZ0/ok-neverness-to-everness" alt="最新版本"></a>
+    <a href="https://github.com/BnanZ0/ok-nte/releases"><img src="https://img.shields.io/github/downloads/BnanZ0/ok-nte/total" alt="总下载量"></a>
+    <a href="https://github.com/BnanZ0/ok-nte/releases"><img src="https://img.shields.io/github/v/release/BnanZ0/ok-nte" alt="最新版本"></a>
     <a href="https://discord.gg/vVyCatEBgA"><img alt="Discord" src="https://img.shields.io/discord/296598043787132928?color=5865f2&label=%20Discord"></a>
   </p>
 </div>
@@ -24,9 +24,10 @@
 -   **法律责任**：使用本软件产生的所有问题及后果，均与本项目及开发者团队无关。开发者团队拥有对本项目的最终解释权。
 -   **商业行为**：若您遇到商家使用本软件进行代练并收费，此行为可能涉及设备与时间成本，与本软件本身无关。
 
-> **请注意：根据[《异环》公平游戏宣言]()：**
+> **请注意：根据[《异环》公平游戏宣言](https://yh.wanmei.com/news/gamebroad/20260202/260701.html)：**
 >
 > > ""
+> > 严禁使用任何第三方工具破坏游戏公平性。我们将严厉打击使用外挂、加速器、作弊软件、宏脚本等非法工具的行为，这些行为包括但不限于自动挂机、技能加速、无敌模式、瞬移、修改游戏数据等操作。一经查实，我们将视违规严重程度及违规次数，采取包括但不限于扣除违规收益、冻结游戏账号、永久封禁游戏账号等措施。
 > > ""
 >
 > **您应充分了解并自愿承担使用本工具可能带来的所有风险。**
@@ -57,9 +58,9 @@ All issues and consequences arising from the use of this software are not relate
 
 此方法适合绝大多数用户，简单快捷，并支持自动更新。
 
-1.  前往 [**Releases**](https://github.com/BnanZ0/ok-neverness-to-everness/releases) 页面。
-2.  下载最新的 `ok-nte-win32-China-setup.exe` 文件。
-3.  双击运行安装程序，按提示完成安装即可。
+*   **[GitHub](https://github.com/BnanZ0/ok-nte/releases)**: 官方发布页，全球访问速度快。
+*   **[Mirror酱](https://mirrorchyan.com/zh/projects?rid=ok-nte&channel=stable)**: 国内镜像，下载可能需要购买其平台的 CD-KEY。
+*   **[夸克网盘](https://pan.quark.cn/s/a1052cec4d13)**: 国内网盘，免费，但需要注册并使用其客户端下载。
 
 ### 方式二：从源码运行 (适合开发者)
 
@@ -68,15 +69,16 @@ All issues and consequences arising from the use of this software are not relate
 1.  **环境要求**：确保已安装 **Python 3.12** 或更高版本。
 2.  **克隆仓库**：
     ```bash
-    git clone https://github.com/BnanZ0/ok-neverness-to-everness.git
-    cd ok-neverness-to-everness
+    git clone https://github.com/BnanZ0/ok-nte.git
+    cd ok-nte
     ```
 3.  **安装依赖**：
     ```bash
-    pip install -r requirements.txt --upgrade
+    uv sync
+    # or
+    pip install -r requirements.txt
     ```
     *提示：每次更新代码后，建议重新运行此命令以确保依赖库为最新版本。*  
-    *本项目已支持使用 `uv` 进行依赖管理，`requirements.txt` 和 `requirements-dev.txt` 均由 `uv` 生成。*
 4.  **运行程序**：
     ```bash
     # 运行正式版
@@ -95,9 +97,8 @@ All issues and consequences arising from the use of this software are not relate
 在启动自动化前，请务必检查并确认以下设置：
 
 *   **图形设置**
-    *   **显卡滤镜**：**关闭** 所有显卡滤行和锐化效果（如 NVIDIA Freestyle, AMD FidelityFX）。
+    *   **显卡滤镜**：**关闭** 所有显卡滤镜和锐化效果（如 NVIDIA Freestyle, AMD FidelityFX）。
     *   **游戏亮度**：使用游戏 **默认亮度**。
-    *   **游戏UI缩放**：使用游戏 **默认缩放100%**。
 *   **分辨率**
     *   推荐使用 **1920x1080** 或以上的主流分辨率。
 *   **按键设置**
@@ -120,7 +121,7 @@ All issues and consequences arising from the use of this software are not relate
 
 ### 四、 问题反馈
 
-如果以上方法未能解决您的问题，欢迎通过 [**Issues**](https://github.com/BnanZ0/ok-neverness-to-everness/issues) 向我们反馈。为帮助我们快速定位问题，请在提交时提供以下信息：
+如果以上方法未能解决您的问题，欢迎通过 [**Issues**](https://github.com/BnanZ0/ok-nte/issues) 向我们反馈。为帮助我们快速定位问题，请在提交时提供以下信息：
 
 *   **问题截图**：清晰展示异常界面或错误提示。
 *   **日志文件**：附上程序目录下的 `.log` 日志文件。
@@ -129,7 +130,7 @@ All issues and consequences arising from the use of this software are not relate
 ## 💬 社区与交流
 
 *   **QQ 用户群**: `1090560071`
-*   **QQ 开发者群**: ``
+*   **QQ 开发者群**: `1087276729`
 *   **QQ 频道**: [点击加入]()
 *   **Discord**: [https://discord.gg/vVyCatEBgA](https://discord.gg/vVyCatEBgA)
 
@@ -147,12 +148,12 @@ All issues and consequences arising from the use of this software are not relate
 
 
 ## ❤️ 赞助与致谢
-*   喜欢本项目? [点亮小星星⭐](https://github.com/BnanZ0/ok-neverness-to-everness) 或 [赞助开发者](./.github/sponsor.md)!
+*   喜欢本项目? [点亮小星星⭐](https://github.com/BnanZ0/ok-nte) 或 [赞助开发者](./.github/sponsor.md)!
 
 ### 贡献者
 
-<a href="https://github.com/BnanZ0/ok-neverness-to-everness/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=BnanZ0/ok-neverness-to-everness" width="40" />
+<a href="https://github.com/BnanZ0/ok-nte/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=BnanZ0/ok-nte" />
 </a>
 
 ### 赞助商 (Sponsors)
