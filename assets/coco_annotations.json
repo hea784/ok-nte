@@ -35,6 +35,18 @@
             "file_name": "images/0.png",
             "width": 2560,
             "height": 1440
+        },
+        {
+            "id": 7,
+            "file_name": "images/0.png",
+            "width": 2560,
+            "height": 1440
+        },
+        {
+            "id": 8,
+            "file_name": "images/1.png",
+            "width": 2560,
+            "height": 1440
         }
     ],
     "annotations": [
@@ -284,6 +296,45 @@
             ],
             "area": 1102,
             "iscrowd": 0
+        },
+        {
+            "id": 20,
+            "image_id": 7,
+            "category_id": 21,
+            "bbox": [
+                1536,
+                753,
+                63,
+                65
+            ],
+            "area": 4095,
+            "iscrowd": 0
+        },
+        {
+            "id": 21,
+            "image_id": 8,
+            "category_id": 20,
+            "bbox": [
+                2347,
+                1259,
+                44,
+                71
+            ],
+            "area": 3124,
+            "iscrowd": 0
+        },
+        {
+            "id": 22,
+            "image_id": 8,
+            "category_id": 22,
+            "bbox": [
+                2164,
+                1266,
+                48,
+                57
+            ],
+            "area": 2736,
+            "iscrowd": 0
         }
     ],
     "categories": [
@@ -380,6 +431,21 @@
         {
             "id": 19,
             "name": "dialog_history",
+            "supercategory": ""
+        },
+        {
+            "id": 20,
+            "name": "fish_start",
+            "supercategory": ""
+        },
+        {
+            "id": 21,
+            "name": "interactable",
+            "supercategory": ""
+        },
+        {
+            "id": 22,
+            "name": "fish_bait",
             "supercategory": ""
         }
     ]

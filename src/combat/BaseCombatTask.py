@@ -49,6 +49,8 @@ class BaseCombatTask(CombatCheck):
         Element.YELLOW,
     )
     element_ring_index = {element: index for index, element in enumerate(element_ring)}
+    _element_template_cache = {}
+    _element_standard_size = None
 
     def __init__(self, *args, **kwargs):
         """初始化战斗任务。
@@ -589,9 +591,8 @@ class BaseCombatTask(CombatCheck):
             )
 
         box = self.get_char_box(index)
-        # if count == 1:
-        #     offset = int(self.width * -9 / 2560)
-        #     box = box.copy(x_offset=offset)
+        if count == 1:
+            box = self.shift_char_ui_box(box, expend=True)
         box_scaled = box.scale(1.1, 1.1)
 
         return get_char_by_pos(self, box_scaled, index, safe_get(self.chars, index))
@@ -653,23 +654,25 @@ class BaseCombatTask(CombatCheck):
             Element.WHITE,
         ]
 
-        base_box = self.box_of_screen_scaled(
-            2560, 1440, 2429, 335, width_original=29, height_original=29
-        )
+        base_box = self.get_base_char_element_box()
 
-        ref_img = cv2.imread(f"assets/esper_icons/{Element.BLUE.value}.png")
-        standard_size = (ref_img.shape[1], ref_img.shape[0])
+        if not self._element_template_cache:
+            ref_img = cv2.imread(f"assets/esper_icons/{Element.BLUE.value}.png")
+            if ref_img is not None:
+                h, w = ref_img.shape[:2]
+                self._element_standard_size = (w, h)
 
-        processed_templates = {}
-        for element in target_elements:
-            raw_template = cv2.imread(
-                f"assets/esper_icons/{element.value}.png", cv2.IMREAD_UNCHANGED
-            )
-            raw_template[raw_template[:, :, 3] == 0] = [0, 0, 0, 0]
-            template_bin = preprocess_image(raw_template[:, :, :3])
+            for element in target_elements:
+                raw_template = cv2.imread(
+                    f"assets/esper_icons/{element.value}.png", cv2.IMREAD_UNCHANGED
+                )
+                if raw_template is not None:
+                    raw_template[raw_template[:, :, 3] == 0] = [0, 0, 0, 0]
+                    template_bin = preprocess_image(raw_template[:, :, :3])
+                    _, mask = cv2.threshold(template_bin, 127, 255, cv2.THRESH_BINARY)
+                    self._element_template_cache[element] = (template_bin, mask)
 
-            _, mask = cv2.threshold(template_bin, 127, 255, cv2.THRESH_BINARY)
-            processed_templates[element] = (template_bin, mask)
+        standard_size = self._element_standard_size
 
         vertical_spacing = int(self.height * 176 / 1440)
 
@@ -677,14 +680,20 @@ class BaseCombatTask(CombatCheck):
             current_box = base_box.copy(y_offset=vertical_spacing * i)
 
             crop_img = preprocess_image(current_box.crop_frame(self.frame))
-            crop_resized = cv2.resize(crop_img, standard_size, interpolation=cv2.INTER_NEAREST)
+            crop_h, crop_w = crop_img.shape[:2]
+            _, standard_h = standard_size
+            target_w = int(crop_w * (standard_h / crop_h))
+            crop_resized = cv2.resize(crop_img, (target_w, standard_h), interpolation=cv2.INTER_NEAREST)
             # iu.show_images(crop_resized, f"crop_resized_{i}")
 
             best_element = Element.DEFAULT
             max_score = -1.0
 
             for element in target_elements:
-                template_img, template_mask = processed_templates[element]
+                template_data = self._element_template_cache.get(element)
+                if template_data is None:
+                    continue
+                template_img, template_mask = template_data
 
                 match_score = 0
                 if crop_resized is not None and template_img is not None:
@@ -697,7 +706,10 @@ class BaseCombatTask(CombatCheck):
                     max_score = match_score
                     best_element = element
 
+            current_box.confidence = max_score
+            current_box.name = best_element.name
             results.append(best_element)
+            self.draw_boxes(boxes=current_box, color="red")
             self.log_debug(
                 f"char_{i + 1} identified as {best_element.name} (score: {max_score:.4f})"
             )

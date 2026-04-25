@@ -91,7 +91,7 @@ class CombatCheck(BaseNTETask):
                 logger.info(f"target lost try retarget {self.target_enemy_time_out}")
                 start = time.time()
                 while time.time() - start < self.target_enemy_time_out:
-                    self.middle_click(interval=0.3)
+                    self.middle_click(interval=0.5)
                     if self.combat_detect() is True:
                         return True
                     self.next_frame()
@@ -195,11 +195,14 @@ class CombatCheck(BaseNTETask):
                 self.config.get("自动目标") or not isinstance(self, AutoCombatTask)
             ) and self.check_health_bar()
             if not in_combat:
-                in_combat = has_target and self.ocr(
-                    box=self.main_viewport,
-                    frame_processor=iu.isolate_lv_to_black,
-                    match=re.compile(r"lv", re.IGNORECASE),
-                    target_height=720,
+                in_combat = has_target and (
+                    self.check_health_bar()
+                    or self.ocr(
+                        box=self.main_viewport,
+                        frame_processor=iu.isolate_lv_to_black,
+                        match=re.compile(r"lv", re.IGNORECASE),
+                        target_height=720,
+                    )
                 )
             if in_combat:
                 if not has_target and not self.target_enemy(wait=True):
