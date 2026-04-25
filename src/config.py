@@ -6,7 +6,7 @@ from ok import ConfigOption
 from src.interaction.NTEInteraction import NTEInteraction
 from src.process_feature import process_feature
 
-version = "v0.0.6"
+version = "v0.0.7"
 # 不需要修改version, Github Action打包会自动修改
 
 key_config_option = ConfigOption(
@@ -85,7 +85,7 @@ config = {
         }
     },
     "windows": {  # Windows游戏请填写此设置
-        "exe": ["HTGame.exe"],
+        "exe": "HTGame.exe",
         "hwnd_class": "UnrealWindow",
         "interaction": [NTEInteraction, "Pynput"],  # Genshin:某些操作可以后台, 部分游戏支持 PostMessage:可后台点击, 极少游戏支持 ForegroundPostMessage:前台使用PostMessage Pynput/PyDirect:仅支持前台使用
         "capture_method": [
