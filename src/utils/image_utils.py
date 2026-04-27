@@ -1,34 +1,10 @@
 from dataclasses import dataclass
+from typing import Tuple
 
 import cv2
 import numpy as np
+
 from ok import color_range_to_bound
-
-from src import text_white_color
-
-dialog_white_color = {
-    "r": (220, 240),  # Red range
-    "g": (220, 240),  # Green range
-    "b": (220, 240),  # Blue range
-}
-
-lv_white_color = {
-    "r": (210, 255),  # Red range
-    "g": (210, 255),  # Green range
-    "b": (210, 255),  # Blue range
-}
-
-
-def isolate_cd_to_black(cv_image):
-    return create_color_mask(cv_image, text_white_color, invert=True)
-
-
-def isolate_lv_to_black(cv_image):
-    return create_color_mask(cv_image, lv_white_color, invert=True)
-
-
-def isolate_dialog_to_white(cv_image):
-    return create_color_mask(cv_image, dialog_white_color, invert=False)
 
 
 def binarize_bgr_by_brightness(image, threshold=180, binary=False):
@@ -219,7 +195,7 @@ def mask_outside_white_rect(image):
 
 
 def create_color_mask(
-    cv_image: np.ndarray, color_range, invert: bool = False, gray: bool = False
+    cv_image: np.ndarray, color_range, invert: bool = False, binary: bool = False
 ) -> np.ndarray:
     """
     根据指定颜色范围生成3通道BGR掩码图.
@@ -228,17 +204,17 @@ def create_color_mask(
         cv_image (np.ndarray): 输入的OpenCV图像.
         color_range (Any): 目标颜色范围.
         invert (bool): 是否反转掩码, 默认为False.
-        gray (bool): 是否返回灰度图, 默认为False.
+        binary (bool): 是否返回单通道二值图(掩码), 默认为False.
 
     Returns:
-        np.ndarray: 3通道BGR掩码图(匹配区为白, 非匹配区为黑).
+        np.ndarray: 3通道BGR掩码图(匹配区为白, 非匹配区为黑)或单通道二值掩码图.
     """
     lower_bound, upper_bound = color_range_to_bound(color_range)
 
     match_mask = cv2.inRange(cv_image, lower_bound, upper_bound)
     if invert:
         match_mask = cv2.bitwise_not(match_mask)
-    if gray:
+    if binary:
         return match_mask
     output_image = cv2.cvtColor(match_mask, cv2.COLOR_GRAY2BGR)
 
@@ -264,11 +240,64 @@ def show_images(images, names=None, scale=None, wait_key=0):
 
 @dataclass
 class HSVRange:
+    """
+    HSV 颜色范围容器 (OpenCV 格式)
+
+    取值范围提示:
+    - H (Hue): 0 - 179
+    - S (Saturation): 0 - 255
+    - V (Value): 0 - 255
+    """
+
     lower: np.ndarray
     upper: np.ndarray
 
+    def __init__(self, lower: Tuple[int, int, int], upper: Tuple[int, int, int]):
+        """
+        初始化 HSV 范围 (输入值若超出范围会自动修正)
 
-def filter_by_hsv(image, hsv_range: HSVRange):
+        Args:
+            lower: 下限 (h: 0-179, s: 0-255, v: 0-255)
+            upper: 上限 (h: 0-179, s: 0-255, v: 0-255)
+        """
+        min_vals = [0, 0, 0]
+        max_vals = [179, 255, 255]
+
+        lower_clipped = np.clip(lower, min_vals, max_vals)
+        upper_clipped = np.clip(upper, min_vals, max_vals)
+
+        self.lower = np.array(lower_clipped, dtype=np.uint8)
+        self.upper = np.array(upper_clipped, dtype=np.uint8)
+
+
+def filter_by_hsv(image, hsv_range: HSVRange, binary: bool = False):
     hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
-    mask = cv2.inRange(hsv, hsv_range.lower, hsv_range.upper)
-    return cv2.bitwise_and(image, image, mask=mask)
+    match_mask = cv2.inRange(hsv, hsv_range.lower, hsv_range.upper)
+    if binary:
+        return match_mask
+    return cv2.bitwise_and(image, image, mask=match_mask)
+
+
+def adjust_lightness_contrast_lab(img, brightness=0, contrast=0):
+    """
+    基于 Lab 空间的通用亮度对比度调节函数
+    参数范围建议: brightness (-100 to 100), contrast (-100 to 100)
+    """
+    lab = cv2.cvtColor(img, cv2.COLOR_BGR2Lab)
+    lightness, a, b = cv2.split(lab)
+
+    if contrast >= 0:
+        factor = 1.0 + (contrast / 100.0) * 2.0
+    else:
+        factor = 1.0 + (contrast / 100.0)
+
+    offset = brightness * 1.28
+
+    lut = np.arange(256).astype(np.float32)
+    lut = (lut - 128) * factor + 128 + offset
+
+    lut = np.clip(lut, 0, 255).astype(np.uint8)
+
+    lightness = cv2.LUT(lightness, lut)
+    result_lab = cv2.merge((lightness, a, b))
+    return cv2.cvtColor(result_lab, cv2.COLOR_Lab2BGR)

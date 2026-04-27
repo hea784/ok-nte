@@ -13,6 +13,7 @@ from src.char.CharFactory import get_char_by_name, get_char_by_pos
 from src.char.custom.CustomCharManager import CustomCharManager
 from src.char.Healer import Healer
 from src.combat.CombatCheck import CombatCheck
+from src.utils import game_filters as gf
 from src.utils import image_utils as iu
 
 if TYPE_CHECKING:
@@ -225,7 +226,7 @@ class BaseCombatTask(CombatCheck):
         cds["skill"] = 0
         cds["ultimate"] = 0
         texts = self.ocr(
-            0.8594, 0.8847, 0.9578, 0.9139, frame_processor=iu.isolate_cd_to_black, match=cd_regex
+            0.8594, 0.8847, 0.9578, 0.9139, frame_processor=gf.isolate_cd_to_black, match=cd_regex
         )
         for text in texts:
             cd = convert_cd(text)
@@ -607,6 +608,7 @@ class BaseCombatTask(CombatCheck):
         if count > 4:
             logger.warning(f"char count {count} larger than 4, set to 4")
             count = 4
+        self.log_info(f"load_chars count {count} current_index {current_index}")
 
         elements = self.load_chars_element(count)
         self.clear_element_ring_reactions()
@@ -696,16 +698,17 @@ class BaseCombatTask(CombatCheck):
                     # iu.show_images([mask], [f"mask_{element}"])
                     self._element_template_cache[element] = (raw_template, mask)
 
-        vertical_spacing = int(self.height * 176 / 1440)
-        _frame = self.frame
+        _frame = self.frame.copy()
         # self.screenshot("load_chars_element", _frame)
 
         for i in range(count):
-            current_box = base_box.copy(y_offset=vertical_spacing * i)
+            base_scale = 16
+            scale = base_scale * 1440 / self.height
+            current_box = self.get_box_by_char_spacing(base_box, i)
             crop_img = current_box.crop_frame(_frame)
             crop_h, crop_w = crop_img.shape[:2]
             crop_resized = cv2.resize(
-                crop_img, (int(crop_w * 16), int(crop_h * 16)), interpolation=cv2.INTER_NEAREST
+                crop_img, (int(crop_w * scale), int(crop_h * scale)), interpolation=cv2.INTER_NEAREST
             )
             # iu.show_images([crop_resized, crop_img], [f"crop_resized_{i}", f"crop_img_{i}"])
 
@@ -807,7 +810,7 @@ class BaseCombatTask(CombatCheck):
             return img1, img2
 
         confidence = 1
-        frame = self.frame
+        frame = self.frame.copy()
         feature_name = f"char_{index + 1}_text"
         box = self.get_box_by_name(feature_name)
         current_mat = box.crop_frame(frame)

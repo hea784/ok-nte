@@ -78,7 +78,7 @@ class AutoCombatTask(BaseCombatTask, TriggerTask):
 
         manager = CustomCharManager()
         results = []
-        frame = self.frame
+        frame = self.frame.copy()
         for i in range(count):
             feature_mat, w, h = get_char_feature_by_pos(self, i, frame=frame)
             if feature_mat is not None and feature_mat.size > 0:

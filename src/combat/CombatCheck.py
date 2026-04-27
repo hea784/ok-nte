@@ -8,6 +8,7 @@ from ok import Box, Logger, color_range_to_bound, find_color_rectangles
 
 from src.Labels import Labels
 from src.tasks.BaseNTETask import BaseNTETask
+from src.utils import game_filters as gf
 from src.utils import image_utils as iu
 
 if TYPE_CHECKING:
@@ -200,7 +201,7 @@ class CombatCheck(BaseNTETask):
             if not in_combat and has_target:
                 in_combat = self.ocr(
                     box=self.main_viewport,
-                    frame_processor=iu.isolate_lv_to_black,
+                    frame_processor=gf.isolate_lv_to_black,
                     match=re.compile(r"lv", re.IGNORECASE),
                     target_height=720,
                 )
@@ -242,7 +243,7 @@ class CombatCheck(BaseNTETask):
         利用屏幕比例动态收缩范围 + 智能颜色遮罩剔除背景杂讯
         """
         if frame is None:
-            frame = self.frame
+            frame = self.frame.copy()
         ratio = self.height / 1440.0
 
         dynamic_scales = set()
@@ -344,7 +345,7 @@ class CombatCheck(BaseNTETask):
         if self.ocr(
             frame=frame,
             box=self.main_viewport,
-            frame_processor=iu.isolate_lv_to_black,
+            frame_processor=gf.isolate_lv_to_black,
             match=re.compile(r"lv", re.IGNORECASE),
             target_height=720,
             lib="bg_onnx_ocr",
@@ -366,8 +367,7 @@ class CombatCheck(BaseNTETask):
             )
         return None
 
-
-enemy_health_hsv = iu.HSVRange(np.array([0, 190, 175]), np.array([10, 255, 255]))
+enemy_health_hsv = iu.HSVRange((0, 190, 175), (10, 255, 255))
 
 enemy_health_color_red = {
     "r": (210, 255),

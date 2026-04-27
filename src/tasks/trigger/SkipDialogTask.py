@@ -2,7 +2,7 @@ from ok import Logger, TriggerTask
 
 from src.Labels import Labels
 from src.tasks.BaseNTETask import BaseNTETask
-from src.utils import image_utils as iu
+from src.utils import game_filters as gf
 
 logger = Logger.get_logger(__name__)
 
@@ -85,7 +85,7 @@ class SkipDialogTask(TriggerTask, BaseNTETask):
             Labels.skip_dialog,
             horizontal_variance=0.02,
             threshold=0.75,
-            frame_processor=iu.isolate_dialog_to_white,
+            frame_processor=gf.isolate_dialog_to_white,
         )
 
     def try_click_skip(self):
