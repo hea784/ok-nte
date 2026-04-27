@@ -98,14 +98,28 @@ class FishingTask(BaseNTETask):
             self.sleep(1.5)
 
     def cast_rod(self) -> bool:
+        def post():
+            if self.is_success_overlay():
+                self.log_info("抛竿时检测到成功面板, 尝试关闭")
+                self.click(
+                    self.SUCCESS_CLOSE_POS[0],
+                    self.SUCCESS_CLOSE_POS[1],
+                    interval=1.5,
+                )
         self.log_info("执行抛竿操作")
         if not self.wait_until(
             lambda: not self.is_fish_bait_exist() and self.is_fish_start_exist(),
-            pre_action=lambda: self.send_key("f", interval=2),
-            post_action=self.clear_success_overlay_if_present,
+            pre_action=lambda: self.send_key("f", interval=1.5),
+            post_action=post,
             time_out=20,
         ):
+            self.send_key("f")
+            frame = self.frame
+            self.screenshot("fishing_cast_timeout", frame=frame)
+            text = self.ocr(0.4090, 0.4778, 0.5914, 0.5188, frame=frame)
             self.log_error("未检测到进入抛竿状态", notify=True)
+            if text:
+                self.log_warning(f"检测到文字: {text}")
             return False
         return True
 
@@ -127,6 +141,7 @@ class FishingTask(BaseNTETask):
             return False
 
     def control_until_finish(self) -> bool:
+        start_check_time = time.time() + 1
         deadline = time.time() + self.CONTROL_TIMEOUT
         failed_time = 0
         try:
@@ -137,18 +152,19 @@ class FishingTask(BaseNTETask):
                 else:
                     self._set_bar_key(None)
 
-                if self.is_fish_bait_exist():
-                    if failed_time == 0:
-                        failed_time = time.time()
-                else:
-                    failed_time = 0
+                if time.time() > start_check_time:
+                    if self.is_fish_bait_exist():
+                        if failed_time == 0:
+                            failed_time = time.time()
+                    else:
+                        failed_time = 0
 
-                if failed_time != 0 and time.time() - failed_time > 5:
-                    self.log_error("疑似脱钩或失败")
-                    return False
+                    if failed_time != 0 and time.time() - failed_time > 5:
+                        self.log_error("疑似脱钩或失败")
+                        return False
 
-                if self.is_success_overlay():
-                    return True
+                    if self.is_success_overlay():
+                        return True
 
                 self.next_frame()
             else:
@@ -174,7 +190,7 @@ class FishingTask(BaseNTETask):
         if abs_error <= deadzone:
             self._set_bar_key(None)
             if now - self._last_bar_log_time > 1:
-                self.log_info(f"指针已锁定中心: pointer={pointer}, target={zone_center}")
+                self.log_debug(f"指针已锁定中心: pointer={pointer}, target={zone_center}")
                 self._last_bar_log_time = now
             return
 
@@ -229,19 +245,30 @@ class FishingTask(BaseNTETask):
         return self.is_success_text_exist()
 
     def close_success_overlay(self):
-        self.wait_until(
+        if self.wait_until(
             lambda: not self.is_success_overlay(),
             pre_action=lambda: self.click(
                 self.SUCCESS_CLOSE_POS[0],
                 self.SUCCESS_CLOSE_POS[1],
+                interval=1.5,
             ),
             time_out=10,
-        )
-        self.wait_until(self.is_fish_start_exist, time_out=5)
-        self.sleep(0.5)
+        ):
+            self.log_info("关闭成功面板")
+        else:
+            self.log_error("关闭成功面板超时")
+            return False
+        if self.wait_until(self.is_fish_start_exist, time_out=5):
+            self.log_info("进入可抛竿状态")
+            self.sleep(0.5)
+        else:
+            self.log_error("未进入可抛竿状态")
+            return False
+        return True
 
     def clear_success_overlay_if_present(self):
         if self.is_success_overlay():
+            self.log_info("检测到成功面板")
             self.close_success_overlay()
 
     def reset_runtime_state(self):
@@ -336,7 +363,7 @@ class FishingTask(BaseNTETask):
         检测成功文本是否存在
         """
         box = self.box_of_screen(*self.SUCCESS_TEXT_BOX, name="success_text")
-        return self.calculate_color_percentage(text_white_color, box) > 0.2
+        return self.calculate_color_percentage(text_white_color, box) > 0.3
 
     def is_fish_bait_exist(self):
         """

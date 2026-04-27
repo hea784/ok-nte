@@ -1,7 +1,7 @@
 import ctypes
+import inspect
 import time
 from concurrent.futures import ThreadPoolExecutor
-from typing import List
 
 import cv2
 import numpy as np
@@ -41,7 +41,20 @@ class BaseNTETask(BaseTask):
         return self.box_of_screen(0.1543, 0.1021, 0.9070, 0.8458)
 
     def click(self, *args, **kwargs):
-        kwargs.setdefault("move", False)
+        frame = inspect.currentframe()
+        caller_frame = frame.f_back
+        
+        if caller_frame and caller_frame.f_code.co_name == "click_box":
+            grand_frame = caller_frame.f_back
+            if grand_frame and grand_frame.f_code.co_name == "click":
+                if "original_move" in grand_frame.f_locals:
+                    kwargs["move"] = grand_frame.f_locals["original_move"]
+        original_move = kwargs.pop("move", False)
+
+        if args and isinstance(args[0], (Box, list)):
+            return self.click_box(*args, **kwargs)
+
+        kwargs["move"] = original_move
         return super().click(*args, **kwargs)
 
     def get_char_box(self, index: int):
@@ -134,7 +147,7 @@ class BaseNTETask(BaseTask):
 
         base_feature = self.get_feature_by_name(Labels.is_current_char)
         base_box = self.get_box_by_name(Labels.is_current_char)
-        _frame = self.frame.copy()
+        _frame = self.frame
         best_ret = 999
         idx = -1
         template_cnt = get_img_contour(base_feature.mat)
@@ -187,7 +200,7 @@ class BaseNTETask(BaseTask):
         return results
 
     def in_world(self) -> bool:
-        frame = self.frame.copy()
+        frame = self.frame
         if self.arrow_contour["shape"] != frame.shape[:2]:
             template_bgr = self.get_feature_by_name(Labels.mini_map_arrow).mat
             t_bin = template_bgr[:, :, 0]
@@ -358,6 +371,19 @@ class BaseNTETask(BaseTask):
             raise_if_not_found=raise_if_not_found,
         )
         self.send_key_up("w")
+
+    def click_traval_button(self, travel_btn=None):
+        if travel_btn is None:
+            box = self.box_of_screen(0.7246, 0.8535, 0.7789, 0.9313)
+            for feature_name in [Labels.skip_quest_confirm]:
+                if (feature := self.find_one(feature_name, threshold=0.7, box=box)):
+                    travel_btn = feature
+                    break
+        if travel_btn:
+            self.sleep(0.5)
+            self.click(travel_btn, after_sleep=1, move=True)
+            return True
+        return False
 
 
 def interactable_mask(image):

@@ -1,5 +1,5 @@
 from src import text_white_color
-from src.utils.image_utils import create_color_mask, filter_by_hsv, HSVRange
+from src.utils.image_utils import HSVRange, create_color_mask, filter_by_hsv
 
 dialog_white_color = {
     "r": (220, 240),  # Red range

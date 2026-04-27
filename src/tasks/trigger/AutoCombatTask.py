@@ -1,9 +1,9 @@
 import time
 
-from ok import Logger, TriggerTask
 from PySide6.QtCore import QObject, Signal
 from qfluentwidgets import FluentIcon
 
+from ok import Logger, TriggerTask
 from src.char.CharFactory import get_char_feature_by_pos
 from src.char.custom.CustomCharManager import CustomCharManager
 from src.combat.BaseCombatTask import BaseCombatTask, CharDeadException, NotInCombatException
@@ -78,7 +78,7 @@ class AutoCombatTask(BaseCombatTask, TriggerTask):
 
         manager = CustomCharManager()
         results = []
-        frame = self.frame.copy()
+        frame = self.frame
         for i in range(count):
             feature_mat, w, h = get_char_feature_by_pos(self, i, frame=frame)
             if feature_mat is not None and feature_mat.size > 0:

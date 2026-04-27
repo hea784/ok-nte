@@ -2,9 +2,10 @@ import time
 
 import win32api
 import win32con
+from win32api import GetCursorPos, SetCursorPos
+
 from ok.device.intercation import PostMessageInteraction
 from ok.util.logger import Logger
-from win32api import GetCursorPos, SetCursorPos
 
 logger = Logger.get_logger(__name__)
 
@@ -45,5 +46,5 @@ class NTEInteraction(PostMessageInteraction):
         time.sleep(down_time)
         self.post(btn_up, 0, click_pos)
         if x >= 0 and move:
-            time.sleep(0.1)
+            time.sleep(0.001)
             SetCursorPos(self.cursor_position)
