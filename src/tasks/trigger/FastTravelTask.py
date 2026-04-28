@@ -1,4 +1,3 @@
-import re
 
 from ok import Logger, TriggerTask
 from src import text_black_color
@@ -29,7 +28,7 @@ class FastTravelTask(BaseNTETask, TriggerTask):
                 match=self.match,
                 frame_processor=lambda image: iu.create_color_mask(
                     image, text_black_color, invert=True
-                ),
+                )
             )
 
             if results:

@@ -28,7 +28,7 @@ class NTEInteraction(PostMessageInteraction):
                 self.cursor_position = GetCursorPos()
                 abs_x, abs_y = self.capture.get_abs_cords(x, y)
                 win32api.SetCursorPos((abs_x, abs_y))
-                time.sleep(0.001)
+                time.sleep(0.02)
             click_pos = win32api.MAKELONG(x, y)
         if key == "left":
             btn_down = win32con.WM_LBUTTONDOWN
@@ -46,5 +46,5 @@ class NTEInteraction(PostMessageInteraction):
         time.sleep(down_time)
         self.post(btn_up, 0, click_pos)
         if x >= 0 and move:
-            time.sleep(0.001)
+            time.sleep(0.02)
             SetCursorPos(self.cursor_position)

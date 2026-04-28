@@ -12,7 +12,7 @@ from src.utils import image_utils as iu
 
 
 class FishingTask(BaseNTETask):
-    # 1080p 固定参数（“循环次数”“方向反转”开放配置）
+    DEFAULT_MOVE = True
     BAR_BOX = (0.3164, 0.0646, 0.6875, 0.0743)
     BITE_INDICATOR_BOX = (0.9023, 0.8562, 0.9488, 0.9403)
     START_FISHING_BOX = (0.9102, 0.8743, 0.9387, 0.9271)
@@ -33,13 +33,26 @@ class FishingTask(BaseNTETask):
         self.default_config.update(
             {
                 "循环次数": 1,
+                "控条模式": "长按",
+                "点按时长倍率": 1.0,
             }
         )
+        self.config_description.update(
+            {
+                "控条模式": "长按：平滑流畅, 易过冲\n点按: 安全较慢, 防过冲",
+                "点按时长倍率": "点按模式专用。用于微调每次按键的持续时间",
+            }
+        )
+        self.config_type["控条模式"] = {
+            "type": "drop_down",
+            "options": ["长按", "点按"],
+        }
         self._fishing_started = False
         self._last_bar_log_time = 0.0
         self._morph_kernel = np.ones((3, 3), dtype=np.uint8)
         self._bar_active_key = None
-
+        self.add_exit_after_config()
+        
     def click(self, *args, **kwargs):
         kwargs.setdefault("move", True)
         return super().click(*args, **kwargs)
@@ -150,7 +163,10 @@ class FishingTask(BaseNTETask):
                 if self.is_valid_bar_state(state):
                     self.apply_bar_control(state)
                 else:
-                    self._set_bar_key(None)
+                    # 只在长按模式下清理按键
+                    mode = self.config.get("控条模式", "长按")
+                    if mode == "长按":
+                        self._set_bar_key(None)
 
                 if time.time() > start_check_time:
                     if self.is_fish_bait_exist():
@@ -171,9 +187,20 @@ class FishingTask(BaseNTETask):
                 self.log_error("控条阶段超时")
             return False
         finally:
-            self._set_bar_key(None)
+            # 只在长按模式下清理按键
+            mode = self.config.get("控条模式", "长按")
+            if mode == "长按":
+                self._set_bar_key(None)
 
     def apply_bar_control(self, state: dict):
+        mode = self.config.get("控条模式", "长按")
+        if mode == "点按":
+            self.apply_bar_control_discrete(state)
+        else:
+            self.apply_bar_control_hold(state)
+
+    def apply_bar_control_hold(self, state: dict):
+        """长按模式 (默认)"""
         now = time.time()
         pointer = int(state["pointer_center"])
         zone_left = int(state["zone_left"])
@@ -196,6 +223,43 @@ class FishingTask(BaseNTETask):
 
         key = "d" if error < 0 else "a"
         self._set_bar_key(key)
+
+    def apply_bar_control_discrete(self, state: dict):
+        """点按模式 (使用 send_key + down_time)"""
+        now = time.time()
+        pointer = int(state["pointer_center"])
+        zone_left = int(state["zone_left"])
+        zone_right = int(state["zone_right"])
+
+        zone_center = (zone_left + zone_right) // 2
+        zone_width = max(1, zone_right - zone_left)
+
+        dist_from_center = pointer - zone_center
+        abs_dist = abs(dist_from_center)
+
+        deadzone = max(2, int(zone_width * 0.06))
+
+        if abs_dist <= deadzone:
+            if now - self._last_bar_log_time > 0.5:
+                self.log_debug(f"指针已锁定中心: pointer={pointer}, target={zone_center}")
+                self._last_bar_log_time = now
+            return
+
+        key = "d" if dist_from_center < 0 else "a"
+
+        ratio = abs_dist / (zone_width / 2)
+
+        base_hold = 0.015
+
+        hold_ext = (ratio ** 1.2) * 0.15
+        hold = base_hold + hold_ext
+
+        hold = min(0.20, max(0.01, hold))
+        
+        multiplier = float(self.config.get("点按时长倍率", 1.0))
+        hold = hold * multiplier
+
+        self.send_key(key, down_time=hold)
 
     def _set_bar_key(self, key):
         if key == self._bar_active_key:
@@ -287,10 +351,10 @@ class FishingTask(BaseNTETask):
             return None
 
         green_mask = iu.filter_by_hsv(
-            image, iu.HSVRange((50, 150, 160), (160, 220, 255)), binary=True
+            image, iu.HSVRange((50, 150, 160), (160, 220, 255)), return_mask=True
         )
         yellow_mask = iu.filter_by_hsv(
-            image, iu.HSVRange((20, 60, 195), (55, 200, 255)), binary=True
+            image, iu.HSVRange((20, 60, 195), (55, 200, 255)), return_mask=True
         )
 
         # iu.show_images([green_mask, yellow_mask], names=["green_mask", "yellow_mask"], wait_key=1)
@@ -381,7 +445,7 @@ class FishingTask(BaseNTETask):
         box = self.box_of_screen(*self.BITE_INDICATOR_BOX, name="fishing_bite_indicator")
         image = box.crop_frame(self.frame)
 
-        blue_mask = iu.create_color_mask(image, fishing_bite_blue_color, binary=True)
+        blue_mask = iu.create_color_mask(image, fishing_bite_blue_color, to_bgr=False)
 
         h, w = blue_mask.shape[:2]
         center = (w // 2, h // 2)

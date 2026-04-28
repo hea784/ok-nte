@@ -27,4 +27,4 @@ def isolate_dialog_to_white(cv_image):
 
 
 def current_char_filter(cv_image):
-    return filter_by_hsv(cv_image, HSVRange((150, 170, 165), (179, 255, 255)), binary=True)
+    return filter_by_hsv(cv_image, HSVRange((150, 170, 165), (179, 255, 255)), return_mask=True)

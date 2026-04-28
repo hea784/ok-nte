@@ -1,7 +1,9 @@
 import ctypes
-import inspect
+import re
 import time
 from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime, timedelta
+from typing import Any, List, overload
 
 import cv2
 import numpy as np
@@ -21,14 +23,18 @@ logger = Logger.get_logger(__name__)
 
 
 class BaseNTETask(BaseTask):
+    DEFAULT_MOVE = False
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.scene: NTEScene | None = None
         self.key_config = self.get_global_config("Game Hotkey Config")
+        self.monthly_card_config = self.get_global_config("Monthly Card Config")
         self._logged_in = False
         self.arrow_contour = {"contours": None, "shape": None}
         self.default_box = ScreenPosition(self)
         self.char_ui_offset = False
+        self.next_monthly_card_start = 0
 
     @property
     def thread_pool_executor(self) -> ThreadPoolExecutor:
@@ -40,22 +46,25 @@ class BaseNTETask(BaseTask):
     def main_viewport(self):
         return self.box_of_screen(0.1543, 0.1021, 0.9070, 0.8458)
 
+    @overload
+    def click(self, x: int | Box | List[Box] = -1, y=-1, move_back=False, name=None, interval=-1,
+              move=False, down_time=0.02, after_sleep=0, key='left', hcenter=False,
+              vcenter=False) -> Any:
+        ...
+
     def click(self, *args, **kwargs):
-        frame = inspect.currentframe()
-        caller_frame = frame.f_back
-        
-        if caller_frame and caller_frame.f_code.co_name == "click_box":
-            grand_frame = caller_frame.f_back
-            if grand_frame and grand_frame.f_code.co_name == "click":
-                if "original_move" in grand_frame.f_locals:
-                    kwargs["move"] = grand_frame.f_locals["original_move"]
-        original_move = kwargs.pop("move", False)
+        is_top_level = not hasattr(self, "_current_move")
 
-        if args and isinstance(args[0], (Box, list)):
-            return self.click_box(*args, **kwargs)
+        if is_top_level:
+            self._current_move = kwargs.get("move", self.DEFAULT_MOVE)
+        else:
+            kwargs["move"] = self._current_move
 
-        kwargs["move"] = original_move
-        return super().click(*args, **kwargs)
+        try:
+            return super().click(*args, **kwargs)
+        finally:
+            if is_top_level:
+                delattr(self, "_current_move")
 
     def get_char_box(self, index: int):
         box = self.get_box_by_name(f"box_char_{index + 1}")
@@ -251,7 +260,7 @@ class BaseNTETask(BaseTask):
         return results, (time.time() - start_time) * 1000
 
     def in_team_and_world(self):
-        in_team = self.in_team()[0]
+        in_team = self.is_in_team()
         in_world = self.in_world()
         return in_team and in_world
 
@@ -360,7 +369,7 @@ class BaseNTETask(BaseTask):
             Labels.interactable,
             box=self.interac_box,
             threshold=0.7,
-            mask_function=interactable_mask,
+            mask_function=interac_mask,
         )
 
     def walk_until_find_interac(self, time_out=10, raise_if_not_found=False):
@@ -376,18 +385,183 @@ class BaseNTETask(BaseTask):
         if travel_btn is None:
             box = self.box_of_screen(0.7246, 0.8535, 0.7789, 0.9313)
             for feature_name in [Labels.skip_quest_confirm]:
-                if (feature := self.find_one(feature_name, threshold=0.7, box=box)):
+                if feature := self.find_one(feature_name, threshold=0.7, box=box):
                     travel_btn = feature
                     break
         if travel_btn:
             self.sleep(0.5)
-            self.click(travel_btn, after_sleep=1, move=True)
+            self.click(travel_btn, after_sleep=1, move=True, down_time=0.01)
             return True
         return False
 
+    def openF1panel(self):
+        if hasattr(self, "reset_to_false"):
+            self.reset_to_false("opening f1 panel")
+        if self.in_team_and_world():
+            self.send_key("f1", after_sleep=1)
+            self.log_info("send f1 key to open the panel")
 
-def interactable_mask(image):
-    mask = iu.create_color_mask(image, interac_pink_color, binary=True)
+        result = self.wait_panel(Labels.f1_panel)
+        if not result:
+            self.log_error("can't find panel, make sure f1 is the hotkey for panel", notify=True)
+            raise Exception("can't find panel, make sure f1 is the hotkey for panel")
+        return result
+
+    def openF2panel(self):
+        if hasattr(self, "reset_to_false"):
+            self.reset_to_false("opening f2 panel")
+        if self.in_team_and_world():
+            self.send_key("f2", after_sleep=1)
+            self.log_info("send f2 key to open the panel")
+
+        result = self.wait_panel(Labels.f2_panel)
+        if not result:
+            self.log_error("can't find panel, make sure f2 is the hotkey for panel", notify=True)
+            raise Exception("can't find panel, make sure f2 is the hotkey for panel")
+        return result
+
+    def wait_panel(self, feature, box=None, threshold=0.8, time_out=4.5):
+        result = self.wait_until(
+            lambda: self.find_one(feature, box=box, threshold=threshold),
+            time_out=time_out,
+            settle_time=0.5,
+        )
+        logger.info(f"found {feature} {result}")
+        return result
+
+    def openESCpanel(self):
+        if hasattr(self, "reset_to_false"):
+            self.reset_to_false("opening esc panel")
+        if self.in_team_and_world():
+            self.send_key("esc", after_sleep=1)
+            self.log_info("send esc key to open the panel")
+
+        result = self.wait_panel(Labels.esc_option, box=Labels.box_all_esc_options, threshold=0.3)
+        if not result:
+            self.log_error("can't find panel, make sure esc is the hotkey for panel", notify=True)
+            raise Exception("can't find panel, make sure esc is the hotkey for panel")
+        return result
+
+    def ensure_main(self, esc=True, time_out=30):
+        self.info_set("current task", f"wait main esc={esc}")
+        if not self._logged_in:
+            time_out = 600
+        if not self.wait_until(
+            lambda: self.is_main(esc=esc), time_out=time_out, raise_if_not_found=False
+        ):
+            raise Exception("Please start in game world and in team!")
+        self.sleep(0.5)
+        self.info_set("current task", f"in main esc={esc}")
+
+    def is_main(self, esc=True):
+        if self.in_team_and_world():
+            self._logged_in = True
+            return True
+        if self.handle_monthly_card():
+            return True
+        if self.wait_login():
+            return True
+        if esc:
+            self.back(after_sleep=2)
+
+    def find_monthly_card(self):
+        return self.find_one(Labels.monthly_card)
+
+    def should_check_monthly_card(self):
+        if self.next_monthly_card_start > 0:
+            if 0 < time.time() - self.next_monthly_card_start < 120:
+                return True
+        return False
+
+    def handle_monthly_card(self):
+        monthly_card = self.find_monthly_card()
+        # self.screenshot('monthly_card1')
+        if monthly_card is not None:
+            # self.screenshot('monthly_card1')
+            self.log_info("monthly_card found click")
+            self.click(0.50, 0.89)
+            self.sleep(2)
+            # self.screenshot('monthly_card2')
+            self.click(0.50, 0.89)
+            self.sleep(2)
+            self.wait_until(
+                self.in_team_and_world,
+                time_out=10,
+                post_action=lambda: self.click(0.50, 0.89, after_sleep=1),
+            )
+            # self.screenshot('monthly_card3')
+            self.set_check_monthly_card(next_day=True)
+        # logger.debug(f'check_monthly_card {monthly_card}')
+        return monthly_card is not None
+
+    def set_check_monthly_card(self, next_day=False):
+        if self.monthly_card_config.get("Check Monthly Card"):
+            now = datetime.now()
+            hour = self.monthly_card_config.get("Monthly Card Time")
+            # Calculate the next 4 o'clock in the morning
+            next_four_am = now.replace(hour=hour, minute=0, second=0, microsecond=0)
+            if now >= next_four_am or next_day:
+                next_four_am += timedelta(days=1)
+            next_monthly_card_start_date_time = next_four_am - timedelta(seconds=30)
+            # Subtract 1 minute from the next 4 o'clock in the morning
+            self.next_monthly_card_start = next_monthly_card_start_date_time.timestamp()
+            logger.info(
+                "set next monthly card start time to {}".format(next_monthly_card_start_date_time)
+            )
+        else:
+            self.next_monthly_card_start = 0
+
+    def wait_login(self):
+        if not self._logged_in:
+            if self.in_team_and_world():
+                return True
+            self.handle_monthly_card()
+            texts = self.ocr(log=self.debug)
+            if login := self.find_boxes(
+                texts, boundary=self.box_of_screen(0.3, 0.3, 0.7, 0.7), match="登录"
+            ):
+                if not self.find_boxes(
+                    texts, boundary=self.box_of_screen(0.3, 0.3, 0.7, 0.7), match="+86"
+                ):
+                    self.click(login, after_sleep=1)
+                    self.log_info("点击登录按钮!")
+                return False
+            if agree := self.find_boxes(
+                texts, boundary=self.box_of_screen(0.3, 0.3, 0.7, 0.7), match="同意"
+            ):
+                self.log_debug(f"found agree {agree}")
+                if self.find_boxes(
+                    texts, boundary=self.box_of_screen(0.3, 0.3, 0.7, 0.7), match=re.compile("隐私")
+                ):
+                    self.click(agree, after_sleep=1)
+                    self.log_info("点击同意按钮!")
+                return False
+            # if self.find_boxes(texts, match=re.compile("游戏即将重启")):
+            #     self.log_info("游戏更新成功, 游戏即将重启")
+            #     self.click(self.find_boxes(texts, match="确认"), after_sleep=60)
+            #     result = self.start_device()
+            #     self.log_info(f"start_device end {result}")
+            #     self.sleep(30)
+            #     return False
+
+            if start := self.find_boxes(
+                texts, boundary="bottom_right", match=["开始游戏", re.compile("进入游戏")]
+            ):
+                if not self.find_boxes(texts, boundary="bottom_right", match="登录"):
+                    self.click(start)
+                    self.log_info(f"点击开始游戏! {start}")
+                    return False
+
+            if login_account := self.find_boxes(
+                texts, match=re.compile("Windows.{0,3}Product", re.IGNORECASE)
+            ):
+                self.log_info(f"wait_login {login_account}")
+                self.click(0.5, 0.5, after_sleep=3)
+                return False
+
+
+def interac_mask(image):
+    mask = iu.create_color_mask(image, interac_pink_color, to_bgr=False)
     kernel = np.ones((3, 3), np.uint8)
     dilated_mask = cv2.dilate(mask, kernel, iterations=1)
     return dilated_mask
