@@ -83,6 +83,12 @@
             "file_name": "images/0.png",
             "width": 2560,
             "height": 1440
+        },
+        {
+            "id": 15,
+            "file_name": "images/0.png",
+            "width": 2560,
+            "height": 1440
         }
     ],
     "annotations": [
@@ -299,12 +305,12 @@
             "image_id": 5,
             "category_id": 17,
             "bbox": [
-                1433,
+                1762,
                 847,
-                162,
+                86,
                 86
             ],
-            "area": 13932,
+            "area": 7396,
             "iscrowd": 0
         },
         {
@@ -527,6 +533,45 @@
             ],
             "area": 441,
             "iscrowd": 0
+        },
+        {
+            "id": 35,
+            "image_id": 15,
+            "category_id": 35,
+            "bbox": [
+                2457,
+                45,
+                57,
+                58
+            ],
+            "area": 3306,
+            "iscrowd": 0
+        },
+        {
+            "id": 36,
+            "image_id": 15,
+            "category_id": 36,
+            "bbox": [
+                2133,
+                1233,
+                66,
+                109
+            ],
+            "area": 7194,
+            "iscrowd": 0
+        },
+        {
+            "id": 37,
+            "image_id": 4,
+            "category_id": 37,
+            "bbox": [
+                2163,
+                68,
+                31,
+                34
+            ],
+            "area": 1054,
+            "iscrowd": 0
         }
     ],
     "categories": [
@@ -698,6 +743,21 @@
         {
             "id": 34,
             "name": "box_f1_activity_reward",
+            "supercategory": ""
+        },
+        {
+            "id": 35,
+            "name": "map_location_card",
+            "supercategory": ""
+        },
+        {
+            "id": 36,
+            "name": "teleport",
+            "supercategory": ""
+        },
+        {
+            "id": 37,
+            "name": "auto_play",
             "supercategory": ""
         }
     ]

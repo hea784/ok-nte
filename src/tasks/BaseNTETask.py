@@ -145,32 +145,62 @@ class BaseNTETask(BaseTask):
         return int(self.height * 176 / 1440)
 
     def get_box_by_char_spacing(self, box: Box, index: int):
-        return box.copy(y_offset=index * self.char_vertical_spacing)
+        return box.copy(y_offset=index * self.char_vertical_spacing, name=f"{box.name}_{index}")
+
+    def _get_char_template_data(self):
+        """延迟加载并缓存模板掩码和覆盖面积"""
+        if not hasattr(self, "_char_template_mat"):
+            feature = self.get_feature_by_name(Labels.is_current_char)
+            self._char_template_mat = feature.mat  # 原始二值化模板
+            self._template_white_pixels = cv2.countNonZero(self._char_template_mat)
+            
+            # 仍然保留膨胀掩码用于过滤
+            kernel = np.ones((5, 5), np.uint8)
+            self._char_template_mask = cv2.dilate(feature.mat, kernel, iterations=1)
+            
+        return self._char_template_mat, self._char_template_mask, self._template_white_pixels
+
+    def get_char_match_score(self, index):
+        """获取指定位置的匹配得分（基于像素覆盖率），分值越小越匹配"""
+        template_mat, template_mask, template_white_count = self._get_char_template_data()
+        if template_white_count == 0:
+            return 1.0
+            
+        base_box = self.get_box_by_name(Labels.is_current_char)
+        box = self.get_box_by_char_spacing(base_box, index)
+        # self.draw_boxes(boxes=box, color="blue")
+        
+        current_mat = gf.current_char_filter(box.crop_frame(self.frame), blur=True)
+        
+        # 1. 掩码过滤并计算交集
+        if current_mat.shape == template_mask.shape:
+            current_mat = cv2.bitwise_and(current_mat, template_mask)
+            
+            if current_mat.shape == template_mat.shape:
+                intersection = cv2.bitwise_and(current_mat, template_mat)
+                coverage = cv2.countNonZero(intersection) / template_white_count
+                return 1.0 - coverage
+            
+        return 1.0
+
+    def is_char_at_index(self, index, threshold=0.3):
+        """判断指定索引是否为当前角色"""
+        return self.get_char_match_score(index) < threshold
 
     def get_current_char_index(self):
-        def get_img_contour(img):
-            contours, _ = cv2.findContours(img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-            if not contours:
-                return None
-            return max(contours, key=cv2.contourArea)
-
-        base_feature = self.get_feature_by_name(Labels.is_current_char)
-        base_box = self.get_box_by_name(Labels.is_current_char)
-        _frame = self.frame
-        best_ret = 999
-        idx = -1
-        template_cnt = get_img_contour(base_feature.mat)
+        """扫描所有槽位，返回匹配度最高的索引"""
+        best_score = 999
+        best_idx = -1
+        
         for i in range(4):
-            box = self.get_box_by_char_spacing(base_box, i)
-            current_mat = gf.current_char_filter(box.crop_frame(_frame))
-            current_cnt = get_img_contour(current_mat)
-            if current_cnt is None:
-                continue
-            ret = cv2.matchShapes(template_cnt, current_cnt, cv2.CONTOURS_MATCH_I1, 0.0)
-            if ret < best_ret:
-                best_ret = ret
-                idx = i
-        return idx
+            score = self.get_char_match_score(i)
+            if score < best_score:
+                best_score = score
+                best_idx = i
+        
+        if best_idx != -1:
+            self.log_debug(f"current_char found at {best_idx} with score {best_score:.4f}")
+        return best_idx
 
     def multi_stage_char_match(self):
         # 初始化 4 个结果为 None
@@ -381,15 +411,18 @@ class BaseNTETask(BaseTask):
         )
         self.send_key_up("w")
 
+    def find_traval_button(self):
+        box = self.get_box_by_name(Labels.teleport)
+        w = box.width - (box.x - self.width_of_screen(0.99))
+        y = -box.width * 0.2
+        box = box.copy(y_offset=y, width_offset=w, height_offset=-y)
+        return self.find_one(Labels.teleport, box=box)
+
     def click_traval_button(self, travel_btn=None):
-        if travel_btn is None:
-            box = self.box_of_screen(0.7246, 0.8535, 0.7789, 0.9313)
-            for feature_name in [Labels.skip_quest_confirm]:
-                if feature := self.find_one(feature_name, threshold=0.7, box=box):
-                    travel_btn = feature
-                    break
+        if not travel_btn:
+            travel_btn = self.find_traval_button()
         if travel_btn:
-            self.sleep(0.5)
+            self.sleep(0.1)
             self.click(travel_btn, after_sleep=1, move=True, down_time=0.01)
             return True
         return False

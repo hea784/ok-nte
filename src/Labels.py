@@ -2,6 +2,7 @@ from enum import Enum
 
 
 class Labels(str, Enum):
+    auto_play = 'auto_play'
     boss_lv_text = 'boss_lv_text'
     box_all_esc_options = 'box_all_esc_options'
     box_char_1 = 'box_char_1'
@@ -29,6 +30,7 @@ class Labels(str, Enum):
     interactable = 'interactable'
     is_current_char = 'is_current_char'
     mail_panel = 'mail_panel'
+    map_location_card = 'map_location_card'
     message = 'message'
     message_dialog = 'message_dialog'
     mini_map_arrow = 'mini_map_arrow'
@@ -36,3 +38,4 @@ class Labels(str, Enum):
     skip_dialog = 'skip_dialog'
     skip_quest_confirm = 'skip_quest_confirm'
     target = 'target'
+    teleport = 'teleport'

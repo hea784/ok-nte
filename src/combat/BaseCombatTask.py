@@ -16,8 +16,7 @@ from src.combat.CombatCheck import CombatCheck
 from src.utils import game_filters as gf
 from src.utils import image_utils as iu
 
-if TYPE_CHECKING:
-    from src.char.BaseChar import BaseChar
+from src.char.BaseChar import BaseChar
 
 logger = Logger.get_logger(__name__)
 cd_regex = re.compile(r"\d{1,2}\.\d")
@@ -341,9 +340,9 @@ class BaseCombatTask(CombatCheck):
                 switch_to = char
 
         if has_intro and max_priority < Priority.FAST_SWITCH:
-            switch_to = self.find_element_ring_reaction_target(current_char)
-            if switch_to:
-                return switch_to, has_intro
+            reaction_target = self.find_element_ring_reaction_target(current_char)
+            if reaction_target:
+                return reaction_target, has_intro
 
         return switch_to, has_intro
 
@@ -386,20 +385,30 @@ class BaseCombatTask(CombatCheck):
             return
 
         switch_to.has_intro = has_intro
+        from src.char.custom.CustomChar import CustomChar
+        if type(current_char) in (BaseChar, CustomChar):
+            current_char_name = current_char.char_name
+        else:
+            current_char_name = current_char.name
+        if type(switch_to) in (BaseChar, CustomChar):
+            switch_to_name = switch_to.char_name
+        else:
+            switch_to_name = switch_to.name
+
         logger.info(
-            f"switch_next_char {current_char} -> {switch_to} has_intro {switch_to.has_intro}"
+            f"switch_next_char {current_char_name} -> {switch_to_name} has_intro {switch_to.has_intro}"
         )
 
         last_click_time = 0.0
         last_decide_time = 0.0
         start_time = time.time()
-        self.has_char_slot_changed(switch_to.index, reset_char_slot=True)
+        # self.is_char_at_index(switch_to.index, reset_char_slot=True)
 
         while True:
             self.check_combat()
             current_time = time.time()
 
-            is_char_switched = self.has_char_slot_changed(switch_to.index)
+            is_char_switched = self.is_char_at_index(switch_to.index)
 
             if not is_char_switched:
                 self.click(interval=0.2)
@@ -806,29 +815,6 @@ class BaseCombatTask(CombatCheck):
         is_full = ratio > 0.9
 
         return is_full
-
-    def has_char_slot_changed(self, index: int, reset_char_slot: bool = False) -> bool:
-        def check_size(img1, img2):
-            h1, w1 = img1.shape[:2]
-            h2, w2 = img2.shape[:2]
-
-            if (h1, w1) != (h2, w2):
-                img2 = cv2.resize(img2, (w1, h1), interpolation=cv2.INTER_AREA)
-            return img1, img2
-
-        confidence = 1
-        _frame = self.frame
-        feature_name = f"char_{index + 1}_text"
-        box = self.get_box_by_name(feature_name)
-        current_mat = box.crop_frame(_frame)
-        if reset_char_slot:
-            self.chars_slot_mat[index] = None
-        if self.chars_slot_mat[index] is not None:
-            img1, img2 = check_size(self.chars_slot_mat[index], current_mat)
-            confidence = ssim(img1, img2, channel_axis=-1)
-            # self.log_debug(f"compare_char_slot: confidence {confidence}")
-        self.chars_slot_mat[index] = current_mat
-        return confidence < 0.7
 
 
 def convert_cd(text):

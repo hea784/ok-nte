@@ -92,7 +92,7 @@ class CombatCheck(BaseNTETask):
                 logger.info(f"target lost try retarget {self.target_enemy_time_out}")
                 start = time.time()
                 while time.time() - start < self.target_enemy_time_out:
-                    self.middle_click(interval=0.2)
+                    self.middle_click(interval=0.4)
                     if self.combat_detect()[0] is True:
                         return True
                     self.next_frame()
@@ -290,8 +290,8 @@ class CombatCheck(BaseNTETask):
             if self.target_enemy(wait=True):
                 logger.debug("retarget enemy succeeded")
                 return self.scene.set_in_combat()
-            # if self.should_check_monthly_card() and self.handle_monthly_card():
-            #     return self.scene.set_in_combat()
+            if self.should_check_monthly_card() and self.handle_monthly_card():
+                return self.scene.set_in_combat()
             logger.error("target_enemy failed, try recheck break out of combat")
             return self.reset_to_false(reason="target enemy failed")
         else:
@@ -339,10 +339,10 @@ class CombatCheck(BaseNTETask):
         if self.combat_detect_future and self.combat_detect_future.done():
             ret, reason = self.combat_detect_future.result()
             self.combat_detect_future = None
-            self.logger.info(f"combat_detect_future result: {ret}, reason: {reason}")
+            # self.logger.info(f"combat_detect_future result: {ret}, reason: {reason}")
             return ret
         if self.combat_detect_future is None:
-            self.logger.info("combat_detect_future submit")
+            # self.logger.info("combat_detect_future submit")
             frame = self.frame
             self.combat_detect_future = self.thread_pool_executor.submit(
                 self.combat_detect, frame=frame, target=target, lv=lv

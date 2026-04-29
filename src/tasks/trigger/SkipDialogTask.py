@@ -29,19 +29,32 @@ class SkipDialogTask(TriggerTask, BaseNTETask):
     def run(self):
         if self.scene.in_team(self.is_in_team):
             return
-        if self.config.get("跳过剧情"):
+        if self.config.get("跳过剧情") and self.in_story():
             if self.check_skip():
                 return
-            if self.check_dialog_click():
+            self.check_dialog_click()
+            if self.check_options():
                 return
+            
         if self.config.get("自动消息"):
             if self.skip_message():
                 return
 
-    def check_dialog_click(self):
+    def in_story(self):
+        return self.find_one(Labels.auto_play) or self.find_skip() or self.find_dialog_history()
+
+    def check_options(self):
         if self.find_one(
-            Labels.dialog_history, threshold=0.8, box=self.default_box.dialog_icon_box
+            Labels.message_dialog, box=self.box_of_screen(0.6887, 0.6410, 0.7121, 0.7910)
         ):
+            self.send_key("f", after_sleep=0.1)
+            return True
+
+    def find_dialog_history(self):
+        return self.find_one(Labels.dialog_history, threshold=0.8, box=self.default_box.dialog_icon_box)
+
+    def check_dialog_click(self):
+        if self.find_dialog_history():
             if result := self.find_one(Labels.dialog_click, threshold=0.8, vertical_variance=0.02):
                 self.click(result, down_time=0.01, after_sleep=0.1)
                 return True
@@ -72,9 +85,7 @@ class SkipDialogTask(TriggerTask, BaseNTETask):
             #         self.mouse_up(0.4223, 0.7236)
 
     def find_message_dialog(self):
-        return self.find_one(
-            Labels.message_dialog, vertical_variance=0.2, horizontal_variance=0.01
-        )
+        return self.find_one(Labels.message_dialog, vertical_variance=0.2, horizontal_variance=0.01)
 
     def skip_confirm(self):
         if skip_button := self.find_one(Labels.skip_quest_confirm, threshold=0.8):

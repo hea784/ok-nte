@@ -17,14 +17,12 @@ class FastTravelTask(BaseNTETask, TriggerTask):
         self.match = ["Teleport", "传送"]
 
     def run(self):
-        if self.scene.in_team(self.is_in_team):
+        if self.scene.in_team(self.is_in_team) or not self.find_one(Labels.map_location_card):
             return
-        travel = self.find_one(
-            Labels.skip_quest_confirm, box=self.box_of_screen(0.7246, 0.8535, 0.8089, 0.9313)
-        )
-        if travel:
+        if btn := self.find_traval_button():
+            to_x = (btn.x + btn.width) / self.width
             results = self.ocr(
-                box=self.box_of_screen(0.7281, 0.8576, 0.9891, 0.9250),
+                box=self.box_of_screen(0.7438, 0.8736, to_x, 0.9118),
                 match=self.match,
                 frame_processor=lambda image: iu.create_color_mask(
                     image, text_black_color, invert=True
@@ -32,5 +30,5 @@ class FastTravelTask(BaseNTETask, TriggerTask):
             )
 
             if results:
-                self.click_traval_button(travel)
+                self.click_traval_button(btn)
                 return True
