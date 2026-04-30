@@ -1,0 +1,362 @@
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: 1.0\n"
+"Report-Msgid-Bugs-To: you@example.com\n"
+"Last-Translator: you@example.com\n"
+"Language-Team: English\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+msgid "<b style=\"color: #0078d7;\">角色</b> 和 <b style=\"color: #0078d7;\">{combo}</b> 支持输入并创建，也支持选择已有项。"
+msgstr "<b style=\"color: #0078d7;\">Personaje</b> y <b style=\"color: #0078d7;\">{combo}</b> permiten la entrada y creación, también admiten la selección de elementos existentes."
+
+msgid "Arc Key"
+msgstr "Tecla de Arco"
+
+msgid "Check Monthly Card"
+msgstr "Comprobar tarjeta mensual"
+
+msgid "Check for monthly card to avoid interruption of tasks"
+msgstr "Comprobar la tarjeta mensual para evitar la interrupción de las tareas"
+
+msgid "F10"
+msgstr "F10"
+
+msgid "F11"
+msgstr "F11"
+
+msgid "F12"
+msgstr "F12"
+
+msgid "F9"
+msgstr "F9"
+
+msgid "Game Hotkey Config"
+msgstr "Configuración de teclas de acceso rápido"
+
+msgid "In Game Hotkey for Skills"
+msgstr "Teclas de acceso rápido para habilidades"
+
+msgid "Monthly Card Config"
+msgstr "Configuración de tarjeta mensual"
+
+msgid "Monthly Card Time"
+msgstr "Hora de la tarjeta mensual"
+
+msgid "Skill Key"
+msgstr "Tecla de habilidad"
+
+msgid "Turn on to avoid interruption by monthly card when executing tasks"
+msgstr "Activar para evitar la interrupción por la tarjeta mensual"
+
+msgid "Ultimate Key"
+msgstr "Tecla definitiva"
+
+msgid "Your computer's local time when the monthly card will popup, hour in (1-24)"
+msgstr "Hora local para el aviso de tarjeta mensual (1-24)"
+
+msgid "[内置代码]"
+msgstr "[Código incorporado]"
+
+msgid "{combo}: {} 删除成功"
+msgstr "{combo}: {} eliminado con éxito"
+
+msgid "{combo}: {} 绑定成功"
+msgstr "{combo}: {} vinculado con éxito"
+
+msgid "{combo}语法错误"
+msgstr "Error de sintaxis en {combo}"
+
+msgid "{fixed_team}已保存"
+msgstr "{fixed_team} guardado"
+
+msgid "{fixed_team}已停用"
+msgstr "{fixed_team} desactivado"
+
+msgid "{fixed_team}已清空"
+msgstr "{fixed_team} vaciado"
+
+msgid "{} 号位"
+msgstr "Espacio {}"
+
+msgid "不扫描也可自动战斗，将使用通用脚本"
+msgstr "El combate automático es posible sin escanear; se usará un script general."
+
+msgid "任务跳过对话"
+msgstr "Tarea: Omitir diálogo"
+
+msgid ""
+"供非中/英语用户自定义传送文字, 逗号分隔\n"
+"例: Teleport, 传送"
+msgstr ""
+"Para que los usuarios que no hablen chino/inglés personalicen el texto de teletransporte, separado por comas\n"
+"Ej: Teleport, 传送"
+
+msgid "保存成功"
+msgstr "Guardado con éxito"
+
+msgid "停用"
+msgstr "Desactivar"
+
+msgid "先扫描或手动填写"
+msgstr "Escanear primero o completar manualmente"
+
+msgid "关闭时仅在中键选中敌人且画面识别到 'Lv' 文字或血条时开启战斗"
+msgstr "Al cerrar, el combate solo comienza cuando se selecciona un enemigo con el botón central y se reconoce el texto 'Lv' o la barra de salud en pantalla."
+
+msgid "出招表"
+msgstr "Lista de combos"
+
+msgid "初次使用请先至 [{team_mgmt}] 进行设置"
+msgstr "Para el primer uso, vaya a [{team_mgmt}] para configurar."
+
+msgid "删除"
+msgstr "Eliminar"
+
+msgid "删除成功"
+msgstr "Eliminado con éxito"
+
+msgid "删除角色"
+msgstr "Eliminar personaje"
+
+msgid "刷新列表"
+msgstr "Actualizar lista"
+
+msgid "匹配成功: {}"
+msgstr "Coincidencia exitosa: {}"
+
+msgid "匹配文字"
+msgstr "Coincidir texto"
+
+msgid "受《异环》UI的特殊性影响, 部分场景下存在识别稳定性波动"
+msgstr "Debido a la singularidad de la interfaz de Neverness-to-Everness, la estabilidad del reconocimiento puede fluctuar en algunos escenarios."
+
+msgid "可用指令"
+msgstr "Comandos disponibles"
+
+msgid "启用"
+msgstr "Activar"
+
+msgid "固定队伍"
+msgstr "Equipo fijo"
+
+msgid "地图中自动点击传送"
+msgstr "Clic automático de teletransporte en el mapa"
+
+msgid "填入扫描"
+msgstr "Completar escaneo"
+
+msgid "增加 <b style=\"color: #0078d7;\">角色特征</b> 后将自动判断当前角色。<br>如果不想管理 <b style=\"color: #0078d7;\">角色特征</b>，可以直接启用 <b style=\"color: #0078d7;\">{fixed_team}</b> 功能。"
+msgstr "Al añadir <b style=\"color: #0078d7;\">Características del personaje</b> se identificará automáticamente al personaje actual.<br>Si no desea gestionar las <b style=\"color: #0078d7;\">Características del personaje</b>, puede activar directamente la función <b style=\"color: #0078d7;\">{fixed_team}</b>."
+
+msgid "完成每日活跃度"
+msgstr "Completar actividad diaria"
+
+msgid "导入失败"
+msgstr "Error al importar"
+
+msgid "导入成功"
+msgstr "Importación exitosa"
+
+msgid "导入数据"
+msgstr "Importar datos"
+
+msgid "导出数据"
+msgstr "Exportar datos"
+
+msgid "将优先使用固定角色进行战斗，未启用或槽位为空时自动识别"
+msgstr "Se priorizará el uso de personajes fijos para el combate; se identificará automáticamente cuando no esté activado o los espacios estén vacíos."
+
+msgid "已保存 {}/4"
+msgstr "{} / 4 guardados"
+
+msgid "已启用 {}/4"
+msgstr "{} / 4 activados"
+
+msgid "已启用{fixed_team}"
+msgstr "{fixed_team} activado"
+
+msgid "已填入 {}"
+msgstr "{} completado"
+
+msgid "已填入扫描结果"
+msgstr "Resultado del escaneo completado"
+
+msgid "已导入 {} 个文件"
+msgstr "{} archivos importados"
+
+msgid "已恢复自动识别"
+msgstr "Reconocimiento automático restaurado"
+
+msgid "已成功删除角色: {} 以及关联的特征图"
+msgstr "Personaje eliminado con éxito: {} y sus mapas de características asociados"
+
+msgid "已清空槽位"
+msgstr "Espacios vaciados"
+
+msgid "已解除 {} 的{combo}绑定"
+msgstr "{combo} desvinculado para {}"
+
+msgid "应用更改"
+msgstr "Aplicar cambios"
+
+msgid ""
+"当前未绑定任何{combo}。\n"
+"遇到此角色将默认使用基础通用脚本(BaseChar)。"
+msgstr ""
+"Actualmente no hay ningún {combo} vinculado.\n"
+"Este personaje usará por defecto el script general básico (BaseChar)."
+
+msgid "循环次数"
+msgstr "Recuento de ciclos"
+
+msgid "快速传送"
+msgstr "Viaje rápido"
+
+msgid "扫描中..."
+msgstr "Escaneando..."
+
+msgid "扫描队伍"
+msgstr "Escanear equipo"
+
+msgid "控条模式"
+msgstr "Modo de barra de control"
+
+msgid "搜索角色"
+msgstr "Buscar personaje"
+
+msgid "无画面"
+msgstr "Sin imagen"
+
+msgid "日常任务"
+msgstr "Tareas diarias"
+
+msgid "暂不可用"
+msgstr "Temporalmente no disponible"
+
+msgid "更新"
+msgstr "Actualizar"
+
+msgid "未启用"
+msgstr "No activado"
+
+msgid "未能识别该特征"
+msgstr "No se pudo identificar esta característica"
+
+msgid "未获取到特征"
+msgstr "Característica no obtenida"
+
+msgid "未识别，关联新特征"
+msgstr "No identificado, asociando nueva característica"
+
+msgid ""
+"此为内建 Python 脚本，不可在此修改。\n"
+"请在对应的源文件中直接修改代码。"
+msgstr ""
+"Este es un script de Python incorporado y no se puede modificar aquí.\n"
+"Modifique el código directamente en el archivo fuente correspondiente."
+
+msgid "没有可用扫描结果"
+msgstr "No hay resultados de escaneo disponibles"
+
+msgid "没有找到匹配的指令。"
+msgstr "No se encontraron comandos coincidentes."
+
+msgid "清空"
+msgstr "Vaciar"
+
+msgid "点击上方按钮扫描..."
+msgstr "Haga clic en el botón de arriba para escanear..."
+
+msgid "点击时将短暂控制物理鼠标"
+msgstr "Controla brevemente el ratón físico al hacer clic"
+
+msgid "点按"
+msgstr "Tocar"
+
+msgid "点按时长倍率"
+msgstr "Multiplicador de duración del toque"
+
+msgid "点按模式专用。用于微调每次按键的持续时间"
+msgstr "Solo para el modo Tocar. Se usa para ajustar la duración de cada pulsación de tecla."
+
+msgid "编辑名称"
+msgstr "Editar nombre"
+
+msgid "自动完成一轮或多轮钓鱼"
+msgstr "Completar automáticamente una o más rondas de pesca"
+
+msgid "自动战斗"
+msgstr "Combate automático"
+
+msgid "自动消息"
+msgstr "Mensaje automático"
+
+msgid "自动目标"
+msgstr "Objetivo automático"
+
+msgid "自动钓鱼"
+msgstr "Pesca automática"
+
+msgid "角色"
+msgstr "Personaje"
+
+msgid "角色中心"
+msgstr "Ctr. Pers."
+
+msgid "角色名称无效或已存在"
+msgstr "Nombre de personaje no válido o ya existe"
+
+msgid "角色已重命名为: {}"
+msgstr "Personaje renombrado a: {}"
+
+msgid "角色管理"
+msgstr "Gest. Pers."
+
+msgid "解除绑定"
+msgstr "Desvincular"
+
+msgid "请在左侧选择一个角色以管理特征和{combo}"
+msgstr "Seleccione un personaje a la izquierda para gestionar las características y el {combo}"
+
+msgid "跳过剧情"
+msgstr "Omitir historia"
+
+msgid "运行一次测试"
+msgstr "Ejecutar una prueba"
+
+msgid "选择或输入{combo}名"
+msgstr "Seleccionar o introducir nombre de {combo}"
+
+msgid "重命名失败"
+msgstr "Error al renombrar"
+
+msgid "长按"
+msgstr "Pulsación larga"
+
+msgid ""
+"长按：平滑流畅, 易过冲\n"
+"点按: 安全较慢, 防过冲"
+msgstr ""
+"Pulsación larga: suave y fluida, propensa al exceso\n"
+"Tocar: más segura y lenta, evita el exceso"
+
+msgid "队伍不存在"
+msgstr "El equipo no existe"
+
+msgid "队伍人数少于2人"
+msgstr "Tamaño del equipo inferior a 2"
+
+msgid "队伍管理"
+msgstr "Gestión Equipo"
+
+msgid "领取活跃度奖励"
+msgstr "Reclamar recompensas de actividad"
+
+msgid "领取环期任务奖励"
+msgstr "Reclamar recompensas de tareas periódicas"
+
+msgid "领取邮件"
+msgstr "Reclamar correo"

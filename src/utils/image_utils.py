@@ -325,3 +325,34 @@ def dilate_mask(mask: np.ndarray, kernel_size: int = 3, to_bgr: bool = True) -> 
     if to_bgr and len(dilated.shape) == 2:
         dilated = cv2.cvtColor(dilated, cv2.COLOR_GRAY2BGR)
     return dilated
+
+def restore_world_brightness(image, percentile=0.99):
+    """
+    基于直方图百分位数的亮度修复。
+    找到图像中前 (1-percentile) 亮度对应的水平，并将其映射到 255。
+    能有效避开零星的 UI、文字、伤害数字干扰，还原被滤镜压低的场景亮度。
+    """
+    if image is None:
+        return None
+
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    hist = cv2.calcHist([gray], [0], None, [256], [0, 256])
+
+    # 计算目标像素数（例如前 1% 的像素数）
+    total_pixels = image.shape[0] * image.shape[1]
+    target_count = total_pixels * (1.0 - percentile)
+
+    current_count = 0
+    robust_max = 255
+    for i in range(255, 0, -1):
+        current_count += hist[i]
+        if current_count >= target_count:
+            robust_max = i
+            break
+
+    # 只有当发现整体亮度不足，且不是纯黑环境时，才进行拉伸
+    if robust_max < 254 and robust_max > 100:
+        scale = 255.0 / robust_max
+        return cv2.convertScaleAbs(image, alpha=scale, beta=0)
+
+    return image

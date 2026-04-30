@@ -312,6 +312,13 @@ class BaseCombatTask(CombatCheck):
         self.combat_end()
         self.wait_in_team_and_world(time_out=10, raise_if_not_found=False)
 
+    def _get_char_log_name(self, char: "BaseChar"):
+        from src.char.custom.CustomChar import CustomChar
+        if type(char) in (BaseChar, CustomChar):
+            return char.char_name
+        else:
+            return char.name
+
     def _decide_switch_to(self, current_char: "BaseChar", free_intro=False, require_intro=False):
         has_intro = free_intro or current_char.is_cycle_full()
         switch_to = current_char
@@ -385,15 +392,8 @@ class BaseCombatTask(CombatCheck):
             return
 
         switch_to.has_intro = has_intro
-        from src.char.custom.CustomChar import CustomChar
-        if type(current_char) in (BaseChar, CustomChar):
-            current_char_name = current_char.char_name
-        else:
-            current_char_name = current_char.name
-        if type(switch_to) in (BaseChar, CustomChar):
-            switch_to_name = switch_to.char_name
-        else:
-            switch_to_name = switch_to.name
+        current_char_name = self._get_char_log_name(current_char)
+        switch_to_name = self._get_char_log_name(switch_to)
 
         logger.info(
             f"switch_next_char {current_char_name} -> {switch_to_name} has_intro {switch_to.has_intro}"
@@ -430,13 +430,14 @@ class BaseCombatTask(CombatCheck):
                     switch_to = new_switch_to
                     has_intro = new_has_intro
                     switch_to.has_intro = True
+                    switch_to_name = self._get_char_log_name(switch_to)
                     logger.info(
-                        f"switch_next_char updated target to {switch_to} has_intro {switch_to.has_intro}"
+                        f"switch_next_char updated target to {switch_to_name} has_intro {switch_to.has_intro}"
                     )
 
             if not self.is_in_team():
                 logger.info(
-                    f"not in world while switching chars_{current_char}_to_{switch_to} {current_time - start_time}"
+                    f"not in world while switching chars_{current_char_name}_to_{switch_to_name} {current_time - start_time}"
                 )
                 # if self.debug:
                 #     self.screenshot(f'not in team while switching chars_{current_char}_to_{switch_to} {now - start}')
@@ -447,7 +448,7 @@ class BaseCombatTask(CombatCheck):
                 #         self.raise_not_in_combat(f'char dead', exception_type=CharDeadException)
                 if current_time - start_time > self.switch_char_time_out:
                     self.raise_not_in_combat(
-                        f"switch too long failed chars_{current_char}_to_{switch_to}, {current_time - start_time}"
+                        f"switch too long failed chars_{current_char_name}_to_{switch_to_name}, {current_time - start_time}"
                     )
                 self.next_frame()
                 continue
@@ -459,7 +460,7 @@ class BaseCombatTask(CombatCheck):
 
             if current_time - start_time > 10:
                 if self.debug:
-                    self.screenshot(f"switch_not_detected_{current_char}_to_{switch_to}")
+                    self.screenshot(f"switch_not_detected_{current_char_name}_to_{switch_to_name}")
                 self.raise_not_in_combat("failed switch chars")
 
             self.next_frame()
@@ -632,9 +633,10 @@ class BaseCombatTask(CombatCheck):
                 char.element = elements[i]
             new_chars.append(char)
         self.chars = new_chars
+        self.info_set("char elements", elements)
 
         healer_count = 0
-        self.info_set("Chars", [])
+        self.info_set("chars", [])
         for char in self.chars:
             if char is not None:
                 char.reset_state()
@@ -647,7 +649,7 @@ class BaseCombatTask(CombatCheck):
                 self.log_info(
                     f"loaded chars success {char} {char.char_name} {char.confidence:.2f} {char.element}"
                 )
-                self.info_add_to_list("Chars", f"{char.char_name}: {char.combo_label}")
+                self.info_add_to_list("chars", f"{char.char_name}: {char.combo_label}")
 
         if self.team_size > 0:
             self.combat_start = time.time()

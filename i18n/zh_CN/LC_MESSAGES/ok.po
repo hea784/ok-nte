@@ -9,77 +9,354 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-msgid "一键日常"
-msgstr ""
+msgid "<b style=\"color: #0078d7;\">角色</b> 和 <b style=\"color: #0078d7;\">{combo}</b> 支持输入并创建，也支持选择已有项。"
+msgstr "<b style=\"color: #0078d7;\">角色</b> 和 <b style=\"color: #0078d7;\">{combo}</b> 支持输入并创建，也支持选择已有项。"
 
-msgid "从要推的图的最左边开始"
-msgstr ""
+msgid "Arc Key"
+msgstr "弧盤技快捷鍵"
 
-msgid "体力本"
-msgstr ""
+msgid "Check Monthly Card"
+msgstr "检查月卡"
 
-msgid "公共区"
-msgstr ""
+msgid "Check for monthly card to avoid interruption of tasks"
+msgstr "检查月卡以避免任务中断"
 
-msgid "兵棋推演"
-msgstr ""
+msgid "F10"
+msgstr "F10"
 
-msgid "军备解析"
-msgstr ""
+msgid "F11"
+msgstr "F11"
 
-msgid "冲锋"
-msgstr ""
+msgid "F12"
+msgstr "F12"
 
-msgid "决策构象"
-msgstr ""
+msgid "F9"
+msgstr "F9"
 
-msgid "刷钱本"
-msgstr ""
+msgid "Game Hotkey Config"
+msgstr "游戏热键配置"
 
-msgid "大月卡"
-msgstr ""
+msgid "In Game Hotkey for Skills"
+msgstr "游戏内技能热键"
 
-msgid "尘烟"
-msgstr ""
+msgid "Monthly Card Config"
+msgstr "月卡配置"
 
-msgid "手枪"
-msgstr ""
+msgid "Monthly Card Time"
+msgstr "月卡时间"
 
-msgid "推图"
-msgstr ""
+msgid "Skill Key"
+msgstr "變軌技快捷鍵"
 
-msgid "收菜"
-msgstr ""
+msgid "Turn on to avoid interruption by monthly card when executing tasks"
+msgstr "执行任务时开启以避免月卡中断"
 
-msgid "活动情报补给"
-msgstr ""
+msgid "Ultimate Key"
+msgstr "极轨技快捷键"
 
-msgid "活动自律"
-msgstr ""
+msgid "Your computer's local time when the monthly card will popup, hour in (1-24)"
+msgstr "月卡弹出时的电脑本地时间，小時 (1-24)"
 
-msgid "深度搜索"
-msgstr ""
+msgid "[内置代码]"
+msgstr "[内置代码]"
 
-msgid "狙击"
-msgstr ""
+msgid "{combo}: {} 删除成功"
+msgstr "{combo}: {} 删除成功"
 
-msgid "班组"
-msgstr ""
+msgid "{combo}: {} 绑定成功"
+msgstr "{combo}: {} 绑定成功"
 
-msgid "突击"
-msgstr ""
+msgid "{combo}语法错误"
+msgstr "{combo}语法错误"
 
-msgid "竞技场"
-msgstr ""
+msgid "{fixed_team}已保存"
+msgstr "{fixed_team}已保存"
 
-msgid "自动刷体力"
-msgstr ""
+msgid "{fixed_team}已停用"
+msgstr "{fixed_team}已停用"
 
-msgid "购买免费礼包"
-msgstr ""
+msgid "{fixed_team}已清空"
+msgstr "{fixed_team}已清空"
 
-msgid "邮件"
-msgstr ""
+msgid "{} 号位"
+msgstr "{} 号位"
 
-msgid "领任务"
+msgid "不扫描也可自动战斗，将使用通用脚本"
+msgstr "不扫描也可自动战斗，将使用通用脚本"
+
+msgid "任务跳过对话"
+msgstr "任务跳过对话"
+
+msgid ""
+"供非中/英语用户自定义传送文字, 逗号分隔\n"
+"例: Teleport, 传送"
 msgstr ""
+"供非中/英语用户自定义传送文字, 逗号分隔\n"
+"例: Teleport, 传送"
+
+msgid "保存成功"
+msgstr "保存成功"
+
+msgid "停用"
+msgstr "停用"
+
+msgid "先扫描或手动填写"
+msgstr "先扫描或手动填写"
+
+msgid "关闭时仅在中键选中敌人且画面识别到 'Lv' 文字或血条时开启战斗"
+msgstr "关闭时仅在中键选中敌人且画面识别到 'Lv' 文字或血条时开启战斗"
+
+msgid "出招表"
+msgstr "出招表"
+
+msgid "初次使用请先至 [{team_mgmt}] 进行设置"
+msgstr "初次使用请先至 [{team_mgmt}] 进行设置"
+
+msgid "删除"
+msgstr "删除"
+
+msgid "删除成功"
+msgstr "删除成功"
+
+msgid "删除角色"
+msgstr "删除角色"
+
+msgid "刷新列表"
+msgstr "刷新列表"
+
+msgid "匹配成功: {}"
+msgstr "匹配成功: {}"
+
+msgid "匹配文字"
+msgstr "匹配文字"
+
+msgid "受《异环》UI的特殊性影响, 部分场景下存在识别稳定性波动"
+msgstr "受《异环》UI的特殊性影响, 部分场景下存在识别稳定性波动"
+
+msgid "可用指令"
+msgstr "可用指令"
+
+msgid "启用"
+msgstr "启用"
+
+msgid "固定队伍"
+msgstr "固定队伍"
+
+msgid "地图中自动点击传送"
+msgstr "地图中自动点击传送"
+
+msgid "填入扫描"
+msgstr "填入扫描"
+
+msgid "增加 <b style=\"color: #0078d7;\">角色特征</b> 后将自动判断当前角色。<br>如果不想管理 <b style=\"color: #0078d7;\">角色特征</b>，可以直接启用 <b style=\"color: #0078d7;\">{fixed_team}</b> 功能。"
+msgstr "增加 <b style=\"color: #0078d7;\">角色特征</b> 后将自动判断当前角色。<br>如果不想管理 <b style=\"color: #0078d7;\">角色特征</b>，可以直接启用 <b style=\"color: #0078d7;\">{fixed_team}</b> 功能。"
+
+msgid "完成每日活跃度"
+msgstr "完成每日活跃度"
+
+msgid "导入失败"
+msgstr "导入失败"
+
+msgid "导入成功"
+msgstr "导入成功"
+
+msgid "导入数据"
+msgstr "导入数据"
+
+msgid "导出数据"
+msgstr "导出数据"
+
+msgid "将优先使用固定角色进行战斗，未启用或槽位为空时自动识别"
+msgstr "将优先使用固定角色进行战斗，未启用或槽位为空时自动识别"
+
+msgid "已保存 {}/4"
+msgstr "已保存 {}/4"
+
+msgid "已启用 {}/4"
+msgstr "已启用 {}/4"
+
+msgid "已启用{fixed_team}"
+msgstr "已启用{fixed_team}"
+
+msgid "已填入 {}"
+msgstr "已填入 {}"
+
+msgid "已填入扫描结果"
+msgstr "已填入扫描结果"
+
+msgid "已导入 {} 个文件"
+msgstr "已导入 {} 个文件"
+
+msgid "已恢复自动识别"
+msgstr "已恢复自动识别"
+
+msgid "已成功删除角色: {} 以及关联的特征图"
+msgstr "已成功删除角色: {} 以及关联的特征图"
+
+msgid "已清空槽位"
+msgstr "已清空槽位"
+
+msgid "已解除 {} 的{combo}绑定"
+msgstr "已解除 {} 的{combo}绑定"
+
+msgid "应用更改"
+msgstr "应用更改"
+
+msgid ""
+"当前未绑定任何{combo}。\n"
+"遇到此角色将默认使用基础通用脚本(BaseChar)。"
+msgstr ""
+"当前未绑定任何{combo}。\n"
+"遇到此角色将默认使用基础通用脚本(BaseChar)。"
+
+msgid "循环次数"
+msgstr "循环次数"
+
+msgid "快速传送"
+msgstr "快速传送"
+
+msgid "扫描中..."
+msgstr "扫描中..."
+
+msgid "扫描队伍"
+msgstr "扫描队伍"
+
+msgid "控条模式"
+msgstr "控条模式"
+
+msgid "搜索角色"
+msgstr "搜索角色"
+
+msgid "无画面"
+msgstr "无画面"
+
+msgid "日常任务"
+msgstr "日常任务"
+
+msgid "暂不可用"
+msgstr "暂不可用"
+
+msgid "更新"
+msgstr "更新"
+
+msgid "未启用"
+msgstr "未启用"
+
+msgid "未能识别该特征"
+msgstr "未能识别该特征"
+
+msgid "未获取到特征"
+msgstr "未获取到特征"
+
+msgid "未识别，关联新特征"
+msgstr "未识别，关联新特征"
+
+msgid ""
+"此为内建 Python 脚本，不可在此修改。\n"
+"请在对应的源文件中直接修改代码。"
+msgstr ""
+"此为内建 Python 脚本，不可在此修改。\n"
+"请在对应的源文件中直接修改代码。"
+
+msgid "没有可用扫描结果"
+msgstr "没有可用扫描结果"
+
+msgid "没有找到匹配的指令。"
+msgstr "没有找到匹配的指令。"
+
+msgid "清空"
+msgstr "清空"
+
+msgid "点击上方按钮扫描..."
+msgstr "点击上方按钮扫描..."
+
+msgid "点击时将短暂控制物理鼠标"
+msgstr "点击时将短暂控制物理鼠标"
+
+msgid "点按"
+msgstr "点按"
+
+msgid "点按时长倍率"
+msgstr "点按时长倍率"
+
+msgid "点按模式专用。用于微调每次按键的持续时间"
+msgstr "点按模式专用。用于微调每次按键的持续时间"
+
+msgid "编辑名称"
+msgstr "编辑名称"
+
+msgid "自动完成一轮或多轮钓鱼"
+msgstr "自动完成一轮或多轮钓鱼"
+
+msgid "自动战斗"
+msgstr "自动战斗"
+
+msgid "自动消息"
+msgstr "自动消息"
+
+msgid "自动目标"
+msgstr "自动目标"
+
+msgid "自动钓鱼"
+msgstr "自动钓鱼"
+
+msgid "角色"
+msgstr "角色"
+
+msgid "角色中心"
+msgstr "角色中心"
+
+msgid "角色名称无效或已存在"
+msgstr "角色名称无效或已存在"
+
+msgid "角色已重命名为: {}"
+msgstr "角色已重命名为: {}"
+
+msgid "角色管理"
+msgstr "角色管理"
+
+msgid "解除绑定"
+msgstr "解除绑定"
+
+msgid "请在左侧选择一个角色以管理特征和{combo}"
+msgstr "请在左侧选择一个角色以管理特征和{combo}"
+
+msgid "跳过剧情"
+msgstr "跳过剧情"
+
+msgid "运行一次测试"
+msgstr "运行一次测试"
+
+msgid "选择或输入{combo}名"
+msgstr "选择或输入{combo}名"
+
+msgid "重命名失败"
+msgstr "重命名失败"
+
+msgid "长按"
+msgstr "长按"
+
+msgid ""
+"长按：平滑流畅, 易过冲\n"
+"点按: 安全较慢, 防过冲"
+msgstr ""
+"长按：平滑流畅, 易过冲\n"
+"点按: 安全较慢, 防过冲"
+
+msgid "队伍不存在"
+msgstr "队伍不存在"
+
+msgid "队伍人数少于2人"
+msgstr "队伍人数少于2人"
+
+msgid "队伍管理"
+msgstr "队伍管理"
+
+msgid "领取活跃度奖励"
+msgstr "领取活跃度奖励"
+
+msgid "领取环期任务奖励"
+msgstr "领取环期任务奖励"
+
+msgid "领取邮件"
+msgstr "领取邮件"

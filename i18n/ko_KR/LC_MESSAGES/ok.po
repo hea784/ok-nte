@@ -1,0 +1,362 @@
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: 1.0\n"
+"Report-Msgid-Bugs-To: you@example.com\n"
+"Last-Translator: you@example.com\n"
+"Language-Team: English\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+msgid "<b style=\"color: #0078d7;\">角色</b> 和 <b style=\"color: #0078d7;\">{combo}</b> 支持输入并创建，也支持选择已有项。"
+msgstr "<b style=\"color: #0078d7;\">캐릭터</b> 및 <b style=\"color: #0078d7;\">{combo}</b>는 직접 입력하여 생성하거나 기존 항목을 선택할 수 있습니다."
+
+msgid "Arc Key"
+msgstr "아크 키"
+
+msgid "Check Monthly Card"
+msgstr "월정액 카드 확인"
+
+msgid "Check for monthly card to avoid interruption of tasks"
+msgstr "작업 중단을 피하기 위해 월정액 카드를 확인합니다"
+
+msgid "F10"
+msgstr "F10"
+
+msgid "F11"
+msgstr "F11"
+
+msgid "F12"
+msgstr "F12"
+
+msgid "F9"
+msgstr "F9"
+
+msgid "Game Hotkey Config"
+msgstr "게임 단축키 설정"
+
+msgid "In Game Hotkey for Skills"
+msgstr "스킬용 게임 내 단축키"
+
+msgid "Monthly Card Config"
+msgstr "월정액 카드 설정"
+
+msgid "Monthly Card Time"
+msgstr "월정액 카드 시간"
+
+msgid "Skill Key"
+msgstr "스킬 키"
+
+msgid "Turn on to avoid interruption by monthly card when executing tasks"
+msgstr "작업 실행 시 월정액 카드로 인한 중단을 피하기 위해 켭니다"
+
+msgid "Ultimate Key"
+msgstr "궁극기 키"
+
+msgid "Your computer's local time when the monthly card will popup, hour in (1-24)"
+msgstr "월정액 카드가 팝업될 컴퓨터의 로컬 시간(1-24시)"
+
+msgid "[内置代码]"
+msgstr "[내장 코드]"
+
+msgid "{combo}: {} 删除成功"
+msgstr "{combo}: {} 삭제 성공"
+
+msgid "{combo}: {} 绑定成功"
+msgstr "{combo}: {} 바인딩 성공"
+
+msgid "{combo}语法错误"
+msgstr "{combo} 구문 오류"
+
+msgid "{fixed_team}已保存"
+msgstr "{fixed_team} 저장됨"
+
+msgid "{fixed_team}已停用"
+msgstr "{fixed_team} 비활성화됨"
+
+msgid "{fixed_team}已清空"
+msgstr "{fixed_team} 초기화됨"
+
+msgid "{} 号位"
+msgstr "{} 번 슬롯"
+
+msgid "不扫描也可自动战斗，将使用通用脚本"
+msgstr "스캔 없이도 자동 전투가 가능하며, 공용 스크립트가 사용됩니다"
+
+msgid "任务跳过对话"
+msgstr "대화 건너뛰기 작업"
+
+msgid ""
+"供非中/英语用户自定义传送文字, 逗号分隔\n"
+"例: Teleport, 传送"
+msgstr ""
+"비중국어/영어 사용자를 위한 사용자 지정 텔포 텍스트, 쉼표로 구분\n"
+"예: Teleport, 传送"
+
+msgid "保存成功"
+msgstr "저장 성공"
+
+msgid "停用"
+msgstr "비활성화"
+
+msgid "先扫描或手动填写"
+msgstr "먼저 스캔하거나 수동으로 입력하세요"
+
+msgid "关闭时仅在中键选中敌人且画面识别到 'Lv' 文字或血条时开启战斗"
+msgstr "비활성화 시, 중간 버튼으로 적을 선택하고 화면에 'Lv' 텍스트나 체력바가 인식될 때만 전투를 시작합니다"
+
+msgid "出招表"
+msgstr "콤보 목록"
+
+msgid "初次使用请先至 [{team_mgmt}] 进行设置"
+msgstr "처음 사용 시 [{team_mgmt}]에서 먼저 설정해 주세요"
+
+msgid "删除"
+msgstr "삭제"
+
+msgid "删除成功"
+msgstr "삭제 성공"
+
+msgid "删除角色"
+msgstr "캐릭터 삭제"
+
+msgid "刷新列表"
+msgstr "목록 새로고침"
+
+msgid "匹配成功: {}"
+msgstr "매칭 성공: {}"
+
+msgid "匹配文字"
+msgstr "텍스트 매칭"
+
+msgid "受《异环》UI的特殊性影响, 部分场景下存在识别稳定性波动"
+msgstr "《Neverness-to-Everness》 UI의 특수성으로 인해 일부 장면에서 인식 안정성이 변동될 수 있습니다"
+
+msgid "可用指令"
+msgstr "사용 가능한 명령"
+
+msgid "启用"
+msgstr "활성화"
+
+msgid "固定队伍"
+msgstr "고정 팀"
+
+msgid "地图中自动点击传送"
+msgstr "지도에서 자동 순간이동 클릭"
+
+msgid "填入扫描"
+msgstr "스캔 결과 입력"
+
+msgid "增加 <b style=\"color: #0078d7;\">角色特征</b> 后将自动判断当前角色。<br>如果不想管理 <b style=\"color: #0078d7;\">角色特征</b>，可以直接启用 <b style=\"color: #0078d7;\">{fixed_team}</b> 功能。"
+msgstr "캐릭터 특징을 추가하면 현재 캐릭터를 자동으로 판별합니다.<br>캐릭터 특징을 관리하고 싶지 않다면 {fixed_team} 기능을 직접 활성화할 수 있습니다."
+
+msgid "完成每日活跃度"
+msgstr "일일 활성도 완료"
+
+msgid "导入失败"
+msgstr "가져오기 실패"
+
+msgid "导入成功"
+msgstr "가져오기 성공"
+
+msgid "导入数据"
+msgstr "데이터 가져오기"
+
+msgid "导出数据"
+msgstr "데이터 내보내기"
+
+msgid "将优先使用固定角色进行战斗，未启用或槽位为空时自动识别"
+msgstr "고정 캐릭터를 우선 사용하여 전투하며, 비활성화되거나 슬롯이 비어 있으면 자동으로 인식합니다"
+
+msgid "已保存 {}/4"
+msgstr "저장됨 {}/4"
+
+msgid "已启用 {}/4"
+msgstr "활성화됨 {}/4"
+
+msgid "已启用{fixed_team}"
+msgstr "{fixed_team} 활성화됨"
+
+msgid "已填入 {}"
+msgstr "{} 입력됨"
+
+msgid "已填入扫描结果"
+msgstr "스캔 결과 입력됨"
+
+msgid "已导入 {} 个文件"
+msgstr "{}개 파일 가져옴"
+
+msgid "已恢复自动识别"
+msgstr "자동 인식 복구됨"
+
+msgid "已成功删除角色: {} 以及关联的特征图"
+msgstr "캐릭터: {} 및 관련 특징 맵을 성공적으로 삭제했습니다"
+
+msgid "已清空槽位"
+msgstr "슬롯 초기화됨"
+
+msgid "已解除 {} 的{combo}绑定"
+msgstr "{}의 {combo} 바인딩 해제됨"
+
+msgid "应用更改"
+msgstr "변경 사항 적용"
+
+msgid ""
+"当前未绑定任何{combo}。\n"
+"遇到此角色将默认使用基础通用脚本(BaseChar)。"
+msgstr ""
+"현재 연결된 {combo}가 없습니다.\n"
+"이 캐릭터는 기본 공용 스크립트(BaseChar)를 사용합니다."
+
+msgid "循环次数"
+msgstr "반복 횟수"
+
+msgid "快速传送"
+msgstr "빠른 이동"
+
+msgid "扫描中..."
+msgstr "스캔 중..."
+
+msgid "扫描队伍"
+msgstr "팀 스캔"
+
+msgid "控条模式"
+msgstr "게이지 제어 모드"
+
+msgid "搜索角色"
+msgstr "캐릭터 검색"
+
+msgid "无画面"
+msgstr "화면 없음"
+
+msgid "日常任务"
+msgstr "일일 임무"
+
+msgid "暂不可用"
+msgstr "일시적으로 사용 불가"
+
+msgid "更新"
+msgstr "업데이트"
+
+msgid "未启用"
+msgstr "비활성"
+
+msgid "未能识别该特征"
+msgstr "특징을 인식하지 못했습니다"
+
+msgid "未获取到特征"
+msgstr "특징을 가져오지 못했습니다"
+
+msgid "未识别，关联新特征"
+msgstr "인식 불가, 새로운 특징 연결"
+
+msgid ""
+"此为内建 Python 脚本，不可在此修改。\n"
+"请在对应的源文件中直接修改代码。"
+msgstr ""
+"이것은 내장된 Python 스크립트이므로 여기서 수정할 수 없습니다.\n"
+"해당 소스 파일에서 코드를 직접 수정하십시오."
+
+msgid "没有可用扫描结果"
+msgstr "사용 가능한 스캔 결과 없음"
+
+msgid "没有找到匹配的指令。"
+msgstr "일치하는 명령을 찾을 수 없습니다."
+
+msgid "清空"
+msgstr "초기화"
+
+msgid "点击上方按钮扫描..."
+msgstr "위의 버튼을 클릭하여 스캔하세요..."
+
+msgid "点击时将短暂控制物理鼠标"
+msgstr "클릭 시 실제 마우스를 잠시 제어합니다"
+
+msgid "点按"
+msgstr "탭"
+
+msgid "点按时长倍率"
+msgstr "탭 시간 배율"
+
+msgid "点按模式专用。用于微调每次按键的持续时间"
+msgstr "탭 모드 전용. 각 키 입력의 지속 시간을 미세 조정하는 데 사용됩니다"
+
+msgid "编辑名称"
+msgstr "이름 편집"
+
+msgid "自动完成一轮或多轮钓鱼"
+msgstr "낚시 한 라운드 또는 여러 라운드를 자동으로 완료합니다"
+
+msgid "自动战斗"
+msgstr "자동 전투"
+
+msgid "自动消息"
+msgstr "자동 메시"
+
+msgid "自动目标"
+msgstr "자동 대상"
+
+msgid "自动钓鱼"
+msgstr "자동 낚시"
+
+msgid "角色"
+msgstr "캐릭터"
+
+msgid "角色中心"
+msgstr "캐릭 센터"
+
+msgid "角色名称无效或已存在"
+msgstr "캐릭터 이름이 유효하지 않거나 이미 존재합니다"
+
+msgid "角色已重命名为: {}"
+msgstr "캐릭터 이름이 {}로 변경되었습니다"
+
+msgid "角色管理"
+msgstr "캐릭 관리"
+
+msgid "解除绑定"
+msgstr "바인딩 해제"
+
+msgid "请在左侧选择一个角色以管理特征和{combo}"
+msgstr "왼쪽에서 캐릭터를 선택하여 특징과 {combo}를 관리하세요"
+
+msgid "跳过剧情"
+msgstr "스토리 건너뛰기"
+
+msgid "运行一次测试"
+msgstr "테스트 1회 실행"
+
+msgid "选择或输入{combo}名"
+msgstr "{combo} 이름 선택 또는 입력"
+
+msgid "重命名失败"
+msgstr "이름 변경 실패"
+
+msgid "长按"
+msgstr "길게 누르기"
+
+msgid ""
+"长按：平滑流畅, 易过冲\n"
+"点按: 安全较慢, 防过冲"
+msgstr ""
+"길게 누르기: 부드럽고 매끄러움, 오버슈트 가능성 있음\n"
+"탭: 안전하지만 느림, 오버슈트 방지"
+
+msgid "队伍不存在"
+msgstr "팀이 존재하지 않습니다"
+
+msgid "队伍人数少于2人"
+msgstr "팀 인원이 2명 미만입니다"
+
+msgid "队伍管理"
+msgstr "팀 관리"
+
+msgid "领取活跃度奖励"
+msgstr "활성도 보상 수령"
+
+msgid "领取环期任务奖励"
+msgstr "정기 임무 보상 수령"
+
+msgid "领取邮件"
+msgstr "우편 수령"

@@ -9,77 +9,354 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-msgid "一键日常"
-msgstr "One-click Dailies"
+msgid "<b style=\"color: #0078d7;\">角色</b> 和 <b style=\"color: #0078d7;\">{combo}</b> 支持输入并创建，也支持选择已有项。"
+msgstr "<b style=\"color: #0078d7;\">Character</b> and <b style=\"color: #0078d7;\">{combo}</b> support input and creation, and also support selecting existing items."
 
-msgid "从要推的图的最左边开始"
-msgstr "Start from the leftmost stage to clear"
+msgid "Arc Key"
+msgstr ""
 
-msgid "体力本"
-msgstr "Stamina Stage"
+msgid "Check Monthly Card"
+msgstr ""
 
-msgid "公共区"
-msgstr "Public Area"
+msgid "Check for monthly card to avoid interruption of tasks"
+msgstr ""
 
-msgid "兵棋推演"
-msgstr "War Chess Simulation"
+msgid "F10"
+msgstr ""
 
-msgid "军备解析"
-msgstr "Armament Analysis"
+msgid "F11"
+msgstr ""
 
-msgid "冲锋"
-msgstr "SMG & MG"
+msgid "F12"
+msgstr ""
 
-msgid "决策构象"
-msgstr "Decision Configuration"
+msgid "F9"
+msgstr ""
 
-msgid "刷钱本"
-msgstr "Gold Farming Stage"
+msgid "Game Hotkey Config"
+msgstr ""
 
-msgid "大月卡"
-msgstr "Premium Monthly Card"
+msgid "In Game Hotkey for Skills"
+msgstr ""
 
-msgid "尘烟"
-msgstr "Dust Smoke"
+msgid "Monthly Card Config"
+msgstr ""
 
-msgid "手枪"
-msgstr "HG"
+msgid "Monthly Card Time"
+msgstr ""
 
-msgid "推图"
-msgstr "Clear Stages"
+msgid "Skill Key"
+msgstr ""
 
-msgid "收菜"
-msgstr "Collect Resources"
+msgid "Turn on to avoid interruption by monthly card when executing tasks"
+msgstr ""
 
-msgid "活动情报补给"
-msgstr "Event Intel Supply"
+msgid "Ultimate Key"
+msgstr ""
 
-msgid "活动自律"
-msgstr "Event Auto-Battle"
+msgid "Your computer's local time when the monthly card will popup, hour in (1-24)"
+msgstr ""
 
-msgid "深度搜索"
-msgstr "Deep Search"
+msgid "[内置代码]"
+msgstr "[Built-in Code]"
 
-msgid "狙击"
-msgstr "RF & BLD"
+msgid "{combo}: {} 删除成功"
+msgstr "{combo}: {} deleted successfully"
 
-msgid "班组"
-msgstr "Squad"
+msgid "{combo}: {} 绑定成功"
+msgstr "{combo}: {} bound successfully"
 
-msgid "突击"
-msgstr "AR & SG"
+msgid "{combo}语法错误"
+msgstr "{combo} syntax error"
 
-msgid "竞技场"
-msgstr "Arena"
+msgid "{fixed_team}已保存"
+msgstr "{fixed_team} saved"
 
-msgid "自动刷体力"
-msgstr "Auto-Farm Stamina"
+msgid "{fixed_team}已停用"
+msgstr "{fixed_team} deactivated"
 
-msgid "购买免费礼包"
-msgstr "Claim Free Pack"
+msgid "{fixed_team}已清空"
+msgstr "{fixed_team} cleared"
 
-msgid "邮件"
-msgstr "Mail"
+msgid "{} 号位"
+msgstr "Slot {}"
 
-msgid "领任务"
-msgstr "Claim Missions"
+msgid "不扫描也可自动战斗，将使用通用脚本"
+msgstr "Auto-combat is possible without scanning; a general script will be used."
+
+msgid "任务跳过对话"
+msgstr "Task: Skip Dialogue"
+
+msgid ""
+"供非中/英语用户自定义传送文字, 逗号分隔\n"
+"例: Teleport, 传送"
+msgstr ""
+"For non-Chinese/English users to customize teleport text, separated by commas\n"
+"Ex: Teleport, 传送"
+
+msgid "保存成功"
+msgstr "Saved successfully"
+
+msgid "停用"
+msgstr "Deactivate"
+
+msgid "先扫描或手动填写"
+msgstr "Scan first or fill manually"
+
+msgid "关闭时仅在中键选中敌人且画面识别到 'Lv' 文字或血条时开启战斗"
+msgstr "When closed, combat starts only when an enemy is selected with the middle button and 'Lv' text or health bar is recognized on screen."
+
+msgid "出招表"
+msgstr "Combo List"
+
+msgid "初次使用请先至 [{team_mgmt}] 进行设置"
+msgstr "For first-time use, please go to [{team_mgmt}] to configure."
+
+msgid "删除"
+msgstr "Delete"
+
+msgid "删除成功"
+msgstr "Deleted successfully"
+
+msgid "删除角色"
+msgstr "Delete Character"
+
+msgid "刷新列表"
+msgstr "Refresh List"
+
+msgid "匹配成功: {}"
+msgstr "Match successful: {}"
+
+msgid "匹配文字"
+msgstr "Match Text"
+
+msgid "受《异环》UI的特殊性影响, 部分场景下存在识别稳定性波动"
+msgstr "Due to the uniqueness of Neverness-to-Everness UI, recognition stability may fluctuate in some scenarios."
+
+msgid "可用指令"
+msgstr "Available Commands"
+
+msgid "启用"
+msgstr "Enable"
+
+msgid "固定队伍"
+msgstr "Fixed Team"
+
+msgid "地图中自动点击传送"
+msgstr "Auto-click teleport in map"
+
+msgid "填入扫描"
+msgstr "Fill Scan"
+
+msgid "增加 <b style=\"color: #0078d7;\">角色特征</b> 后将自动判断当前角色。<br>如果不想管理 <b style=\"color: #0078d7;\">角色特征</b>，可以直接启用 <b style=\"color: #0078d7;\">{fixed_team}</b> 功能。"
+msgstr "Adding <b style=\"color: #0078d7;\">Character Features</b> will automatically identify the current character.<br>If you don't want to manage <b style=\"color: #0078d7;\">Character Features</b>, you can directly enable the <b style=\"color: #0078d7;\">{fixed_team}</b> function."
+
+msgid "完成每日活跃度"
+msgstr "Complete Daily Activity"
+
+msgid "导入失败"
+msgstr "Import failed"
+
+msgid "导入成功"
+msgstr "Import successful"
+
+msgid "导入数据"
+msgstr "Import Data"
+
+msgid "导出数据"
+msgstr "Export Data"
+
+msgid "将优先使用固定角色进行战斗，未启用或槽位为空时自动识别"
+msgstr "Prioritize using fixed characters for combat; automatically identify when not enabled or slots are empty."
+
+msgid "已保存 {}/4"
+msgstr "Saved {}/4"
+
+msgid "已启用 {}/4"
+msgstr "Enabled {}/4"
+
+msgid "已启用{fixed_team}"
+msgstr "Enabled {fixed_team}"
+
+msgid "已填入 {}"
+msgstr "Filled {}"
+
+msgid "已填入扫描结果"
+msgstr "Scan result filled"
+
+msgid "已导入 {} 个文件"
+msgstr "Imported {} files"
+
+msgid "已恢复自动识别"
+msgstr "Auto-identification restored"
+
+msgid "已成功删除角色: {} 以及关联的特征图"
+msgstr "Successfully deleted character: {} and associated feature maps"
+
+msgid "已清空槽位"
+msgstr "Slots cleared"
+
+msgid "已解除 {} 的{combo}绑定"
+msgstr "Unbound {combo} for {}"
+
+msgid "应用更改"
+msgstr "Apply Changes"
+
+msgid ""
+"当前未绑定任何{combo}。\n"
+"遇到此角色将默认使用基础通用脚本(BaseChar)。"
+msgstr ""
+"Currently no {combo} bound.\n"
+"This character will default to the basic general script (BaseChar)."
+
+msgid "循环次数"
+msgstr "Loop count"
+
+msgid "快速传送"
+msgstr "Fast Travel"
+
+msgid "扫描中..."
+msgstr "Scanning..."
+
+msgid "扫描队伍"
+msgstr "Scan Team"
+
+msgid "控条模式"
+msgstr "Control Bar Mode"
+
+msgid "搜索角色"
+msgstr "Search Character"
+
+msgid "无画面"
+msgstr "No Display"
+
+msgid "日常任务"
+msgstr "Daily Tasks"
+
+msgid "暂不可用"
+msgstr "Temporarily Unavailable"
+
+msgid "更新"
+msgstr "Update"
+
+msgid "未启用"
+msgstr "Not Enabled"
+
+msgid "未能识别该特征"
+msgstr "Failed to identify this feature"
+
+msgid "未获取到特征"
+msgstr "Feature not obtained"
+
+msgid "未识别，关联新特征"
+msgstr "Unidentified, associating new feature"
+
+msgid ""
+"此为内建 Python 脚本，不可在此修改。\n"
+"请在对应的源文件中直接修改代码。"
+msgstr ""
+"This is a built-in Python script and cannot be modified here.\n"
+"Please modify the code directly in the corresponding source file."
+
+msgid "没有可用扫描结果"
+msgstr "No available scan results"
+
+msgid "没有找到匹配的指令。"
+msgstr "No matching commands found."
+
+msgid "清空"
+msgstr "Clear"
+
+msgid "点击上方按钮扫描..."
+msgstr "Click the button above to scan..."
+
+msgid "点击时将短暂控制物理鼠标"
+msgstr "Briefly controls the physical mouse when clicked"
+
+msgid "点按"
+msgstr "Tap"
+
+msgid "点按时长倍率"
+msgstr "Tap Duration Multiplier"
+
+msgid "点按模式专用。用于微调每次按键的持续时间"
+msgstr "For Tap mode only. Used to fine-tune the duration of each key press."
+
+msgid "编辑名称"
+msgstr "Edit Name"
+
+msgid "自动完成一轮或多轮钓鱼"
+msgstr "Automatically complete one or more rounds of fishing"
+
+msgid "自动战斗"
+msgstr "Auto-combat"
+
+msgid "自动消息"
+msgstr "Auto Message"
+
+msgid "自动目标"
+msgstr "Auto Target"
+
+msgid "自动钓鱼"
+msgstr "Auto Fishing"
+
+msgid "角色"
+msgstr "Character"
+
+msgid "角色中心"
+msgstr "Char Ctr"
+
+msgid "角色名称无效或已存在"
+msgstr "Character name invalid or already exists"
+
+msgid "角色已重命名为: {}"
+msgstr "Character renamed to: {}"
+
+msgid "角色管理"
+msgstr "Char Mgmt"
+
+msgid "解除绑定"
+msgstr "Unbind"
+
+msgid "请在左侧选择一个角色以管理特征和{combo}"
+msgstr "Please select a character on the left to manage features and {combo}"
+
+msgid "跳过剧情"
+msgstr "Skip Story"
+
+msgid "运行一次测试"
+msgstr "Run a test"
+
+msgid "选择或输入{combo}名"
+msgstr "Select or enter {combo} name"
+
+msgid "重命名失败"
+msgstr "Rename failed"
+
+msgid "长按"
+msgstr "Long Press"
+
+msgid ""
+"长按：平滑流畅, 易过冲\n"
+"点按: 安全较慢, 防过冲"
+msgstr ""
+"Long Press: Smooth and fluid, prone to overshoot\n"
+"Tap: Safer and slower, prevents overshoot"
+
+msgid "队伍不存在"
+msgstr "Team does not exist"
+
+msgid "队伍人数少于2人"
+msgstr "Team size less than 2"
+
+msgid "队伍管理"
+msgstr "Team Mgmt"
+
+msgid "领取活跃度奖励"
+msgstr "Claim Activity Rewards"
+
+msgid "领取环期任务奖励"
+msgstr "Claim Periodic Task Rewards"
+
+msgid "领取邮件"
+msgstr "Claim Mail"

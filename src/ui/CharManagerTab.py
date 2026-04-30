@@ -92,7 +92,9 @@ class CharManagerTab(CustomTab):
 
         self.tr_name = og.app.tr("角色管理")
         self.tr_choose_char = tr_fmt("请在左侧选择一个角色以管理特征和{combo}", combo=COMBO)
-        self.tr_first_time_hint = og.app.tr(f"初次使用请先至 [{TEAM_MANAGEMENT}] 进行设置")
+        self.tr_first_time_hint = tr_fmt(
+            "初次使用请先至 [{team_mgmt}] 进行设置", team_mgmt=TEAM_MANAGEMENT
+        )
         self.tr_delete = og.app.tr("删除")
         self.tr_unbound_text = tr_fmt(
             "当前未绑定任何{combo}。\n遇到此角色将默认使用基础通用脚本(BaseChar)。",
@@ -131,16 +133,20 @@ class CharManagerTab(CustomTab):
         self.char_list_widget.currentItemChanged.connect(self.on_char_selected)
 
         self.refresh_btn = PushButton(FluentIcon.SYNC, og.app.tr("刷新列表"), self)
+        self.refresh_btn.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         self.refresh_btn.clicked.connect(self.refresh_list)
 
         self.delete_char_btn = PushButton(FluentIcon.DELETE, og.app.tr("删除角色"), self)
+        self.delete_char_btn.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         self.delete_char_btn.clicked.connect(self.on_delete_char)
         self.delete_char_btn.setEnabled(False)
 
         self.import_btn = PushButton(FluentIcon.DOWNLOAD, self.tr_import_data, self)
+        self.import_btn.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         self.import_btn.clicked.connect(self.on_import_data)
 
         self.export_btn = PushButton(FluentIcon.SHARE, og.app.tr("导出数据"), self)
+        self.export_btn.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         self.export_btn.clicked.connect(self.on_export_data)
 
         self.left_v_layout.addWidget(self.refresh_btn)
@@ -157,7 +163,8 @@ class CharManagerTab(CustomTab):
         self.title_h_layout = QHBoxLayout()
 
         self.char_title = TitleLabel(self.tr_choose_char)
-        self.title_h_layout.addWidget(self.char_title)
+        self.char_title.setWordWrap(True)
+        self.title_h_layout.addWidget(self.char_title, 1)
 
         self.char_name_edit_btn = TransparentToolButton(FluentIcon.EDIT)
         self.char_name_edit_btn.setToolTip(self.tr_edit_char_name)
@@ -165,12 +172,12 @@ class CharManagerTab(CustomTab):
         self.char_name_edit_btn.hide()
         self.title_h_layout.addWidget(
             self.char_name_edit_btn,
-            alignment=Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignBottom,
+            alignment=Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignBottom,
         )
-        self.title_h_layout.addStretch(1)
         self.detail_v_layout.addLayout(self.title_h_layout)
 
         self.char_subtitle = SubtitleLabel(self.tr_first_time_hint)
+        self.char_subtitle.setWordWrap(True)
         self.char_subtitle.setTextColor(QColor("#FF0000"), QColor("#FF0000"))
         self.detail_v_layout.addWidget(self.char_subtitle)
 
@@ -271,11 +278,11 @@ class CharManagerTab(CustomTab):
     @property
     def name(self):
         return self.tr_name
-    
+
     @property
     def executor(self):
         return self.owner.executor if self.owner else self._executor
-    
+
     @executor.setter
     def executor(self, value):
         self._executor = value
