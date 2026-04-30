@@ -388,6 +388,9 @@ class BaseChar:
         """
         if not self.task.use_ultimate:
             return False
+        if self.task._combat_detect_settle is not None:
+            self.logger.info("click_ultimate blocked by combat_detect_settle")
+            return False
         self.logger.debug("click_ultimate start")
         start = time.time()
         last_click = 0
@@ -442,6 +445,7 @@ class BaseChar:
                 )
             self.task.next_frame()
 
+        self.logger.debug("waiting for time unfrozen")
         box_ultimate = self.task.get_box_by_name(Labels.box_ultimate)
         snapshot = box_ultimate.crop_frame(self.task.frame)
         processed_snapshot = gf.isolate_cd_to_black(snapshot)
@@ -452,7 +456,7 @@ class BaseChar:
                     box=box_ultimate,
                     frame_processor=gf.isolate_cd_to_black,
                     threshold=0.7,
-                )
+                ) or not self.available("ultimate", check_cd=False)
             ),
             time_out=10,
             post_action=self.click_with_interval,

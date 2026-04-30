@@ -2,9 +2,9 @@ import time
 
 import cv2
 import numpy as np
+from ok import TaskDisabledException
 from qfluentwidgets import FluentIcon
 
-from ok import TaskDisabledException
 from src.Labels import Labels
 from src.tasks.BaseNTETask import BaseNTETask
 from src.tasks.NTEOneTimeTask import NTEOneTimeTask
@@ -117,11 +117,7 @@ class FishingTask(BaseNTETask):
         def post():
             if self.is_success_overlay():
                 self.log_info("抛竿时检测到成功面板, 尝试关闭")
-                self.click(
-                    self.SUCCESS_CLOSE_POS[0],
-                    self.SUCCESS_CLOSE_POS[1],
-                    interval=1.5,
-                )
+                self.send_key("esc", interval=2)
         self.log_info("执行抛竿操作")
         if not self.wait_until(
             lambda: not self.is_fish_bait_exist() and self.is_fish_start_exist(),
@@ -333,11 +329,7 @@ class FishingTask(BaseNTETask):
     def close_success_overlay(self):
         if self.wait_until(
             lambda: not self.is_success_overlay(),
-            pre_action=lambda: self.click(
-                self.SUCCESS_CLOSE_POS[0],
-                self.SUCCESS_CLOSE_POS[1],
-                interval=1.5,
-            ),
+            pre_action=lambda: self.send_key("esc", interval=2),
             time_out=10,
         ):
             self.log_info("关闭成功面板")
@@ -451,7 +443,7 @@ class FishingTask(BaseNTETask):
         检测成功文本是否存在
         """
         box = self.box_of_screen(*self.SUCCESS_TEXT_BOX, name="success_text")
-        return self.calculate_color_percentage(text_white_color, box) > 0.3
+        return self.calculate_color_percentage(text_white_color, box) > 0.2
 
     def is_fish_bait_exist(self):
         """

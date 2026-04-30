@@ -1,5 +1,6 @@
-import numpy as np
+import time
 
+import numpy as np
 from ok import BaseScene, Logger
 
 logger = Logger.get_logger(__name__)
@@ -8,13 +9,14 @@ logger = Logger.get_logger(__name__)
 class NTEScene(BaseScene):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._in_team = None
+        self._is_in_team = None
         self._in_combat = None
         self.cd_refreshed = False
         self._ocr_warm_up = False
+        self._is_in_team_record = {"state": None, "timestamp": 0}
 
     def reset(self):
-        self._in_team = None
+        self._is_in_team = None
         self._in_combat = None
         self.cd_refreshed = False
         self.ocr_warm_up()
@@ -30,10 +32,16 @@ class NTEScene(BaseScene):
         self._in_combat = False
         return False
 
-    def in_team(self, fun):
-        if self._in_team is None:
-            self._in_team = fun()
-        return self._in_team
+    def is_in_team(self, fun):
+        if self._is_in_team is None:
+            self._is_in_team = fun()
+            if self._is_in_team is not self._is_in_team_record.get("state"):
+                self._is_in_team_record["state"] = self._is_in_team
+                self._is_in_team_record["timestamp"] = time.time()
+        return self._is_in_team
+
+    def get_is_in_team_record(self):
+        return self._is_in_team_record["state"], self._is_in_team_record["timestamp"]
     
     def ocr_warm_up(self):
         if not self._ocr_warm_up:
@@ -54,10 +62,9 @@ class NTEScene(BaseScene):
                 logger.error(f"Failed to initialize OCR in background: {e}")
 
     def make_bg_ocr(self):
-        from onnxocr.onnx_paddleocr import ONNXPaddleOcr
-
         from ok import og
         from ok.task.TaskExecutor import logger as te_logger
+        from onnxocr.onnx_paddleocr import ONNXPaddleOcr
 
         ocr_config = og.executor.config.get("ocr", {})
         bg_config = ocr_config.get("bg_onnx_ocr") or ocr_config.get("default", {})

@@ -11,8 +11,8 @@ import win32api
 import win32con
 import win32gui
 import win32process
-
 from ok import BaseTask, Box, Logger, og, safe_get
+
 from src.Labels import Labels
 from src.scene.NTEScene import NTEScene
 from src.scene.ScreenPosition import ScreenPosition
@@ -112,6 +112,11 @@ class BaseNTETask(BaseTask):
         if not self.is_in_team():
             return False, -1, 0
 
+        if self.scene is not None:
+            state, timestamp = self.scene.get_is_in_team_record()
+            if state and (to_sleep := 0.2 - (time.time() - timestamp)) > 0:
+                self.sleep(to_sleep)
+
         arr = self.update_char_ui_offset()
 
         # self.log_debug(f"in_team {arr}")
@@ -133,7 +138,7 @@ class BaseNTETask(BaseTask):
         return True, current, exist_count + 1
 
     def update_char_ui_offset(self):
-        now = time.time()
+        # now = time.time()
         arr = self.multi_stage_char_match()
         results = [
             c.x < self.get_char_text_box(idx).x for idx, c in enumerate(arr) if c is not None
@@ -143,7 +148,7 @@ class BaseNTETask(BaseTask):
             self.char_ui_offset = sum(results) > (len(results) / 2)
         else:
             self.char_ui_offset = False
-        logger.debug(f"update_char_ui_offset cost {time.time() - now:.3f}")
+        # logger.debug(f"update_char_ui_offset cost {time.time() - now:.3f}")
         return arr
 
     @property
