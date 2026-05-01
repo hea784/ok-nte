@@ -120,22 +120,19 @@ class BaseNTETask(BaseTask):
         arr = self.update_char_ui_offset()
 
         # self.log_debug(f"in_team {arr}")
-        current = -1
+        current = self.get_current_char_index()
         exist_count = 0
         for i in range(len(arr)):
-            if arr[i] is None:
-                if current == -1:
-                    current = i
-            else:
+            if arr[i] is not None:
                 exist_count += 1
+            elif current == -1:
+                current = i
 
-        if current == -1:
-            current = self.get_current_char_index()
-            if current != -1:
-                exist_count -= 1
+        if current != -1 and arr[current] is None:
+            exist_count += 1
 
         self._logged_in = True
-        return True, current, exist_count + 1
+        return True, current, exist_count
 
     def update_char_ui_offset(self):
         # now = time.time()

@@ -123,10 +123,14 @@ class BuiltinComboRegistry:
         prefix = cls._legacy_prefix()
         meta = entries[key]
         locale = cls._locale_name()
-        if locale == "zh_CN" and isinstance(meta, dict) and meta.get("cn_name"):
-            if cls._has_cn_name_collision(key, entries):
-                return f"{prefix}{meta['cn_name']} ({key})"
-            return f"{prefix}{meta['cn_name']}"
+        if isinstance(meta, dict):
+            if locale == "zh_CN" and meta.get("cn_name"):
+                if cls._has_cn_name_collision(key, entries):
+                    return f"{prefix}{meta['cn_name']} ({key})"
+                return f"{prefix}{meta['cn_name']}"
+            else:
+                label = meta['cls'].__name__
+                return f"{prefix}{label}"
         return f"{prefix}{key}"
 
     @classmethod

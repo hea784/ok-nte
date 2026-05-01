@@ -10,7 +10,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 
 msgid "<b style=\"color: #0078d7;\">角色</b> 和 <b style=\"color: #0078d7;\">{combo}</b> 支持输入并创建，也支持选择已有项。"
-msgstr "<b style=\"color: #0078d7;\">角色</b> 和 <b style=\"color: #0078d7;\">{combo}</b> 支持输入并创建，也支持选择已有项。"
+msgstr ""
 
 msgid "Arc Key"
 msgstr "弧盤技快捷鍵"
@@ -22,16 +22,16 @@ msgid "Check for monthly card to avoid interruption of tasks"
 msgstr "检查月卡以避免任务中断"
 
 msgid "F10"
-msgstr "F10"
+msgstr ""
 
 msgid "F11"
-msgstr "F11"
+msgstr ""
 
 msgid "F12"
-msgstr "F12"
+msgstr ""
 
 msgid "F9"
-msgstr "F9"
+msgstr ""
 
 msgid "Game Hotkey Config"
 msgstr "游戏热键配置"
@@ -58,305 +58,305 @@ msgid "Your computer's local time when the monthly card will popup, hour in (1-2
 msgstr "月卡弹出时的电脑本地时间，小時 (1-24)"
 
 msgid "[内置代码]"
-msgstr "[内置代码]"
+msgstr ""
 
 msgid "{combo}: {} 删除成功"
-msgstr "{combo}: {} 删除成功"
+msgstr ""
 
 msgid "{combo}: {} 绑定成功"
-msgstr "{combo}: {} 绑定成功"
+msgstr ""
 
 msgid "{combo}语法错误"
-msgstr "{combo}语法错误"
+msgstr ""
 
 msgid "{fixed_team}已保存"
-msgstr "{fixed_team}已保存"
+msgstr ""
 
 msgid "{fixed_team}已停用"
-msgstr "{fixed_team}已停用"
+msgstr ""
 
 msgid "{fixed_team}已清空"
-msgstr "{fixed_team}已清空"
+msgstr ""
 
 msgid "{} 号位"
-msgstr "{} 号位"
+msgstr ""
 
 msgid "不扫描也可自动战斗，将使用通用脚本"
-msgstr "不扫描也可自动战斗，将使用通用脚本"
+msgstr ""
 
 msgid "任务跳过对话"
-msgstr "任务跳过对话"
+msgstr ""
 
 msgid ""
 "供非中/英语用户自定义传送文字, 逗号分隔\n"
 "例: Teleport, 传送"
 msgstr ""
-"供非中/英语用户自定义传送文字, 逗号分隔\n"
-"例: Teleport, 传送"
 
 msgid "保存成功"
-msgstr "保存成功"
+msgstr ""
 
 msgid "停用"
-msgstr "停用"
+msgstr ""
 
 msgid "先扫描或手动填写"
-msgstr "先扫描或手动填写"
-
-msgid "关闭时仅在中键选中敌人且画面识别到 'Lv' 文字或血条时开启战斗"
-msgstr "关闭时仅在中键选中敌人且画面识别到 'Lv' 文字或血条时开启战斗"
+msgstr ""
 
 msgid "出招表"
-msgstr "出招表"
+msgstr ""
 
 msgid "初次使用请先至 [{team_mgmt}] 进行设置"
-msgstr "初次使用请先至 [{team_mgmt}] 进行设置"
+msgstr ""
 
 msgid "删除"
-msgstr "删除"
+msgstr ""
 
 msgid "删除成功"
-msgstr "删除成功"
+msgstr ""
 
 msgid "删除角色"
-msgstr "删除角色"
+msgstr ""
 
 msgid "刷新列表"
-msgstr "刷新列表"
+msgstr ""
 
 msgid "匹配成功: {}"
-msgstr "匹配成功: {}"
+msgstr ""
 
 msgid "匹配文字"
-msgstr "匹配文字"
+msgstr ""
 
 msgid "受《异环》UI的特殊性影响, 部分场景下存在识别稳定性波动"
-msgstr "受《异环》UI的特殊性影响, 部分场景下存在识别稳定性波动"
+msgstr ""
 
 msgid "可用指令"
-msgstr "可用指令"
+msgstr ""
 
 msgid "启用"
-msgstr "启用"
+msgstr ""
 
 msgid "固定队伍"
-msgstr "固定队伍"
+msgstr ""
 
 msgid "地图中自动点击传送"
-msgstr "地图中自动点击传送"
+msgstr ""
 
 msgid "填入扫描"
-msgstr "填入扫描"
+msgstr ""
 
 msgid "增加 <b style=\"color: #0078d7;\">角色特征</b> 后将自动判断当前角色。<br>如果不想管理 <b style=\"color: #0078d7;\">角色特征</b>，可以直接启用 <b style=\"color: #0078d7;\">{fixed_team}</b> 功能。"
-msgstr "增加 <b style=\"color: #0078d7;\">角色特征</b> 后将自动判断当前角色。<br>如果不想管理 <b style=\"color: #0078d7;\">角色特征</b>，可以直接启用 <b style=\"color: #0078d7;\">{fixed_team}</b> 功能。"
+msgstr ""
 
 msgid "完成每日活跃度"
-msgstr "完成每日活跃度"
+msgstr ""
 
 msgid "导入失败"
-msgstr "导入失败"
+msgstr ""
 
 msgid "导入成功"
-msgstr "导入成功"
+msgstr ""
 
 msgid "导入数据"
-msgstr "导入数据"
+msgstr ""
 
 msgid "导出数据"
-msgstr "导出数据"
+msgstr ""
 
 msgid "将优先使用固定角色进行战斗，未启用或槽位为空时自动识别"
-msgstr "将优先使用固定角色进行战斗，未启用或槽位为空时自动识别"
+msgstr ""
 
 msgid "已保存 {}/4"
-msgstr "已保存 {}/4"
+msgstr ""
 
 msgid "已启用 {}/4"
-msgstr "已启用 {}/4"
+msgstr ""
 
 msgid "已启用{fixed_team}"
-msgstr "已启用{fixed_team}"
+msgstr ""
 
 msgid "已填入 {}"
-msgstr "已填入 {}"
+msgstr ""
 
 msgid "已填入扫描结果"
-msgstr "已填入扫描结果"
+msgstr ""
 
 msgid "已导入 {} 个文件"
-msgstr "已导入 {} 个文件"
+msgstr ""
 
 msgid "已恢复自动识别"
-msgstr "已恢复自动识别"
+msgstr ""
 
 msgid "已成功删除角色: {} 以及关联的特征图"
-msgstr "已成功删除角色: {} 以及关联的特征图"
+msgstr ""
 
 msgid "已清空槽位"
-msgstr "已清空槽位"
+msgstr ""
 
 msgid "已解除 {} 的{combo}绑定"
-msgstr "已解除 {} 的{combo}绑定"
+msgstr ""
 
 msgid "应用更改"
-msgstr "应用更改"
+msgstr ""
 
 msgid ""
 "当前未绑定任何{combo}。\n"
 "遇到此角色将默认使用基础通用脚本(BaseChar)。"
 msgstr ""
-"当前未绑定任何{combo}。\n"
-"遇到此角色将默认使用基础通用脚本(BaseChar)。"
 
 msgid "循环次数"
-msgstr "循环次数"
+msgstr ""
 
 msgid "快速传送"
-msgstr "快速传送"
+msgstr ""
 
 msgid "扫描中..."
-msgstr "扫描中..."
+msgstr ""
 
 msgid "扫描队伍"
-msgstr "扫描队伍"
+msgstr ""
 
 msgid "控条模式"
-msgstr "控条模式"
+msgstr ""
 
 msgid "搜索角色"
-msgstr "搜索角色"
+msgstr ""
 
 msgid "无画面"
-msgstr "无画面"
+msgstr ""
 
 msgid "日常任务"
-msgstr "日常任务"
+msgstr ""
 
 msgid "暂不可用"
-msgstr "暂不可用"
+msgstr ""
 
 msgid "更新"
-msgstr "更新"
+msgstr ""
 
 msgid "未启用"
-msgstr "未启用"
+msgstr ""
 
 msgid "未能识别该特征"
-msgstr "未能识别该特征"
+msgstr ""
 
 msgid "未获取到特征"
-msgstr "未获取到特征"
+msgstr ""
 
 msgid "未识别，关联新特征"
-msgstr "未识别，关联新特征"
+msgstr ""
 
 msgid ""
 "此为内建 Python 脚本，不可在此修改。\n"
 "请在对应的源文件中直接修改代码。"
 msgstr ""
-"此为内建 Python 脚本，不可在此修改。\n"
-"请在对应的源文件中直接修改代码。"
 
 msgid "没有可用扫描结果"
-msgstr "没有可用扫描结果"
+msgstr ""
 
 msgid "没有找到匹配的指令。"
-msgstr "没有找到匹配的指令。"
+msgstr ""
 
 msgid "清空"
-msgstr "清空"
+msgstr ""
 
 msgid "点击上方按钮扫描..."
-msgstr "点击上方按钮扫描..."
+msgstr ""
 
 msgid "点击时将短暂控制物理鼠标"
-msgstr "点击时将短暂控制物理鼠标"
+msgstr ""
 
 msgid "点按"
-msgstr "点按"
+msgstr ""
 
 msgid "点按时长倍率"
-msgstr "点按时长倍率"
+msgstr ""
 
 msgid "点按模式专用。用于微调每次按键的持续时间"
-msgstr "点按模式专用。用于微调每次按键的持续时间"
+msgstr ""
 
 msgid "编辑名称"
-msgstr "编辑名称"
+msgstr ""
 
 msgid "自动完成一轮或多轮钓鱼"
-msgstr "自动完成一轮或多轮钓鱼"
+msgstr ""
 
 msgid "自动战斗"
-msgstr "自动战斗"
+msgstr ""
 
 msgid "自动消息"
-msgstr "自动消息"
+msgstr ""
 
 msgid "自动目标"
-msgstr "自动目标"
+msgstr ""
 
 msgid "自动钓鱼"
-msgstr "自动钓鱼"
+msgstr ""
 
 msgid "角色"
-msgstr "角色"
+msgstr ""
 
 msgid "角色中心"
-msgstr "角色中心"
+msgstr ""
 
 msgid "角色名称无效或已存在"
-msgstr "角色名称无效或已存在"
+msgstr ""
 
 msgid "角色已重命名为: {}"
-msgstr "角色已重命名为: {}"
+msgstr ""
 
 msgid "角色管理"
-msgstr "角色管理"
+msgstr ""
 
 msgid "解除绑定"
-msgstr "解除绑定"
+msgstr ""
 
 msgid "请在左侧选择一个角色以管理特征和{combo}"
-msgstr "请在左侧选择一个角色以管理特征和{combo}"
+msgstr ""
 
 msgid "跳过剧情"
-msgstr "跳过剧情"
+msgstr ""
 
 msgid "运行一次测试"
-msgstr "运行一次测试"
+msgstr ""
 
 msgid "选择或输入{combo}名"
-msgstr "选择或输入{combo}名"
+msgstr ""
 
 msgid "重命名失败"
-msgstr "重命名失败"
+msgstr ""
 
 msgid "长按"
-msgstr "长按"
+msgstr ""
 
 msgid ""
 "长按：平滑流畅, 易过冲\n"
 "点按: 安全较慢, 防过冲"
 msgstr ""
-"长按：平滑流畅, 易过冲\n"
-"点按: 安全较慢, 防过冲"
 
 msgid "队伍不存在"
-msgstr "队伍不存在"
+msgstr ""
 
 msgid "队伍人数少于2人"
-msgstr "队伍人数少于2人"
+msgstr ""
 
 msgid "队伍管理"
-msgstr "队伍管理"
+msgstr ""
 
 msgid "领取活跃度奖励"
-msgstr "领取活跃度奖励"
+msgstr ""
 
 msgid "领取环期任务奖励"
-msgstr "领取环期任务奖励"
+msgstr ""
 
 msgid "领取邮件"
-msgstr "领取邮件"
+msgstr ""
+
+msgid "使用ESC"
+msgstr ""
+
+msgid "关闭时仅在中键选中敌人且画面识别到 'Lv' 文字时开启战斗"
+msgstr ""
+
+msgid ""
+"开启后优先通过 ESC 键关闭成功界面，避免后台抢占鼠标。\n"
+"若游戏运行不流畅，可能因按键响应延迟导致误退出钓鱼场景"
+msgstr ""

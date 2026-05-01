@@ -35,12 +35,15 @@ class FishingTask(BaseNTETask):
                 "循环次数": 1,
                 "控条模式": "长按",
                 "点按时长倍率": 1.0,
+                "使用ESC": False
             }
         )
         self.config_description.update(
             {
                 "控条模式": "长按：平滑流畅, 易过冲\n点按: 安全较慢, 防过冲",
                 "点按时长倍率": "点按模式专用。用于微调每次按键的持续时间",
+                "使用ESC": "开启后优先通过 ESC 键关闭成功界面，避免后台抢占鼠标。\n"
+                "若游戏运行不流畅，可能因按键响应延迟导致误退出钓鱼场景",
             }
         )
         self.config_type["控条模式"] = {
@@ -117,7 +120,7 @@ class FishingTask(BaseNTETask):
         def post():
             if self.is_success_overlay():
                 self.log_info("抛竿时检测到成功面板, 尝试关闭")
-                self.send_key("esc", interval=2)
+                self.do_close_success_overlay()
         self.log_info("执行抛竿操作")
         if not self.wait_until(
             lambda: not self.is_fish_bait_exist() and self.is_fish_start_exist(),
@@ -329,7 +332,7 @@ class FishingTask(BaseNTETask):
     def close_success_overlay(self):
         if self.wait_until(
             lambda: not self.is_success_overlay(),
-            pre_action=lambda: self.send_key("esc", interval=2),
+            pre_action=self.do_close_success_overlay,
             time_out=10,
         ):
             self.log_info("关闭成功面板")
@@ -343,6 +346,13 @@ class FishingTask(BaseNTETask):
             self.log_error("未进入可抛竿状态")
             return False
         return True
+
+    def do_close_success_overlay(self):
+        if self.config.get("使用ESC"):
+            self.send_key("esc", interval=2)
+        else:
+            x, y = self.SUCCESS_CLOSE_POS
+            self.click(x, y, interval=2)
 
     def clear_success_overlay_if_present(self):
         if self.is_success_overlay():
@@ -443,7 +453,10 @@ class FishingTask(BaseNTETask):
         检测成功文本是否存在
         """
         box = self.box_of_screen(*self.SUCCESS_TEXT_BOX, name="success_text")
-        return self.calculate_color_percentage(text_white_color, box) > 0.2
+        white_text = self.calculate_color_percentage(text_white_color, box)
+        black_border = self.calculate_color_percentage(text_black_color, box)
+        # self.log_debug(f"white_text: {white_text}, black_border: {black_border}")
+        return white_text > 0.2 and black_border > 0.2
 
     def is_fish_bait_exist(self):
         """
@@ -495,4 +508,10 @@ text_white_color = {
     "r": (210, 255),
     "g": (210, 255),
     "b": (210, 255),
+}
+
+text_black_color = {
+    "r": (0, 10),
+    "g": (0, 10),
+    "b": (0, 10),
 }

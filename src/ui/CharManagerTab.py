@@ -3,6 +3,7 @@ import platform
 import shutil
 import subprocess
 import threading
+import time
 import zipfile
 from pathlib import Path
 
@@ -548,7 +549,7 @@ class CharManagerTab(CustomTab):
             self.combo_save_btn.setEnabled(self.current_char is not None)
             self.combo_unbind_btn.setEnabled(self.current_char is not None)
             self.combo_delete_btn.setEnabled(False)  # Built-ins cannot be deleted
-            self.combo_test_btn.setEnabled(False)
+            self.combo_test_btn.setEnabled(getattr(og.app, "debug", False))
             self.combo_select.setReadOnly(False)
             return
 
@@ -570,40 +571,78 @@ class CharManagerTab(CustomTab):
         self.combo_test_btn.setEnabled(True)
 
     def on_test_combo(self):
-        combo_content = self.combo_text.toPlainText().strip()
-        if not combo_content:
-            return
-        from src.char.custom.CustomChar import CustomChar
+        combo_input = self.combo_select.currentText().strip()
+        combo_ref = self._resolve_combo_ref(combo_input)
+        is_builtin = self.manager.is_builtin_combo(combo_ref)
 
-        is_valid, error = CustomChar.validate_combo_syntax(combo_content)
-        if not is_valid:
-            InfoBar.error(
-                title=self.tr_combo_invalid_title,
-                content=error or "",
-                orient=Qt.Orientation.Horizontal,
-                isClosable=True,
-                position=InfoBarPosition.TOP,
-                duration=3500,
-                parent=self.window(),
-            )
-            return
+        if not is_builtin:
+            combo_content = self.combo_text.toPlainText().strip()
+            if not combo_content:
+                return
+            from src.char.custom.CustomChar import CustomChar
+
+            is_valid, error = CustomChar.validate_combo_syntax(combo_content)
+            if not is_valid:
+                InfoBar.error(
+                    title=self.tr_combo_invalid_title,
+                    content=error or "",
+                    orient=Qt.Orientation.Horizontal,
+                    isClosable=True,
+                    position=InfoBarPosition.TOP,
+                    duration=3500,
+                    parent=self.window(),
+                )
+                return
         og.app.start_controller.handler.post(self._run_combo_test)
 
     def _run_combo_test(self):
         og.app.start_controller.do_start()
+        from src.char.CharFactory import get_char_by_name
         from src.char.custom.CustomChar import CustomChar
         from src.tasks.trigger.AutoCombatTask import AutoCombatTask
 
         task = self.get_task(AutoCombatTask)
         if not task:
             return
-        task.chars = [CustomChar(task=task, index=0, char_name="TEST_CHAR")]
-        test_char = task.chars[0]
-        test_char.is_current_char = True
-        test_char.switch_next_char = lambda: None
-        test_char.combo_str = self.combo_text.toPlainText().strip()
-        test_char._compile_combo()
-        test_char.perform()
+
+        combo_input = self.combo_select.currentText().strip()
+        combo_ref = self._resolve_combo_ref(combo_input)
+        test_char = get_char_by_name(
+            task, index=0, char_name=self.current_char or "TEST_CHAR", combo_ref=combo_ref
+        )
+
+        if not hasattr(task, "_ocr_lock"):
+            task._ocr_lock = threading.Lock()
+
+        old_ocr = task.ocr
+        old_chars = task.chars
+        old_sleep = task.sleep
+
+        def locked_ocr(*args, **kwargs):
+            with task._ocr_lock:
+                return old_ocr(*args, **kwargs)
+
+        def simple_sleep(timeout):
+            if timeout > 0:
+                time.sleep(timeout)
+            return True
+
+        task.ocr = locked_ocr
+        task.chars = [test_char]
+        task.sleep = simple_sleep
+        try:
+            test_char.is_current_char = True
+            test_char.switch_next_char = lambda *args, **kwargs: None
+
+            if isinstance(test_char, CustomChar):
+                test_char.combo_str = self.combo_text.toPlainText().strip()
+                test_char._compile_combo()
+
+            test_char.perform()
+        finally:
+            task.sleep = old_sleep
+            task.chars = old_chars
+            task.ocr = old_ocr
 
     def on_save_combo(self):
         combo_input = self.combo_select.currentText().strip()

@@ -103,9 +103,6 @@ msgstr "Desactivar"
 msgid "先扫描或手动填写"
 msgstr "Escanear primero o completar manualmente"
 
-msgid "关闭时仅在中键选中敌人且画面识别到 'Lv' 文字或血条时开启战斗"
-msgstr "Al cerrar, el combate solo comienza cuando se selecciona un enemigo con el botón central y se reconoce el texto 'Lv' o la barra de salud en pantalla."
-
 msgid "出招表"
 msgstr "Lista de combos"
 
@@ -360,3 +357,16 @@ msgstr "Reclamar recompensas de tareas periódicas"
 
 msgid "领取邮件"
 msgstr "Reclamar correo"
+
+msgid "使用ESC"
+msgstr "Usar ESC"
+
+msgid "关闭时仅在中键选中敌人且画面识别到 'Lv' 文字时开启战斗"
+msgstr "Cuando está desactivado, el combate solo comienza si se selecciona un enemigo con el botón central y se detecta 'Lv' en pantalla"
+
+msgid ""
+"开启后优先通过 ESC 键关闭成功界面，避免后台抢占鼠标。\n"
+"若游戏运行不流畅，可能因按键响应延迟导致误退出钓鱼场景"
+msgstr ""
+"Al activarlo, prioriza cerrar las pantallas de éxito con la tecla ESC para evitar que el fondo robe el foco del ratón.\n"
+"Si el juego no va fluido, el retraso en la respuesta de las teclas podría causar la salida accidental de la escena de pesca."

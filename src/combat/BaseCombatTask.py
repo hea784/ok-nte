@@ -1,22 +1,19 @@
 import re
 import time
-from typing import TYPE_CHECKING, List
+from typing import List
 
 import cv2
 import numpy as np
-from skimage.metrics import structural_similarity as ssim
-
 from ok import Logger, safe_get
+
 from src import text_white_color
-from src.char.BaseChar import Element, Priority
+from src.char.BaseChar import BaseChar, Element, Priority
 from src.char.CharFactory import get_char_by_name, get_char_by_pos
 from src.char.custom.CustomCharManager import CustomCharManager
 from src.char.Healer import Healer
 from src.combat.CombatCheck import CombatCheck
 from src.utils import game_filters as gf
 from src.utils import image_utils as iu
-
-from src.char.BaseChar import BaseChar
 
 logger = Logger.get_logger(__name__)
 cd_regex = re.compile(r"\d{1,2}\.\d")
@@ -314,6 +311,7 @@ class BaseCombatTask(CombatCheck):
 
     def _get_char_log_name(self, char: "BaseChar"):
         from src.char.custom.CustomChar import CustomChar
+
         if type(char) in (BaseChar, CustomChar):
             return char.char_name
         else:
@@ -622,16 +620,23 @@ class BaseCombatTask(CombatCheck):
             count = 4
         self.log_info(f"load_chars count {count} current_index {current_index}")
 
-        elements = self.load_chars_element(count)
         self.clear_element_ring_reactions()
         fixed_team = CustomCharManager().get_fixed_team()
         fixed_slots = fixed_team.get("slots", []) if fixed_team.get("enabled", False) else []
         new_chars = []
+        indices_to_detect = []
         for i in range(count):
             char = self._do_load_char(i, count, fixed_slots)
-            if char.element is Element.DEFAULT:
-                char.element = elements[i]
             new_chars.append(char)
+            if char.element is Element.DEFAULT:
+                indices_to_detect.append(i)
+
+        if indices_to_detect:
+            detected_elements = self.load_chars_element(indices_to_detect)
+            for i in indices_to_detect:
+                new_chars[i].element = detected_elements.get(i, Element.DEFAULT)
+
+        elements = [char.element for char in new_chars]
         self.chars = new_chars
         self.info_set("char elements", elements)
 
@@ -657,7 +662,7 @@ class BaseCombatTask(CombatCheck):
         logger.debug(f"load_chars cost {time.perf_counter() - now:.3f}s")
         return ret
 
-    def load_chars_element(self, count=4) -> List[Element]:
+    def load_chars_element(self, indices: List[int]) -> dict:
         def preprocess_image(image):
             return iu.binarize_bgr_by_adaptive_center(image)
 
@@ -681,7 +686,7 @@ class BaseCombatTask(CombatCheck):
                 return final_img.astype(np.uint8)
             return img
 
-        results = []
+        results = {}
         target_elements = [
             Element.BLUE,
             Element.GREEN,
@@ -717,7 +722,7 @@ class BaseCombatTask(CombatCheck):
         _frame = self.frame
         # self.screenshot("load_chars_element", _frame)
 
-        for i in range(count):
+        for i in indices:
             base_scale = 8
             scale = base_scale * 1440 / self.height
             current_box = self.get_box_by_char_spacing(base_box, i)
@@ -753,7 +758,7 @@ class BaseCombatTask(CombatCheck):
 
             current_box.confidence = max_score
             current_box.name = best_element.name
-            results.append(best_element)
+            results[i] = best_element
             self.draw_boxes(boxes=current_box, color="red")
             self.log_debug(
                 f"char_{i + 1} identified as {best_element.name} (score: {max_score:.4f})"

@@ -103,9 +103,6 @@ msgstr "Deactivate"
 msgid "先扫描或手动填写"
 msgstr "Scan first or fill manually"
 
-msgid "关闭时仅在中键选中敌人且画面识别到 'Lv' 文字或血条时开启战斗"
-msgstr "When closed, combat starts only when an enemy is selected with the middle button and 'Lv' text or health bar is recognized on screen."
-
 msgid "出招表"
 msgstr "Combo List"
 
@@ -360,3 +357,16 @@ msgstr "Claim Periodic Task Rewards"
 
 msgid "领取邮件"
 msgstr "Claim Mail"
+
+msgid "使用ESC"
+msgstr "Use ESC"
+
+msgid "关闭时仅在中键选中敌人且画面识别到 'Lv' 文字时开启战斗"
+msgstr "When disabled, combat starts only if an enemy is middle-clicked and 'Lv' is detected on screen"
+
+msgid ""
+"开启后优先通过 ESC 键关闭成功界面，避免后台抢占鼠标。\n"
+"若游戏运行不流畅，可能因按键响应延迟导致误退出钓鱼场景"
+msgstr ""
+"When enabled, prioritizes closing success screens with ESC to prevent background focus stealing.\n"
+"If the game lags, input delay may cause accidental exit from the fishing scene."

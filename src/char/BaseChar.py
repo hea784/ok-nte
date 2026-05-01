@@ -217,9 +217,7 @@ class BaseChar:
         """
         self.has_intro = False
         self._ultimate_available = self.ultimate_available()
-        self.task.switch_next_char(
-            self, post_action=post_action, free_intro=free_intro
-        )
+        self.task.switch_next_char(self, post_action=post_action, free_intro=free_intro)
 
     def sleep(self, sec, check_combat=True):
         if not check_combat:
@@ -235,6 +233,7 @@ class BaseChar:
 
     def click_skill(
         self,
+        down_time=0.01,
         post_sleep=0,
         has_animation=False,
         send_click=True,
@@ -244,6 +243,7 @@ class BaseChar:
         """尝试释放技能。
 
         Args:
+            down_time (float, optional): 按键按下的持续时间。默认为 0.01。
             post_sleep (float, optional): 释放技能后的休眠时间。默认为 0。
             has_animation (bool, optional): 技能是否有释放动画。默认为 False。
             send_click (bool, optional): 在释放技能前是否发送普通点击。默认为 True。
@@ -308,7 +308,7 @@ class BaseChar:
                         clicked = True
                         skill_click_time = now
                     last_op = "skill"
-                    self.send_skill_key()
+                    self.send_skill_key(down_time=down_time)
                     if has_animation:  # sleep if there will be an animation like Jinhsi
                         self.sleep(0.2, check_combat=False)
                 last_click = now
@@ -456,7 +456,8 @@ class BaseChar:
                     box=box_ultimate,
                     frame_processor=gf.isolate_cd_to_black,
                     threshold=0.7,
-                ) or not self.available("ultimate", check_cd=False)
+                )
+                or not self.available("ultimate", check_cd=False)
             ),
             time_out=10,
             post_action=self.click_with_interval,
@@ -647,13 +648,13 @@ class BaseChar:
                 （如 'w'、'a'、's'、'd'）。
         """
         if direction_key is not None:
-            self.send_key_down(direction_key)
+            self.task.send_key_down(direction_key)
             self.task.next_frame()
         start = time.time()
         while time.time() - start < duration:
             self.click(interval=interval, key="right")
         if direction_key is not None:
-            self.send_key_up(direction_key)
+            self.task.send_key_up(direction_key)
 
     def normal_attack(self):
         """执行一次普通攻击。"""
