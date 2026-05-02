@@ -1,5 +1,6 @@
 import re
 import time
+from functools import cache
 from typing import TYPE_CHECKING
 
 import cv2
@@ -33,7 +34,7 @@ class CombatCheck(BaseNTETask):
         self.combat_end_condition = None
         self.target_enemy_error_notified = False
         self.cds = {}
-        self.combat_detect_future = None
+        self.find_lv_future = None
         self._combat_detect_settle = None
         self._target_template_cache_key = None
         self._target_match_templates = None
@@ -338,7 +339,7 @@ class CombatCheck(BaseNTETask):
                 return self.scene.set_in_combat()
             else:
                 if self._combat_detect_settle is None:
-                    self._combat_detect_settle = time.time() + 0.5
+                    self._combat_detect_settle = time.time() + 0.35
                 if self._combat_detect_settle > time.time():
                     self.middle_click(interval=0.25)
                     return self.scene.set_in_combat()
@@ -352,22 +353,24 @@ class CombatCheck(BaseNTETask):
             return self.reset_to_false(reason="target enemy failed")
         else:
             from src.tasks.trigger.AutoCombatTask import AutoCombatTask
+            @cache
+            def has_target():
+                return self.async_combat_detect(target=True, lv=False)
 
             # now = time.time()
-            has_target = self.async_combat_detect(target=True, lv=False)
-            if not has_target and target:
-                self.log_debug("try target")
-                self.middle_click(after_sleep=0.1)
             is_boss = self.is_boss()
             has_lv = self.find_lv()
             is_auto = self.config.get("自动目标") or not isinstance(self, AutoCombatTask)
+            if target and not has_target():
+                self.log_debug("try target")
+                self.middle_click(after_sleep=0.1)
 
-            in_combat = (is_boss or has_lv) and (is_auto or has_target)
+            in_combat = (is_boss or has_lv) and (is_auto or has_target())
             if in_combat:
                 # self.log_info(f"enter combat cost1 {time.time() - now}")
                 if is_boss:
                     self.middle_click()
-                elif not has_target and not self.target_enemy(wait=True, lv=False):
+                elif not has_target() and not self.target_enemy(wait=True, lv=False):
                     return False
                 # self.log_info(f"enter combat cost2 {time.time() - now}")
                 self._in_combat = self.load_chars()
@@ -418,30 +421,33 @@ class CombatCheck(BaseNTETask):
         return res
 
     def combat_detect(self, frame=None, target=True, lv=True, bg=False):
-        if target and self.openvino_detect_sync():
-            return True, "target"
         if lv and self.find_lv(frame=frame, bg=bg):
             return True, "lv"
+        if target and self.openvino_detect_sync():
+            return True, "target"
         return False, None
 
     def async_combat_detect(self, target=True, lv=True):
-        if target and self.openvino_detect_async():
+        lv_ret = None
+        if lv:
+            if self.find_lv_future and self.find_lv_future.done():
+                lv_ret = bool(self.find_lv_future.result())
+                self.find_lv_future = None
+            elif self.find_lv_future is None:
+                frame = self.frame
+                self.find_lv_future = self.thread_pool_executor.submit(
+                    self.find_lv, frame=frame, bg=True
+                )
+            if lv_ret is True:
+                return True
+                
+            if lv_ret is None:
+                return None
+
+        if target and self.openvino_detect_sync():
             return True
 
-        if not lv:
-            return False
-
-        if self.combat_detect_future and self.combat_detect_future.done():
-            ret, _ = self.combat_detect_future.result()
-            self.combat_detect_future = None
-            return ret
-
-        if self.combat_detect_future is None:
-            frame = self.frame
-            self.combat_detect_future = self.thread_pool_executor.submit(
-                self.combat_detect, frame=frame, target=False, lv=lv, bg=True
-            )
-        return None
+        return False
 
 
 enemy_health_hsv = iu.HSVRange((0, 190, 175), (10, 255, 255))
