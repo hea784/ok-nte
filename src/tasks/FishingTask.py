@@ -12,17 +12,15 @@ from src.utils import image_utils as iu
 
 
 class FishingTask(BaseNTETask):
-    DEFAULT_MOVE = True
-    BAR_BOX = (0.3164, 0.0646, 0.6875, 0.0743)
-    BITE_INDICATOR_BOX = (0.9023, 0.8562, 0.9488, 0.9403)
-    START_FISHING_BOX = (0.9102, 0.8743, 0.9387, 0.9271)
-    FISH_BAIT_BOX = (0.8395, 0.8736, 0.8691, 0.9243)
-    SUCCESS_TEXT_BOX = (0.4434, 0.8938, 0.5566, 0.9181)
-    ENTER_FISHING_PANEL_BOX = (0.7113, 0.8247, 0.8089, 0.9111)
-    SUCCESS_CLOSE_POS = (0.12, 0.88)
-    OPEN_PANEL_TIMEOUT = 5
-    BITE_TIMEOUT = 20
-    CONTROL_TIMEOUT = 30
+    # --- 配置项键名 ---
+    CONF_ROUNDS = "循环次数"
+    CONF_CONTROL_MODE = "控条模式"
+    CONF_TAP_MULTIPLIER = "点按时长倍率"
+    CONF_USE_ESC = "使用ESC"
+
+    # --- 配置选项值 ---
+    MODE_HOLD = "长按"
+    MODE_TAP = "点按"
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -32,25 +30,29 @@ class FishingTask(BaseNTETask):
         self.support_schedule_task = True
         self.default_config.update(
             {
-                "循环次数": 1,
-                "控条模式": "长按",
-                "点按时长倍率": 1.0,
-                "使用ESC": False
+                self.CONF_ROUNDS: 1,
+                self.CONF_CONTROL_MODE: self.MODE_HOLD,
+                self.CONF_TAP_MULTIPLIER: 1.0,
+                self.CONF_USE_ESC: False,
             }
         )
         self.config_description.update(
             {
-                "控条模式": "长按：平滑流畅, 易过冲\n点按: 安全较慢, 防过冲",
-                "点按时长倍率": "点按模式专用。用于微调每次按键的持续时间",
-                "使用ESC": "开启后优先通过 ESC 键关闭成功界面，避免后台抢占鼠标。\n"
+                self.CONF_CONTROL_MODE: f"{self.MODE_HOLD}：平滑流畅, 易过冲\n"
+                f"{self.MODE_TAP}: 安全较慢, 防过冲",
+                self.CONF_TAP_MULTIPLIER: "点按模式专用。用于微调每次按键的持续时间",
+                self.CONF_USE_ESC: "开启后优先通过 ESC 键关闭成功界面，避免后台抢占鼠标。\n"
                 "若游戏运行不流畅，可能因按键响应延迟导致误退出钓鱼场景",
             }
         )
-        self.config_type["控条模式"] = {
-            "type": "drop_down",
-            "options": ["长按", "点按"],
-        }
-        self._fishing_started = False
+        self.config_type.update(
+            {
+                self.CONF_CONTROL_MODE: {
+                    "type": "drop_down",
+                    "options": [self.MODE_HOLD, self.MODE_TAP],
+                },
+            }
+        )
         self._last_bar_log_time = 0.0
         self._morph_kernel = np.ones((3, 3), dtype=np.uint8)
         self._bar_active_key = None
@@ -71,12 +73,12 @@ class FishingTask(BaseNTETask):
     def sleep_check(self):
         if self.should_check_monthly_card():
             self.handle_monthly_card()
-        return
 
     def do_run(self):
         self.reset_runtime_state()
-        self.enter_fishing_scene()
-        rounds = max(1, int(self.config.get("循环次数", 1)))
+        if not self.enter_fishing_scene():
+            raise TaskDisabledException("进入失败或未在钓鱼场景")
+        rounds = max(1, int(self.config.get(self.CONF_ROUNDS, 1)))
         self.log_info(f"开始自动钓鱼，共 {rounds} 轮")
         success_count = 0
         for index in range(rounds):
@@ -100,27 +102,45 @@ class FishingTask(BaseNTETask):
             self.screenshot(f"fishing_bite_timeout_{round_index}")
             return False
 
-        if self.control_until_finish():
-            return True
-
-        return False
+        return self.control_until_finish()
 
     def enter_fishing_scene(self) -> bool:
-        if self.find_interac():
-            box = self.box_of_screen(*self.ENTER_FISHING_PANEL_BOX)
-            self.wait_until(
+        """检测并进入钓鱼准备界面"""
+        ENTER_SCENE_TIMEOUT = 5
+        if self.is_fish_start_exist():
+            self.log_info("已在钓鱼准备界面")
+            return True
+        
+        if self.wait_until(self.find_interac, time_out=ENTER_SCENE_TIMEOUT):
+            box = self.box_of_screen(0.9094, 0.8278, 0.9746, 0.9104)
+
+            # 尝试通过 F 交互打开面板
+            if not self.wait_until(
                 lambda: self.find_one(Labels.skip_quest_confirm, box=box) is not None,
                 pre_action=lambda: self.send_key("f", interval=1.5),
-                time_out=self.OPEN_PANEL_TIMEOUT,
-            )
-            self.click(box)
+                time_out=ENTER_SCENE_TIMEOUT,
+            ):
+                self.log_error("未检测到钓鱼面板入口")
+                return False
+
+            self.operate_click(box)
             self.sleep(1.5)
 
+        if not self.wait_until(self.is_fish_start_exist, time_out=ENTER_SCENE_TIMEOUT):
+            self.log_error("进入钓鱼场景后未检测到可抛竿状态")
+            return False
+
+        self.log_info("成功进入钓鱼场景")
+        return True
+
     def cast_rod(self) -> bool:
+        """执行抛竿操作并等待进入等待状态"""
+
         def post():
             if self.is_success_overlay():
                 self.log_info("抛竿时检测到成功面板, 尝试关闭")
                 self.do_close_success_overlay()
+
         self.log_info("执行抛竿操作")
         if not self.wait_until(
             lambda: not self.is_fish_bait_exist() and self.is_fish_start_exist(),
@@ -139,8 +159,9 @@ class FishingTask(BaseNTETask):
         return True
 
     def wait_bite(self) -> bool:
+        """等待鱼儿咬钩"""
         self.log_info("等待鱼儿咬钩")
-        if self.wait_until(self.is_fishing_bite, time_out=self.BITE_TIMEOUT):
+        if self.wait_until(self.is_fishing_bite, time_out=20):
             self.log_info("鱼儿咬钩")
             if not self.wait_until(
                 lambda: not self.is_fish_start_exist(),
@@ -156,19 +177,17 @@ class FishingTask(BaseNTETask):
             return False
 
     def control_until_finish(self) -> bool:
+        """实时检测拉力条状态并自动控条直到钓鱼结束"""
         start_check_time = time.time() + 1
-        deadline = time.time() + self.CONTROL_TIMEOUT
+        deadline = time.time() + 30
         failed_time = 0
         try:
             while time.time() < deadline:
-                state = self.get_bar_state()
+                state = self.detect_fishing_bar_state()
                 if self.is_valid_bar_state(state):
                     self.apply_bar_control(state)
                 else:
-                    # 只在长按模式下清理按键
-                    mode = self.config.get("控条模式", "长按")
-                    if mode == "长按":
-                        self._set_bar_key(None)
+                    self._clear_bar_key_if_hold_mode()
 
                 if time.time() > start_check_time:
                     if self.is_fish_bait_exist():
@@ -185,18 +204,14 @@ class FishingTask(BaseNTETask):
                         return True
 
                 self.next_frame()
-            else:
-                self.log_error("控条阶段超时")
+            self.log_error("控条阶段超时")
             return False
         finally:
-            # 只在长按模式下清理按键
-            mode = self.config.get("控条模式", "长按")
-            if mode == "长按":
-                self._set_bar_key(None)
+            self._clear_bar_key_if_hold_mode()
 
     def apply_bar_control(self, state: dict):
-        mode = self.config.get("控条模式", "长按")
-        if mode == "点按":
+        mode = self.config.get(self.CONF_CONTROL_MODE, self.MODE_HOLD)
+        if mode == self.MODE_TAP:
             self.apply_bar_control_discrete(state)
         else:
             self.apply_bar_control_hold(state)
@@ -204,17 +219,11 @@ class FishingTask(BaseNTETask):
     def apply_bar_control_hold(self, state: dict):
         """长按模式 (默认)"""
         now = time.time()
-        pointer = int(state["pointer_center"])
-        zone_left = int(state["zone_left"])
-        zone_right = int(state["zone_right"])
-
-        zone_center = (zone_left + zone_right) // 2
-        zone_width = max(1, zone_right - zone_left)
-
+        pointer, zone_center, zone_width = self._bar_metrics(state)
         error = pointer - zone_center
         abs_error = abs(error)
 
-        deadzone = max(2, int(zone_width * 0.06))
+        deadzone = max(2, int(zone_width * 0.08))
 
         if abs_error <= deadzone:
             self._set_bar_key(None)
@@ -227,45 +236,22 @@ class FishingTask(BaseNTETask):
         self._set_bar_key(key)
 
     def apply_bar_control_discrete(self, state: dict):
-        """点按模式 (使用 send_key + down_time)"""
+        """点按模式"""
         now = time.time()
-        pointer = int(state["pointer_center"])
-        zone_left = int(state["zone_left"])
-        zone_right = int(state["zone_right"])
-
-        zone_center = (zone_left + zone_right) // 2
-        zone_width = max(1, zone_right - zone_left)
-
+        pointer, zone_center, zone_width = self._bar_metrics(state)
         dist_from_center = pointer - zone_center
         abs_dist = abs(dist_from_center)
 
-        deadzone = max(2, int(zone_width * 0.06))
-
-        if abs_dist <= deadzone:
+        if abs_dist <= max(2, int(zone_width * 0.08)):
             if now - self._last_bar_log_time > 0.5:
                 self.log_debug(f"指针已锁定中心: pointer={pointer}, target={zone_center}")
                 self._last_bar_log_time = now
             return
 
         key = "d" if dist_from_center < 0 else "a"
-
         ratio = min(1.0, abs_dist / (zone_width / 2))
-
-        # S 曲线
         curve = ratio * ratio * (3 - 2 * ratio)
-
-        base_hold = 0.01
-        max_hold_ext = 0.18
-
-        hold = base_hold + curve * max_hold_ext
-
-        # 死区
-        deadzone = max(2, int(zone_width * 0.08))
-        if abs_dist <= deadzone:
-            return
-
-        # 方向
-        key = "d" if dist_from_center < 0 else "a"
+        hold = 0.01 + curve * 0.18
 
         # 方向变化削弱
         if key != self._last_direction:
@@ -274,7 +260,7 @@ class FishingTask(BaseNTETask):
         self._last_direction = key
 
         # 倍率
-        multiplier = float(self.config.get("点按时长倍率", 1.0))
+        multiplier = float(self.config.get(self.CONF_TAP_MULTIPLIER, 1.0))
         hold *= multiplier
 
         # 限制
@@ -294,8 +280,16 @@ class FishingTask(BaseNTETask):
             self.send_key_down(key)
             self._bar_active_key = key
 
-    def get_bar_state(self):
-        return self.detect_fishing_bar_state()
+    def _clear_bar_key_if_hold_mode(self):
+        if self.config.get(self.CONF_CONTROL_MODE, self.MODE_HOLD) == self.MODE_HOLD:
+            self._set_bar_key(None)
+
+    def _bar_metrics(self, state: dict):
+        return (
+            int(state["pointer_center"]),
+            int(state["zone_center"]),
+            max(1, int(state["zone_width"])),
+        )
 
     def is_valid_bar_state(self, state) -> bool:
         if state is None:
@@ -317,14 +311,6 @@ class FishingTask(BaseNTETask):
         ):
             return False
         return True
-
-    def is_fishing_entry(self) -> bool:
-        # TODO: 替换为非 OCR 方式检测“钓鱼”交互入口 (如图标匹配或特征颜色)
-        return False
-
-    def is_start_panel(self) -> bool:
-        # TODO: 替换为非 OCR 方式检测“钓鱼准备面板”或“开始钓鱼”按钮
-        return False
 
     def is_success_overlay(self) -> bool:
         return self.is_success_text_exist()
@@ -348,11 +334,11 @@ class FishingTask(BaseNTETask):
         return True
 
     def do_close_success_overlay(self):
-        if self.config.get("使用ESC"):
+        """执行关闭成功面板的具体操作"""
+        if self.config.get(self.CONF_USE_ESC):
             self.send_key("esc", interval=2)
         else:
-            x, y = self.SUCCESS_CLOSE_POS
-            self.click(x, y, interval=2)
+            self.operate_click(0.12, 0.88, interval=2)
 
     def clear_success_overlay_if_present(self):
         if self.is_success_overlay():
@@ -361,17 +347,13 @@ class FishingTask(BaseNTETask):
 
     def reset_runtime_state(self):
         self._set_bar_key(None)
-        self._fishing_started = False
         self._last_bar_log_time = 0.0
         self._last_direction = None
         self._bar_active_key = None
 
     def detect_fishing_bar_state(self):
-        """
-        Detect the fishing control bar state from a cropped top-bar image using
-        contour analysis to filter noise.
-        """
-        box = self.box_of_screen(*self.BAR_BOX, name="fishing_bar")
+        """通过色值检测当前拉力条和指针的位置状态"""
+        box = self.box_of_screen(0.3164, 0.0646, 0.6875, 0.0743, name="fishing_bar")
         image = box.crop_frame(self.frame)
         if image is None or image.size == 0:
             return None
@@ -383,13 +365,10 @@ class FishingTask(BaseNTETask):
             image, iu.HSVRange((20, 60, 195), (55, 200, 255)), return_mask=True
         )
 
-        # iu.show_images([green_mask, yellow_mask], names=["green_mask", "yellow_mask"], wait_key=1)
-
         green_mask = cv2.morphologyEx(green_mask, cv2.MORPH_OPEN, self._morph_kernel)
         green_mask = cv2.morphologyEx(green_mask, cv2.MORPH_CLOSE, self._morph_kernel)
         yellow_mask = cv2.morphologyEx(yellow_mask, cv2.MORPH_OPEN, self._morph_kernel)
         yellow_mask = cv2.morphologyEx(yellow_mask, cv2.MORPH_CLOSE, self._morph_kernel)
-        # iu.show_images([green_mask, yellow_mask], names=["green_mask", "yellow_mask"])
 
         yellow_contours, _ = cv2.findContours(
             yellow_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
@@ -444,15 +423,11 @@ class FishingTask(BaseNTETask):
         """
         检测开始钓鱼按钮是否存在
         """
-        # box = self.box_of_screen(*self.START_FISHING_BOX, name="start_fishing")
-        # return self.calculate_color_percentage(text_white_color, box) > 0.09
         return self.find_one(Labels.fish_start)
 
     def is_success_text_exist(self):
-        """
-        检测成功文本是否存在
-        """
-        box = self.box_of_screen(*self.SUCCESS_TEXT_BOX, name="success_text")
+        """检测界面是否出现“成功”字样（通过黑白像素占比判断）"""
+        box = self.box_of_screen(0.4434, 0.8938, 0.5566, 0.9181, name="success_text")
         white_text = self.calculate_color_percentage(text_white_color, box)
         black_border = self.calculate_color_percentage(text_black_color, box)
         # self.log_debug(f"white_text: {white_text}, black_border: {black_border}")
@@ -462,16 +437,11 @@ class FishingTask(BaseNTETask):
         """
         检测鱼饵是否存在
         """
-        # box = self.box_of_screen(*self.FISH_BAIT_BOX, name="fish_bait")
-        # return self.calculate_color_percentage(text_white_color, box) > 0.06
         return self.find_one(Labels.fish_bait)
 
     def is_fishing_bite(self):
-        """
-        Detect the blue bite/reel indicator shown at the bottom-right of the fishing UI.
-        聚焦于中心 70% 半径区域以提高识别精度。
-        """
-        box = self.box_of_screen(*self.BITE_INDICATOR_BOX, name="fishing_bite_indicator")
+        """检测右下角鱼儿咬钩指示器中心圆外区域（蓝色像素占比判断）"""
+        box = self.box_of_screen(0.9023, 0.8562, 0.9488, 0.9403, name="fishing_bite_indicator")
         image = box.crop_frame(self.frame)
 
         blue_mask = iu.create_color_mask(image, fishing_bite_blue_color, to_bgr=False)

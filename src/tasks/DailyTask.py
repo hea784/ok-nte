@@ -1,8 +1,8 @@
 from datetime import datetime
 
+from ok import TaskDisabledException, find_color_rectangles, CannotFindException
 from qfluentwidgets import FluentIcon
 
-from ok import TaskDisabledException, find_color_rectangles
 from src import text_white_color
 from src.Labels import Labels
 from src.tasks.BaseNTETask import BaseNTETask
@@ -11,8 +11,6 @@ from src.utils import image_utils as iu
 
 class DailyTask(BaseNTETask):
     """日常任务执行器"""
-
-    DEFAULT_MOVE = True
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -134,18 +132,19 @@ class DailyTask(BaseNTETask):
         """
         self.log_info("正在打开邮件面板")
         self.openESCpanel()
-        self.click(0.8707, 0.8736, after_sleep=1)
+        self.operate_click(0.8707, 0.8736)
+        self.sleep(1)
         result = self.wait_panel(Labels.mail_panel)
         if not result:
             self.log_error("无法找到邮件面板", notify=True)
-            raise Exception("can't find mail panel")
+            raise CannotFindException("can't find mail panel")
         return result
 
     def claim_mail(self):
         """领取邮件"""
         self.log_info("正在领取邮件奖励")
         self._open_mail_panel()
-        self.click(0.1289, 0.9299)
+        self.operate_click(0.1289, 0.9299)
         self.sleep(1)
         return True
 
@@ -159,14 +158,14 @@ class DailyTask(BaseNTETask):
         """领取活跃度奖励"""
         self.log_info("正在领取活跃度奖励")
         self.openF1panel()
-        self.click(0.0551, 0.3833)
+        self.operate_click(0.0551, 0.3833)
         self.wait_panel(Labels.f1_activity_panel)
         if self.find_one(Labels.f1_activity_mission):
-            self.click(0.2348, 0.7653)
+            self.operate_click(0.2348, 0.7653)
             self.sleep(2)
 
         if target := self._get_activity_reward_box():
-            self.click(target)
+            self.operate_click(target)
             self.sleep(1)
         else:
             self.log_error("无法找到活跃度奖励领取框")
@@ -190,10 +189,10 @@ class DailyTask(BaseNTETask):
         """领取环期任务奖励"""
         self.log_info("正在领取环期任务奖励")
         self.openF2panel()
-        self.click(0.6934, 0.8229)
+        self.operate_click(0.6934, 0.8229)
         self.sleep(1)
-        self.click(0.0570, 0.3451)
+        self.operate_click(0.0570, 0.3451)
         self.wait_panel(Labels.f2_mission_panel)
-        self.click(0.8777, 0.8187)
+        self.operate_click(0.8777, 0.8187)
         self.sleep(1)
         return True

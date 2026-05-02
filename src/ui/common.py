@@ -85,10 +85,10 @@ class SearchableComboBox(EditableComboBox):
         self.setCompleter(completer)
 
     def addItem(
-        self, text: str, icon: Union[QIcon, str, FluentIconBase, None] = None, userData: Any = None
+        self, text: str, icon: QIcon | str | FluentIconBase | None = None, user_data: Any = None
     ):
         """重写以同步更新搜寻清单"""
-        super().addItem(text, icon, userData)
+        super().addItem(text, icon, user_data)
         self.search_items.append(text)
         self._sync_completer_model()
 
@@ -143,7 +143,7 @@ class SearchableListWidget(QWidget):
     def _apply_filter(self, keyword: str):
         """
         更优的过滤方式：隐藏/显示 Item，而不是清空重建。
-        这样即使 Item 包含 Icon 或复杂的 UserData 也不会丢失。
+        这样即使 Item 包含 Icon 或复杂的 user_data 也不会丢失。
         """
         normalized = keyword.strip().lower()
 

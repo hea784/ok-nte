@@ -3,7 +3,7 @@ import re
 import time
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta
-from typing import Any, List, overload
+from typing import Any, Callable, List, overload
 
 import cv2
 import numpy as np
@@ -11,7 +11,7 @@ import win32api
 import win32con
 import win32gui
 import win32process
-from ok import BaseTask, Box, Logger, og, safe_get
+from ok import BaseTask, Box, Logger, og, safe_get, CannotFindException
 
 from src.Labels import Labels
 from src.scene.NTEScene import NTEScene
@@ -37,34 +37,78 @@ class BaseNTETask(BaseTask):
         self.next_monthly_card_start = 0
 
     @property
-    def thread_pool_executor(self) -> ThreadPoolExecutor:
+    def thread_pool_executor(self) -> ThreadPoolExecutor | None:
         if og.my_app is None:
             return None
         return og.my_app.get_thread_pool_executor()
+
+    def _openvino_detect(self, sync, box, threshold):
+        if og.my_app is None:
+            return []
+        if box is None:
+            box = self.box_of_screen(0.0840, 0.1326, 0.9176, 0.8694, name="openvino_box")
+        self.draw_boxes(boxes=box, color="blue")
+        if sync:
+            results = og.my_app.openvino_detect_sync(image=self.frame, box=box, threshold=threshold)
+        else:
+            results = og.my_app.openvino_detect_async(
+                image=self.frame, box=box, threshold=threshold
+            )
+        if results:
+            self.draw_boxes(boxes=results, color="red")
+        return results
+
+    def openvino_detect_async(self, box: Box = None, threshold=0.5) -> List[Box]:
+        return self._openvino_detect(False, box, threshold)
+
+    def openvino_detect_sync(self, box: Box = None, threshold=0.5) -> List[Box]:
+        return self._openvino_detect(True, box, threshold)
 
     @property
     def main_viewport(self):
         return self.box_of_screen(0.1543, 0.1021, 0.9070, 0.6389)
 
+    # fmt: off
     @overload
     def click(self, x: int | Box | List[Box] = -1, y=-1, move_back=False, name=None, interval=-1,
               move=False, down_time=0.02, after_sleep=0, key='left', hcenter=False,
               vcenter=False) -> Any:
         ...
+    # fmt: on
 
     def click(self, *args, **kwargs):
         is_top_level = not hasattr(self, "_current_move")
 
         if is_top_level:
             self._current_move = kwargs.get("move", self.DEFAULT_MOVE)
-        else:
-            kwargs["move"] = self._current_move
+        kwargs["move"] = self._current_move
 
         try:
             return super().click(*args, **kwargs)
         finally:
             if is_top_level:
                 delattr(self, "_current_move")
+
+    # fmt: off
+    @overload
+    def operate_click(self, x: int | Box | List[Box] = -1, y=-1, move_back=False, name=None,
+                      interval=-1, down_time=0.02, key='left',
+                      hcenter=False, vcenter=False) -> Any:
+        ...
+    # fmt: on
+
+    def operate_click(self, *args, **kwargs):
+        kwargs["move"] = True
+        kwargs["after_sleep"] = 0
+        self.operate(lambda: self.click(*args, **kwargs), block=True)
+
+    def operate(self, func: Callable, block=False):
+        from src.interaction.NTEInteraction import NTEInteraction
+
+        if isinstance(self.executor.interaction, NTEInteraction):
+            return self.executor.interaction.operate(func, block)
+        else:
+            return func()
 
     def get_char_box(self, index: int):
         box = self.get_box_by_name(f"box_char_{index + 1}")
@@ -165,19 +209,19 @@ class BaseNTETask(BaseTask):
             feature = self.get_feature_by_name(Labels.is_current_char)
             mat = feature.mat  # 原始二值化模板
             white_pixels = cv2.countNonZero(mat)
-            
+
             # 仍然保留膨胀掩码用于过滤
             kernel = np.ones((5, 5), np.uint8)
             mask = cv2.dilate(feature.mat, kernel, iterations=1)
-            
+
             self._char_template_cache = {
                 "width": self.width,
                 "height": self.height,
                 "mat": mat,
                 "mask": mask,
-                "white_pixels": white_pixels
+                "white_pixels": white_pixels,
             }
-            
+
         cache = self._char_template_cache
         return cache["mat"], cache["mask"], cache["white_pixels"]
 
@@ -186,24 +230,24 @@ class BaseNTETask(BaseTask):
         template_mat, template_mask, template_white_count = self._get_char_template_data()
         if template_white_count == 0:
             return 1.0
-            
+
         base_box = self.get_box_by_name(Labels.is_current_char)
         if self.char_ui_offset:
             base_box = self.shift_char_ui_box(base_box)
         box = self.get_box_by_char_spacing(base_box, index)
         # self.draw_boxes(boxes=box, color="blue")
-        
+
         current_mat = gf.current_char_filter(box.crop_frame(self.frame), blur=True)
-        
+
         # 1. 掩码过滤并计算交集
         if current_mat.shape == template_mask.shape:
             current_mat = cv2.bitwise_and(current_mat, template_mask)
-            
+
             if current_mat.shape == template_mat.shape:
                 intersection = cv2.bitwise_and(current_mat, template_mat)
                 coverage = cv2.countNonZero(intersection) / template_white_count
                 return 1.0 - coverage
-            
+
         return 1.0
 
     def is_char_at_index(self, index, threshold=0.3):
@@ -220,13 +264,13 @@ class BaseNTETask(BaseTask):
         """扫描所有槽位，返回匹配度最高的索引"""
         best_score = 999
         best_idx = -1
-        
+
         for i in range(4):
             score = self.get_char_match_score(i)
             if score < best_score:
                 best_score = score
                 best_idx = i
-        
+
         if best_idx != -1:
             self.log_debug(f"current_char found at {best_idx} with score {best_score:.4f}")
         return best_idx
@@ -452,7 +496,10 @@ class BaseNTETask(BaseTask):
             travel_btn = self.find_traval_button()
         if travel_btn:
             self.sleep(0.1)
-            self.click(travel_btn, after_sleep=1, move=True, down_time=0.01)
+            self.operate(
+                lambda: self.click(travel_btn, move=True), block=True
+            )
+            self.sleep(1)
             return True
         return False
 
@@ -466,7 +513,7 @@ class BaseNTETask(BaseTask):
         result = self.wait_panel(Labels.f1_panel)
         if not result:
             self.log_error("can't find panel, make sure f1 is the hotkey for panel", notify=True)
-            raise Exception("can't find panel, make sure f1 is the hotkey for panel")
+            raise CannotFindException("can't find panel, make sure f1 is the hotkey for panel")
         return result
 
     def openF2panel(self):
@@ -479,7 +526,7 @@ class BaseNTETask(BaseTask):
         result = self.wait_panel(Labels.f2_panel)
         if not result:
             self.log_error("can't find panel, make sure f2 is the hotkey for panel", notify=True)
-            raise Exception("can't find panel, make sure f2 is the hotkey for panel")
+            raise CannotFindException("can't find panel, make sure f2 is the hotkey for panel")
         return result
 
     def wait_panel(self, feature, box=None, threshold=0.8, time_out=4.5):
@@ -501,7 +548,7 @@ class BaseNTETask(BaseTask):
         result = self.wait_panel(Labels.esc_option, box=Labels.box_all_esc_options, threshold=0.3)
         if not result:
             self.log_error("can't find panel, make sure esc is the hotkey for panel", notify=True)
-            raise Exception("can't find panel, make sure esc is the hotkey for panel")
+            raise CannotFindException("can't find panel, make sure esc is the hotkey for panel")
         return result
 
     def ensure_main(self, esc=True, time_out=30):

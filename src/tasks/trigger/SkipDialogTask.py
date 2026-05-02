@@ -10,7 +10,6 @@ logger = Logger.get_logger(__name__)
 
 
 class SkipDialogTask(TriggerTask, BaseNTETask):
-    DEFAULT_MOVE = True
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -40,9 +39,8 @@ class SkipDialogTask(TriggerTask, BaseNTETask):
                 return
             self.check_dialog_click()
 
-        if self.config.get("自动消息"):
-            if self.skip_message():
-                return
+        if self.config.get("自动消息") and self.skip_message():
+            return
 
     def in_story(self):
         return self.find_one(Labels.auto_play) or self.find_skip() or self.find_dialog_history()
@@ -56,7 +54,8 @@ class SkipDialogTask(TriggerTask, BaseNTETask):
             top_box = boxes[0]
             bottom_box = boxes[-1]
             if self.calculate_color_percentage(option_pink_color, top_box.scale(2)) > 0.3:
-                self.click(bottom_box, after_sleep=0.1)
+                self.operate_click(bottom_box)
+                self.sleep(0.1)
             return True
         return False
 
@@ -72,29 +71,13 @@ class SkipDialogTask(TriggerTask, BaseNTETask):
                 return True
 
     def skip_message(self):
-        if self.find_one(Labels.message):
-            if self.find_message_dialog():
-                self.sleep(0.1)
-                message_dialog = self.find_message_dialog()
-                if message_dialog:
-                    self.click(message_dialog, down_time=0.02, after_sleep=1)
-                    self.log_info(f"click {message_dialog}")
-            # else:
-            #     try:
-            #         self.mouse_down(0.4223, 0.7236)
-            #         self.wait_until(
-            #             lambda: (
-            #                 self.find_one(
-            #                     Labels.message_dialog,
-            #                     vertical_variance=0.15,
-            #                     horizontal_variance=0.01,
-            #                 )
-            #                 or not self.find_one(Labels.message)
-            #             ),
-            #             time_out=30,
-            #         )
-            #     finally:
-            #         self.mouse_up(0.4223, 0.7236)
+        if self.find_one(Labels.message) and self.find_message_dialog():
+            self.sleep(0.1)
+            message_dialog = self.find_message_dialog()
+            if message_dialog:
+                self.operate_click(message_dialog)
+                self.sleep(1)
+                self.log_info(f"click {message_dialog}")
 
     def find_message_dialog(self):
         return self.find_one(Labels.message_dialog, vertical_variance=0.2, horizontal_variance=0.01)
@@ -109,8 +92,10 @@ class SkipDialogTask(TriggerTask, BaseNTETask):
             )
             if time.time() - now < 2.5:
                 self.sleep(0.2)
-                self.click(0.4508, 0.5194, down_time=0.01, after_sleep=0.4)
-            self.click(skip_button, down_time=0.01, after_sleep=0.5)
+                self.operate_click(0.4508, 0.5194)
+                self.sleep(0.4)
+            self.operate_click(skip_button)
+            self.sleep(0.5)
             if not self.find_one(Labels.skip_quest_confirm, threshold=0.8):
                 return True
         if self.is_in_team():
@@ -128,7 +113,8 @@ class SkipDialogTask(TriggerTask, BaseNTETask):
         skipped = False
         while skip := self.find_skip():
             logger.info("Click Skip Dialog")
-            self.click(skip, down_time=0.01, after_sleep=0.4)
+            self.operate_click(skip)
+            self.sleep(0.4)
             skipped = True
         return skipped
 

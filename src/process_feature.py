@@ -1,4 +1,3 @@
-# from ok import og
 from ok.feature.Feature import Feature
 from src.Labels import Labels
 from src.utils import game_filters as gf

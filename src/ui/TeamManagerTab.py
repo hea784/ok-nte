@@ -72,9 +72,9 @@ class NewCharDialog(MessageBoxBase):
 
         self.combo_list = SearchableComboBox()
         self.combo_list.setPlaceholderText(self.tr_list_ph)
-        self.combo_list.addItem("", userData="")
+        self.combo_list.addItem("", user_data="")
         for label, combo_ref in self.manager.get_all_combo_items():
-            self.combo_list.addItem(label, userData=combo_ref)
+            self.combo_list.addItem(label, user_data=combo_ref)
         self.viewLayout.addWidget(self.combo_list)
 
         self.widget.setMinimumWidth(320)
@@ -258,9 +258,9 @@ class FixedTeamSlotCard(CardWidget):
 
         self.combo_list.blockSignals(True)
         self.combo_list.clear()
-        self.combo_list.addItem("", userData="")
+        self.combo_list.addItem("", user_data="")
         for label, combo_ref in self.manager.get_all_combo_items():
-            self.combo_list.addItem(label, userData=combo_ref)
+            self.combo_list.addItem(label, user_data=combo_ref)
         self._set_combo_by_ref(current_combo_ref)
         self.combo_list.blockSignals(False)
 
@@ -301,7 +301,6 @@ class TeamManagerTab(CustomTab):
         self._executor = None
         self.tr_scan_btn = og.app.tr("扫描队伍")
         self.tr_scanning = og.app.tr("扫描中...")
-        # self.tr_analyzing = og.app.tr("正在分析...")
         self.tr_no_feature = og.app.tr("未获取到特征")
         self.tr_name_tab = TEAM_MANAGEMENT
         self.tr_scan_desc = og.app.tr("不扫描也可自动战斗，将使用通用脚本")
