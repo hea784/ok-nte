@@ -370,3 +370,33 @@ msgid ""
 msgstr ""
 "When enabled, prioritizes closing success screens with ESC to prevent background focus stealing.\n"
 "If the game lags, input delay may cause accidental exit from the fishing scene."
+
+msgid "Counter Attack Threshold"
+msgstr ""
+
+msgid "Counter attack sound recognition threshold (0.0-1.0, lower is more sensitive)"
+msgstr ""
+
+msgid "Dodge Threshold"
+msgstr ""
+
+msgid "Dodge sound recognition threshold (0.0-1.0, lower is more sensitive)"
+msgstr ""
+
+msgid "Enable Sound Trigger"
+msgstr ""
+
+msgid "Enable sound recognition for automatic dodge and counter attacks"
+msgstr ""
+
+msgid "Sound Trigger Config"
+msgstr ""
+
+msgid "Sound-based dodge and counter trigger settings"
+msgstr ""
+
+msgid "Dodge All Attacks"
+msgstr ""
+
+msgid "Dodge all attacks without performing counter attacks"
+msgstr ""

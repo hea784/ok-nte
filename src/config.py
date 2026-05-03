@@ -6,7 +6,7 @@ from ok import ConfigOption
 from src.interaction.NTEInteraction import NTEInteraction
 from src.process_feature import process_feature
 
-version = "v0.0.18"
+version = "v0.0.19"
 # 不需要修改version, Github Action打包会自动修改
 
 key_config_option = ConfigOption(
@@ -26,6 +26,23 @@ monthly_card_config_option = ConfigOption(
     config_description={
         "Check Monthly Card": "Check for monthly card to avoid interruption of tasks",
         "Monthly Card Time": "Your computer's local time when the monthly card will popup, hour in (1-24)",
+    },
+)
+
+sound_trigger_config_option = ConfigOption(
+    "Sound Trigger Config",
+    {
+        "Enable Sound Trigger": True,
+        "Dodge All Attacks": True,
+        "Dodge Threshold": 0.13,
+        "Counter Attack Threshold": 0.12,
+    },
+    description="Sound-based dodge and counter trigger settings",
+    config_description={
+        "Enable Sound Trigger": "Enable sound recognition for automatic dodge and counter attacks",
+        "Dodge All Attacks": "Dodge all attacks without performing counter attacks",
+        "Dodge Threshold": "Dodge sound recognition threshold (0.0-1.0, lower is more sensitive)",
+        "Counter Attack Threshold": "Counter attack sound recognition threshold (0.0-1.0, lower is more sensitive)",
     },
 )
 
@@ -72,7 +89,7 @@ config = {
     "debug": False,  # Optional, default: False
     "use_gui": True,  # 目前只支持True
     "config_folder": "configs",  # 最好不要修改
-    "global_configs": [key_config_option, monthly_card_config_option],
+    "global_configs": [key_config_option, monthly_card_config_option, sound_trigger_config_option],
     "screenshot_processor": make_bottom_left_black,  # 在截图的时候对frame进行修改, 可选
     "gui_icon": "icons/icon.png",  # 窗口图标, 最好不需要修改文件名
     "wait_until_before_delay": 0,

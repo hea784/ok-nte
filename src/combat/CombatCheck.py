@@ -34,7 +34,7 @@ class CombatCheck(BaseNTETask):
         self._in_ultimate = False
         self._in_combat = False
         self.skip_combat_check = False
-        self.sleep_check_interval = 0.4
+        self.sleep_check_interval = 0.2
         self.last_out_of_combat_time = 0
         self.out_of_combat_reason = ""
         self.target_enemy_time_out = 3

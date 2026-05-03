@@ -370,3 +370,33 @@ msgid ""
 msgstr ""
 "Al activarlo, prioriza cerrar las pantallas de éxito con la tecla ESC para evitar que el fondo robe el foco del ratón.\n"
 "Si el juego no va fluido, el retraso en la respuesta de las teclas podría causar la salida accidental de la escena de pesca."
+
+msgid "Counter Attack Threshold"
+msgstr "Umbral de contraataque"
+
+msgid "Counter attack sound recognition threshold (0.0-1.0, lower is more sensitive)"
+msgstr "Umbral de reconocimiento de sonido de contraataque (0,0-1,0, más bajo es más sensible)"
+
+msgid "Dodge Threshold"
+msgstr "Umbral de esquiva"
+
+msgid "Dodge sound recognition threshold (0.0-1.0, lower is more sensitive)"
+msgstr "Umbral de reconocimiento de sonido de esquiva (0,0-1,0, más bajo es más sensible)"
+
+msgid "Enable Sound Trigger"
+msgstr "Activar disparador de sonido"
+
+msgid "Enable sound recognition for automatic dodge and counter attacks"
+msgstr "Activar el reconocimiento de sonido para esquivas y contraataques automáticos"
+
+msgid "Sound Trigger Config"
+msgstr "Configuración del disparador de sonido"
+
+msgid "Sound-based dodge and counter trigger settings"
+msgstr "Ajustes de activación de esquiva y contraataque basados en sonido"
+
+msgid "Dodge All Attacks"
+msgstr "Esquivar todos los ataques"
+
+msgid "Dodge all attacks without performing counter attacks"
+msgstr "Esquivar todos los ataques sin realizar contraataques"

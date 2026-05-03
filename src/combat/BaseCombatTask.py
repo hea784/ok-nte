@@ -12,6 +12,7 @@ from src.char.CharFactory import get_char_by_name, get_char_by_pos
 from src.char.custom.CustomCharManager import CustomCharManager
 from src.char.Healer import Healer
 from src.combat.CombatCheck import CombatCheck
+from src.sound_trigger.SoundCombatContext import SoundCombatContext
 from src.utils import game_filters as gf
 from src.utils import image_utils as iu
 
@@ -448,7 +449,7 @@ class BaseCombatTask(CombatCheck):
                     self.raise_not_in_combat(
                         f"switch too long failed chars_{current_char_name}_to_{switch_to_name}, {current_time - start_time}"
                     )
-                self.next_frame()
+                self.sleep(0.01)
                 continue
 
             if current_time - last_click_time > 0.2:
@@ -461,7 +462,7 @@ class BaseCombatTask(CombatCheck):
                     self.screenshot(f"switch_not_detected_{current_char_name}_to_{switch_to_name}")
                 self.raise_not_in_combat("failed switch chars")
 
-            self.next_frame()
+            self.sleep(0.01)
 
         if has_intro:
             self.record_element_ring_reaction(current_char, switch_to)
@@ -541,22 +542,33 @@ class BaseCombatTask(CombatCheck):
 
     def combat_end(self):
         """战斗结束时调用的清理方法。"""
+        SoundCombatContext().update_task(None)
+
         current_char = self.get_current_char(raise_exception=False)
         if current_char:
             self.get_current_char().on_combat_end(self.chars)
 
     def sleep_check(self):
-        """休眠指定时间, 并在休眠前后检查战斗状态。
+        if SoundCombatContext.should_interrupt_combat():
+            self.log_info("Combat sleep interrupted by sound action")
+            SoundCombatContext().execute_pending_action()
+            SoundCombatContext.wait_for_resume()
 
-        Args:
-            timeout (float): 休眠的秒数。
-            check_combat (bool, optional): 是否在休眠前检查战斗状态。默认为 True。
-        """
-        # self.log_debug(f'sleep_check {self._in_combat}')
         if self._in_combat:
             self.next_frame()
             if not self.in_combat():
                 self.raise_not_in_combat("sleep check not in combat")
+
+    def _apply_sound_config(self):
+        if self.sound_config:
+            enable = self.sound_config.get("Enable Sound Trigger", True)
+            dodge_all_attacks = self.sound_config.get("Dodge All Attacks", True)
+            dodge_thresh = self.sound_config.get("Dodge Threshold", 0.13)
+            counter_thresh = self.sound_config.get("Counter Attack Threshold", 0.12)
+            dodge_thresh = np.clip(dodge_thresh, 0.0, 1.0)
+            counter_thresh = np.clip(counter_thresh, 0.0, 1.0)
+            SoundCombatContext().update_config(enable, dodge_all_attacks, dodge_thresh, counter_thresh)
+        SoundCombatContext().update_task(self)
 
     def check_combat(self):
         """检查当前是否处于战斗状态, 如果不是则抛出异常。"""
@@ -659,6 +671,7 @@ class BaseCombatTask(CombatCheck):
         if self.team_size > 0:
             self.combat_start = time.time()
             ret = True
+            self._apply_sound_config()
         logger.debug(f"load_chars cost {time.perf_counter() - now:.3f}s")
         return ret
 

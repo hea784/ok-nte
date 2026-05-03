@@ -362,11 +362,41 @@ msgid "使用ESC"
 msgstr "ESC 사용"
 
 msgid "关闭时仅在中键选中敌人且画面识别到 'Lv' 文字时开启战斗"
-msgstr "비활성화 시, 마우스 가운데 버튼으로 적을 선택하고 화면에 'Lv' 텍스트가 인식될 때만 전투를 시작합니다"
+msgstr "비활성화 시 중간 클릭으로 적을 선택하고 화면에서 'Lv' 텍스트가 인식될 때만 전투를 시작합니다"
 
 msgid ""
 "开启后优先通过 ESC 键关闭成功界面，避免后台抢占鼠标。\n"
 "若游戏运行不流畅，可能因按键响应延迟导致误退出钓鱼场景"
 msgstr ""
-"활성화 시 ESC 키로 성공 화면을 우선적으로 닫아 백그라운드 마우스 점유를 방지합니다.\n"
-"게임이 원활하지 않을 경우 키 응답 지연으로 인해 낚시 장면에서 예기치 않게 퇴장할 수 있습니다."
+"활성화 시 ESC 키를 우선 사용하여 성공 화면을 닫고 백그라운드 마우스 점유를 방지합니다.\n"
+"게임 실행이 원활하지 않을 경우 키 응답 지연으로 인해 낚시 장면에서 실수로 나갈 수 있습니다"
+
+msgid "Counter Attack Threshold"
+msgstr "반격 임계값"
+
+msgid "Counter attack sound recognition threshold (0.0-1.0, lower is more sensitive)"
+msgstr "반격 사운드 인식 임계값 (0.0-1.0, 낮을수록 더 민감함)"
+
+msgid "Dodge Threshold"
+msgstr "회피 임계값"
+
+msgid "Dodge sound recognition threshold (0.0-1.0, lower is more sensitive)"
+msgstr "회피 사운드 인식 임계값 (0.0-1.0, 낮을수록 더 민감함)"
+
+msgid "Enable Sound Trigger"
+msgstr "사운드 트리거 활성화"
+
+msgid "Enable sound recognition for automatic dodge and counter attacks"
+msgstr "자동 회피 및 반격을 위한 사운드 인식 활성화"
+
+msgid "Sound Trigger Config"
+msgstr "사운드 트리거 설정"
+
+msgid "Sound-based dodge and counter trigger settings"
+msgstr "사운드 기반 회피 및 반격 트리거 설정"
+
+msgid "Dodge All Attacks"
+msgstr "모든 공격 회피"
+
+msgid "Dodge all attacks without performing counter attacks"
+msgstr "반격을 수행하지 않고 모든 공격을 회피합니다"

@@ -1,9 +1,12 @@
 import os.path
+import threading
 from concurrent.futures import ThreadPoolExecutor
 from threading import Event
 
 from ok import Logger
 from PySide6.QtCore import QObject
+
+from src.sound_trigger.SoundCombatContext import SoundCombatContext
 
 logger = Logger.get_logger(__name__)
 
@@ -16,8 +19,14 @@ class Globals(QObject):
         self.thread_pool_exit_event = Event()
         exit_event.bind_stop(self)
         self._openvino_model_async = None
+        self._sound_context_stop_event = Event()
+        threading.Thread(
+            target=self.init_sound_context, daemon=True, name="SoundContextInit"
+        ).start()
 
     def stop(self):
+        self._sound_context_stop_event.set()
+        SoundCombatContext().shutdown()
         self.shutdown_thread_pool_executor()
 
     def get_thread_pool_executor(self, max_workers=6):
@@ -121,3 +130,16 @@ class Globals(QObject):
     def openvino_clear_cache(self):
         """清空缓存"""
         self.openvino_model_async.clear_cache()
+
+    def init_sound_context(self):
+        context = SoundCombatContext()
+        if self._sound_context_stop_event.is_set():
+            return
+        context.setup(task=None)
+        if self._sound_context_stop_event.is_set():
+            context.shutdown()
+            return
+        if context.enter() and not self._sound_context_stop_event.is_set():
+            logger.info("SoundCombatContext initialized globally")
+        else:
+            context.shutdown()

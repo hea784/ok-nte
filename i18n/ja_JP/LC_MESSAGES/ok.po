@@ -362,9 +362,41 @@ msgid "使用ESC"
 msgstr "ESCを使用"
 
 msgid "关闭时仅在中键选中敌人且画面识别到 'Lv' 文字时开启战斗"
-msgstr ""
+msgstr "オフの場合、中クリックで敵を選択し、画面上で「Lv」の文字が認識された時のみ戦闘を開始します"
 
 msgid ""
 "开启后优先通过 ESC 键关闭成功界面，避免后台抢占鼠标。\n"
 "若游戏运行不流畅，可能因按键响应延迟导致误退出钓鱼场景"
 msgstr ""
+"有効にすると、ESCキーを優先して成功画面を閉じ、バックグラウンドでのマウスの奪い合いを避けます。\n"
+"ゲームの動作がスムーズでない場合、キー応答の遅延により釣りシーンから誤って退出する可能性があります"
+
+msgid "Counter Attack Threshold"
+msgstr "反撃のしきい値"
+
+msgid "Counter attack sound recognition threshold (0.0-1.0, lower is more sensitive)"
+msgstr "反撃音認識のしきい値 (0.0-1.0、低いほど感度が高くなります)"
+
+msgid "Dodge Threshold"
+msgstr "回避のしきい値"
+
+msgid "Dodge sound recognition threshold (0.0-1.0, lower is more sensitive)"
+msgstr "回避音認識のしきい値 (0.0-1.0、低いほど感度が高くなります)"
+
+msgid "Enable Sound Trigger"
+msgstr "サウンドトリガーを有効にする"
+
+msgid "Enable sound recognition for automatic dodge and counter attacks"
+msgstr "自動回避と反撃のための音声認識を有効にする"
+
+msgid "Sound Trigger Config"
+msgstr "サウンドトリガー設定"
+
+msgid "Sound-based dodge and counter trigger settings"
+msgstr "音に基づく回避および反撃トリガーの設定"
+
+msgid "Dodge All Attacks"
+msgstr "すべての攻撃を回避"
+
+msgid "Dodge all attacks without performing counter attacks"
+msgstr "カウンター攻撃を行わず、すべての攻撃を回避します"

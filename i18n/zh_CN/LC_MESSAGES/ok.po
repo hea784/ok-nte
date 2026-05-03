@@ -360,3 +360,33 @@ msgid ""
 "开启后优先通过 ESC 键关闭成功界面，避免后台抢占鼠标。\n"
 "若游戏运行不流畅，可能因按键响应延迟导致误退出钓鱼场景"
 msgstr ""
+
+msgid "Counter Attack Threshold"
+msgstr "反击触发阈值"
+
+msgid "Counter attack sound recognition threshold (0.0-1.0, lower is more sensitive)"
+msgstr "反击声音识别阈值（0.0-1.0，越低越灵敏）"
+
+msgid "Dodge Threshold"
+msgstr "闪避触发阈值"
+
+msgid "Dodge sound recognition threshold (0.0-1.0, lower is more sensitive)"
+msgstr "闪避声音识别阈值（0.0-1.0，越低越灵敏）"
+
+msgid "Enable Sound Trigger"
+msgstr "启用声音触发"
+
+msgid "Enable sound recognition for automatic dodge and counter attacks"
+msgstr "启用声音识别以实现自动闪避和反击"
+
+msgid "Sound Trigger Config"
+msgstr "声音触发配置"
+
+msgid "Sound-based dodge and counter trigger settings"
+msgstr "基于声音的闪避和反击触发设置"
+
+msgid "Dodge All Attacks"
+msgstr "闪避所有攻击"
+
+msgid "Dodge all attacks without performing counter attacks"
+msgstr "闪避所有攻击，不执行反击"

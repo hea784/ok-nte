@@ -30,6 +30,7 @@ class BaseNTETask(BaseTask):
         self.scene: NTEScene | None = None
         self.key_config = self.get_global_config("Game Hotkey Config")
         self.monthly_card_config = self.get_global_config("Monthly Card Config")
+        self.sound_config = self.get_global_config("Sound Trigger Config")
         self._logged_in = False
         self.arrow_contour = {"contours": None, "shape": None}
         self.default_box = ScreenPosition(self)
