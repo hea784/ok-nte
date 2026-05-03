@@ -1,7 +1,9 @@
 import re
+import threading
 import time
+from dataclasses import dataclass
 from functools import cache
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 import cv2
 import numpy as np
@@ -16,6 +18,12 @@ if TYPE_CHECKING:
     from src.char.BaseChar import BaseChar
 
 logger = Logger.get_logger(__name__)
+
+
+@dataclass
+class CombatSettle:
+    time: Optional[float] = None
+    force: bool = False
 
 
 class CombatCheck(BaseNTETask):
@@ -35,9 +43,11 @@ class CombatCheck(BaseNTETask):
         self.target_enemy_error_notified = False
         self.cds = {}
         self.find_lv_future = None
-        self._combat_detect_settle = None
+        self._lv_async = None
+        self._combat_settle = CombatSettle()
         self._target_template_cache_key = None
         self._target_match_templates = None
+        self._bg_ocr_lock = threading.Lock()
 
     @property
     def in_ultimate(self):
@@ -60,7 +70,10 @@ class CombatCheck(BaseNTETask):
     def do_reset_to_false(self):
         self.cds = {}
         self._in_combat = False
-        self._combat_detect_settle = None
+        self._combat_settle = CombatSettle()
+        self.find_lv_future = None
+        self._lv_async = None
+        self.openvino_clear_cache()
         self.scene.set_not_in_combat()
         return False
 
@@ -330,21 +343,38 @@ class CombatCheck(BaseNTETask):
             #     return self.scene.set_in_combat()
             if self.combat_end_condition is not None and self.combat_end_condition():
                 return self.reset_to_false(reason="end condition reached")
-            combat_detect = self.async_combat_detect()
+
+            if self._combat_settle.time is not None:
+                combat_detect = self.async_combat_detect(
+                    exhaustive=True, force=self._combat_settle.force
+                )
+                self._combat_settle.force = False
+            else:
+                combat_detect = self.async_combat_detect()
 
             if combat_detect is None:
                 return self.scene.set_in_combat()
             elif combat_detect is True:
-                self._combat_detect_settle = None
+                self._combat_settle = CombatSettle()
                 return self.scene.set_in_combat()
             else:
-                if self._combat_detect_settle is None:
-                    self._combat_detect_settle = time.time() + 0.35
-                if self._combat_detect_settle > time.time():
-                    self.middle_click(interval=0.25)
+                if self._combat_settle.time is None:
+                    self._combat_settle.time = time.time() + 0.5
+                if self._combat_settle.time > time.time():
+                    if self.middle_click(interval=0.4):
+
+                        def delay_detect():
+                            time.sleep(0.25)
+                            self._combat_settle.force = True
+
+                        self.thread_pool_executor.submit(delay_detect)
                     return self.scene.set_in_combat()
 
             if self.target_enemy(wait=True):
+                self._combat_settle = CombatSettle()
+                self.find_lv_future = None
+                self._lv_async = None
+                self.openvino_clear_cache()
                 logger.debug("retarget enemy succeeded")
                 return self.scene.set_in_combat()
             if self.should_check_monthly_card() and self.handle_monthly_card():
@@ -353,9 +383,10 @@ class CombatCheck(BaseNTETask):
             return self.reset_to_false(reason="target enemy failed")
         else:
             from src.tasks.trigger.AutoCombatTask import AutoCombatTask
+
             @cache
             def has_target():
-                return self.async_combat_detect(target=True, lv=False)
+                return self.openvino_detect_async()
 
             # now = time.time()
             is_boss = self.is_boss()
@@ -380,7 +411,12 @@ class CombatCheck(BaseNTETask):
         # now = time.time()
         if frame is None:
             frame = self.frame
-        frame = gf.isolate_lv_to_black(frame)
+
+        viewport = self.main_viewport
+        # 1. 先裁剪局部区域再处理，大幅降低 CPU 负载 (避免全屏色彩过滤和连通域计算)
+        roi = viewport.crop_frame(frame)
+        roi = gf.isolate_lv_to_black(roi)
+
         # 计算基于 2K (2560x1440) 分辨率的目标矩形面积
         scale = self.width / 2560.0
         # 使用范围型体积过滤：从单个小字符到完整的 Lv+数字 区域
@@ -388,7 +424,7 @@ class CombatCheck(BaseNTETask):
         max_area = (20 * scale) * (20 * scale) * 1.2
 
         # 转换为二值图并取反（使文字区域为白色 255，背景为黑色 0）
-        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
         binary = cv2.bitwise_not(gray)
 
         # 连通域分析
@@ -404,48 +440,86 @@ class CombatCheck(BaseNTETask):
                 new_binary[labels == i] = 255
 
         # 还原回 BGR 格式：文字为黑 (0)，背景为白 (255)
-        frame = cv2.cvtColor(cv2.bitwise_not(new_binary), cv2.COLOR_GRAY2BGR)
+        processed_roi = cv2.cvtColor(cv2.bitwise_not(new_binary), cv2.COLOR_GRAY2BGR)
+
+        # 2. 贴回纯白全屏底图，以完美兼容 self.ocr 的 Box 裁剪和坐标偏移逻辑
+        full_frame = np.full_like(frame, 255)
+        full_frame[
+            viewport.y : viewport.y + viewport.height, viewport.x : viewport.x + viewport.width
+        ] = processed_roi
 
         if bg:
             lib = "bg_onnx_ocr"
+            with self._bg_ocr_lock:
+                res = self.ocr(
+                    frame=full_frame,
+                    box=viewport,
+                    match=re.compile(r"lv", re.IGNORECASE),
+                    lib=lib,
+                )
         else:
             lib = "default"
+            res = self.ocr(
+                frame=full_frame,
+                box=viewport,
+                match=re.compile(r"lv", re.IGNORECASE),
+                lib=lib,
+            )
 
-        res = self.ocr(
-            frame=frame,
-            box=self.main_viewport,
-            match=re.compile(r"lv", re.IGNORECASE),
-            lib=lib,
-        )
         # self.log_debug(f"find_lv time: {time.time() - now}")
         return res
 
-    def combat_detect(self, frame=None, target=True, lv=True, bg=False):
-        if lv and self.find_lv(frame=frame, bg=bg):
+    def combat_detect(self, frame=None, target=True, lv=True):
+        if lv and self.find_lv(frame=frame, bg=False):
             return True, "lv"
         if target and self.openvino_detect_sync():
             return True, "target"
         return False, None
 
-    def async_combat_detect(self, target=True, lv=True):
-        lv_ret = None
-        if lv:
-            if self.find_lv_future and self.find_lv_future.done():
-                lv_ret = bool(self.find_lv_future.result())
-                self.find_lv_future = None
-            elif self.find_lv_future is None:
+    def find_lv_async(self, frame=None, force=False):
+        ret = self._lv_async
+        if force or self.find_lv_future is None:
+            if self.find_lv_future is not None:
+                self.find_lv_future.cancel()
+            if frame is None:
                 frame = self.frame
-                self.find_lv_future = self.thread_pool_executor.submit(
-                    self.find_lv, frame=frame, bg=True
-                )
-            if lv_ret is True:
-                return True
-                
-            if lv_ret is None:
-                return None
+            self.find_lv_future = self.thread_pool_executor.submit(
+                self.find_lv, frame=frame, bg=True
+            )
 
-        if target and self.openvino_detect_sync():
-            return True
+            def callback(f):
+                if self.find_lv_future is not f:
+                    return
+                try:
+                    self._lv_async = f.result()
+                except Exception:
+                    self._lv_async = None
+
+                if self.find_lv_future is f:
+                    self.find_lv_future = None
+
+            self.find_lv_future.add_done_callback(callback)
+        return ret
+
+    def async_combat_detect(self, target=True, lv=True, exhaustive=False, force=False):
+        lv_ret = None
+        target_ret = None
+        frame = self.frame
+
+        if lv:
+            lv_ret = self.find_lv_async(frame=frame, force=force)
+            if lv_ret:
+                return True
+
+        is_lv_false = not lv or lv_ret is False
+
+        if target and (exhaustive or is_lv_false):
+            target_ret = self.openvino_detect_async(frame=frame, force=force)
+            if target_ret:
+                return True
+
+        if lv_ret is None and target_ret is None:
+            return None
 
         return False
 

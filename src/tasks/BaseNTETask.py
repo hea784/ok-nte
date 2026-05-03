@@ -42,31 +42,43 @@ class BaseNTETask(BaseTask):
             return None
         return og.my_app.get_thread_pool_executor()
 
-    def _openvino_detect(self, sync, box, threshold):
+    def _openvino_detect(self, frame, sync, box, threshold, force=False):
         if og.my_app is None:
             return []
         if box is None:
             box = self.box_of_screen(0.0840, 0.1326, 0.9176, 0.8694, name="openvino_box")
         self.draw_boxes(boxes=box, color="blue")
+        if frame is None:
+            frame = self.frame
         if sync:
-            results = og.my_app.openvino_detect_sync(image=self.frame, box=box, threshold=threshold)
+            results = og.my_app.openvino_detect_sync(image=frame, box=box, threshold=threshold)
         else:
             results = og.my_app.openvino_detect_async(
-                image=self.frame, box=box, threshold=threshold
+                image=frame, box=box, threshold=threshold, force=force
             )
         if results:
             self.draw_boxes(boxes=results, color="red")
         return results
 
-    def openvino_detect_async(self, box: Box = None, threshold=0.5) -> List[Box]:
-        return self._openvino_detect(False, box, threshold)
+    def openvino_detect_async(
+        self, frame=None, box: Box = None, threshold=0.5, force=False
+    ) -> List[Box]:
+        """异步检测，返回结果可能为缓存值"""
+        return self._openvino_detect(frame, False, box, threshold, force=force)
 
-    def openvino_detect_sync(self, box: Box = None, threshold=0.5) -> List[Box]:
-        return self._openvino_detect(True, box, threshold)
+    def openvino_detect_sync(self, frame=None, box: Box = None, threshold=0.5) -> List[Box]:
+        """同步检测，会等待结果返回"""
+        return self._openvino_detect(frame, True, box, threshold)
+
+    def openvino_clear_cache(self):
+        """清空缓存"""
+        if og.my_app is None:
+            return
+        og.my_app.openvino_clear_cache()
 
     @property
     def main_viewport(self):
-        return self.box_of_screen(0.1543, 0.1021, 0.9070, 0.6389)
+        return self.box_of_screen(0.1543, 0.1021, 0.9070, 0.6389, name="main_viewport")
 
     # fmt: off
     @overload
@@ -496,9 +508,7 @@ class BaseNTETask(BaseTask):
             travel_btn = self.find_traval_button()
         if travel_btn:
             self.sleep(0.1)
-            self.operate(
-                lambda: self.click(travel_btn, move=True), block=True
-            )
+            self.operate(lambda: self.click(travel_btn, move=True), block=True)
             self.sleep(1)
             return True
         return False

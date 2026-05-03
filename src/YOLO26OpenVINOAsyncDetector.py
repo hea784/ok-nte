@@ -30,7 +30,7 @@ class YOLO26OpenVINOAsyncDetector:
         # 2. 编译模型 (针对 AMD CPU 优化)
         config = {
             "PERFORMANCE_HINT": "LATENCY",
-            "INFERENCE_NUM_THREADS": "4",  # 限制线程，防止游戏卡顿
+            "INFERENCE_NUM_THREADS": "2",  # 限制线程至 2，降低 CPU 峰值负载
         }
         self.compiled_model = self.core.compile_model(model, "CPU", config)
 
@@ -44,12 +44,17 @@ class YOLO26OpenVINOAsyncDetector:
         self.infer_queue.set_callback(self._callback)
 
         # 内部状态
-        self.latest_results = []
+        self.latest_results = None
         self.class_names = ["target"]  # 可根据 data.yaml 修改
         self.latency = 0.0  # 单次推理总耗时 (秒)
+        self.job_id = 0
 
     def _callback(self, infer_request, user_data):
         """异步推理完成后的回调函数"""
+        job_id = user_data.get("job_id", 0)
+        if job_id < self.job_id:
+            return
+
         start_time = user_data["start_time"]
         self.latency = time.time() - start_time
 
@@ -99,17 +104,18 @@ class YOLO26OpenVINOAsyncDetector:
 
         self.latest_results = tmp_results
 
-    def detect(self, image, box: Box = None, threshold=0.5, label="target"):
+    def detect(self, image, box: Box = None, threshold=0.5, label="target", force=False):
         """
         发起异步检测
         :param image: 全图 (numpy array)
         :param box: 指定检测区域的 Box 实例。如果为 None, 则检测全图。
         :param threshold: 置信度阈值
         :param label: 指定检测的类别名称
+        :param force: 如果为 True，即使队列满也会阻塞提交新任务
         :return: list[Box] (返回的是上一帧或最近一次完成的结果)
         """
 
-        if self.infer_queue.is_ready():
+        if force or self.infer_queue.is_ready():
             h, w = image.shape[:2]
 
             if box is None:
@@ -146,6 +152,9 @@ class YOLO26OpenVINOAsyncDetector:
 
             input_tensor = np.expand_dims(canvas, axis=0)
 
+            self.job_id += 1
+            current_job_id = self.job_id
+
             self.infer_queue.start_async(
                 {0: input_tensor},
                 {
@@ -157,6 +166,7 @@ class YOLO26OpenVINOAsyncDetector:
                     "pad_x": pad_x,
                     "pad_y": pad_y,
                     "target_w": target_w,  # 记录画布的总宽用于还原缩放
+                    "job_id": current_job_id,
                 },
             )
 
@@ -171,3 +181,8 @@ class YOLO26OpenVINOAsyncDetector:
         self.detect(image, box, threshold, label)
         self.wait()
         return self.latest_results
+
+    def clear_cache(self):
+        """清空缓存"""
+        self.latest_results = None
+        self.job_id += 1  # 增加 epoch，所有正在运行的旧任务的回调都会失效

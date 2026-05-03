@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from ok import TaskDisabledException, find_color_rectangles, CannotFindException
+from ok import CannotFindException, TaskDisabledException, find_color_rectangles
 from qfluentwidgets import FluentIcon
 
 from src import text_white_color
@@ -189,10 +189,12 @@ class DailyTask(BaseNTETask):
         """领取环期任务奖励"""
         self.log_info("正在领取环期任务奖励")
         self.openF2panel()
-        self.operate_click(0.6934, 0.8229)
-        self.sleep(1)
         self.operate_click(0.0570, 0.3451)
         self.wait_panel(Labels.f2_mission_panel)
         self.operate_click(0.8777, 0.8187)
+        self.sleep(0.5)
+        self.operate_click(0.0570, 0.2333)
+        self.sleep(0.5)
+        self.operate_click(0.6934, 0.8229)
         self.sleep(1)
         return True

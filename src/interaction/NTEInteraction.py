@@ -31,7 +31,7 @@ class NTEInteraction(PostMessageInteraction):
                 should_restore = True
             abs_x, abs_y = self.capture.get_abs_cords(x, y)
             SetCursorPos((abs_x, abs_y))
-            time.sleep(0.02)
+            time.sleep(0.025)
         click_pos = win32api.MAKELONG(x, y)
         if key == "left":
             btn_down = win32con.WM_LBUTTONDOWN
@@ -49,7 +49,7 @@ class NTEInteraction(PostMessageInteraction):
         time.sleep(down_time)
         self.post(btn_up, 0, click_pos)
         if should_restore:
-            time.sleep(0.02)
+            time.sleep(0.025)
             SetCursorPos(self.cursor_position)
 
     def operate(self, fun, block=False):
@@ -70,7 +70,7 @@ class NTEInteraction(PostMessageInteraction):
         finally:
             if is_outer_operate:
                 self._operating = False
-                time.sleep(0.02)
+                time.sleep(0.025)
                 SetCursorPos(self.cursor_position)
             if block:
                 self.unblock_input()
