@@ -1,4 +1,3 @@
-import re
 import threading
 import time
 from dataclasses import dataclass
@@ -6,7 +5,6 @@ from functools import cache
 from typing import TYPE_CHECKING, Optional
 
 import cv2
-import numpy as np
 from ok import Box, Logger, find_color_rectangles
 
 from src.Labels import Labels
@@ -111,161 +109,161 @@ class CombatCheck(BaseNTETask):
             while time.time() < deadline:
                 self.middle_click()
                 self.sleep(0.25)
-                if self.combat_detect(lv=lv)[0]:
+                if self.combat_detect(lv=lv):
                     return True
                 self.next_frame()
 
-    def has_target(self, frame=None):
-        # now = time.perf_counter()
-        ret = self.find_target(frame=frame)
-        # logger.debug(f"has_target cost {time.perf_counter() - now:.3f}")
-        return ret
+    # def has_target(self, frame=None):
+    #     # now = time.perf_counter()
+    #     ret = self.find_target(frame=frame)
+    #     # logger.debug(f"has_target cost {time.perf_counter() - now:.3f}")
+    #     return ret
 
-    def _get_target_match_templates(self, template_bgr):
-        cache_key = (id(template_bgr), template_bgr.shape)
-        if self._target_template_cache_key == cache_key and self._target_match_templates:
-            return self._target_match_templates
+    # def _get_target_match_templates(self, template_bgr):
+    #     cache_key = (id(template_bgr), template_bgr.shape)
+    #     if self._target_template_cache_key == cache_key and self._target_match_templates:
+    #         return self._target_match_templates
 
-        tpl_gray = cv2.cvtColor(template_bgr, cv2.COLOR_BGR2GRAY)
-        tpl_edge = cv2.Canny(tpl_gray, 50, 150)
+    #     tpl_gray = cv2.cvtColor(template_bgr, cv2.COLOR_BGR2GRAY)
+    #     tpl_edge = cv2.Canny(tpl_gray, 50, 150)
 
-        match_templates = []
-        for scale in self.TARGET_MATCH_SCALES:
-            tw = int(template_bgr.shape[1] * scale)
-            th = int(template_bgr.shape[0] * scale)
-            if tw < 12 or th < 12:
-                continue
-            match_templates.append(
-                {
-                    "w": tw,
-                    "h": th,
-                    "bgr": cv2.resize(template_bgr, (tw, th)),
-                    "edge": cv2.resize(tpl_edge, (tw, th)),
-                }
-            )
+    #     match_templates = []
+    #     for scale in self.TARGET_MATCH_SCALES:
+    #         tw = int(template_bgr.shape[1] * scale)
+    #         th = int(template_bgr.shape[0] * scale)
+    #         if tw < 12 or th < 12:
+    #             continue
+    #         match_templates.append(
+    #             {
+    #                 "w": tw,
+    #                 "h": th,
+    #                 "bgr": cv2.resize(template_bgr, (tw, th)),
+    #                 "edge": cv2.resize(tpl_edge, (tw, th)),
+    #             }
+    #         )
 
-        self._target_template_cache_key = cache_key
-        self._target_match_templates = match_templates
-        return match_templates
+    #     self._target_template_cache_key = cache_key
+    #     self._target_match_templates = match_templates
+    #     return match_templates
 
-    def _score_target_candidate(self, roi_bin, roi_shape, tx, ty, tw, th, score_base):
-        crop_bin = roi_bin[ty : ty + th, tx : tx + tw]
-        white_count = cv2.countNonZero(crop_bin)
-        if white_count < 5:
-            return None
+    # def _score_target_candidate(self, roi_bin, roi_shape, tx, ty, tw, th, score_base):
+    #     crop_bin = roi_bin[ty : ty + th, tx : tx + tw]
+    #     white_count = cv2.countNonZero(crop_bin)
+    #     if white_count < 5:
+    #         return None
 
-        h_sym = cv2.countNonZero(cv2.bitwise_and(crop_bin, cv2.flip(crop_bin, 1))) / white_count
-        v_sym = cv2.countNonZero(cv2.bitwise_and(crop_bin, cv2.flip(crop_bin, 0))) / white_count
-        sym_score = (h_sym + v_sym) / 2
+    #     h_sym = cv2.countNonZero(cv2.bitwise_and(crop_bin, cv2.flip(crop_bin, 1))) / white_count
+    #     v_sym = cv2.countNonZero(cv2.bitwise_and(crop_bin, cv2.flip(crop_bin, 0))) / white_count
+    #     sym_score = (h_sym + v_sym) / 2
 
-        pad = 5
-        if (
-            ty >= pad
-            and tx >= pad
-            and ty + th + pad < roi_shape[0]
-            and tx + tw + pad < roi_shape[1]
-        ):
-            outer_bin = roi_bin[ty - pad : ty + th + pad, tx - pad : tx + tw + pad]
-            outer_white = cv2.countNonZero(outer_bin)
-            iso_score = white_count / outer_white if outer_white > 0 else 0
-        else:
-            iso_score = 0.7
+    #     pad = 5
+    #     if (
+    #         ty >= pad
+    #         and tx >= pad
+    #         and ty + th + pad < roi_shape[0]
+    #         and tx + tw + pad < roi_shape[1]
+    #     ):
+    #         outer_bin = roi_bin[ty - pad : ty + th + pad, tx - pad : tx + tw + pad]
+    #         outer_white = cv2.countNonZero(outer_bin)
+    #         iso_score = white_count / outer_white if outer_white > 0 else 0
+    #     else:
+    #         iso_score = 0.7
 
-        score = (score_base * 2 + sym_score * 2 + iso_score) / 5
-        return {
-            "tx": tx,
-            "ty": ty,
-            "w": tw,
-            "h": th,
-            "confidence": score,
-            "sym_score": sym_score,
-            "iso_score": iso_score,
-        }
+    #     score = (score_base * 2 + sym_score * 2 + iso_score) / 5
+    #     return {
+    #         "tx": tx,
+    #         "ty": ty,
+    #         "w": tw,
+    #         "h": th,
+    #         "confidence": score,
+    #         "sym_score": sym_score,
+    #         "iso_score": iso_score,
+    #     }
 
-    def find_target(self, frame=None):
-        if frame is None:
-            frame = self.frame
-        # 1. 提前 Crop
-        box = self.box_of_screen(0.2, 0.2, 0.8, 0.6715)
-        roi = box.crop_frame(frame)
-        self.draw_boxes("find_target", box, color="blue")
+    # def find_target(self, frame=None):
+    #     if frame is None:
+    #         frame = self.frame
+    #     # 1. 提前 Crop
+    #     box = self.box_of_screen(0.2, 0.2, 0.8, 0.6715)
+    #     roi = box.crop_frame(frame)
+    #     self.draw_boxes("find_target", box, color="blue")
 
-        # 2. 还原世界亮度 (确保彩色特征在滤镜下依然可用)
-        roi = iu.restore_world_brightness(roi)
+    #     # 2. 还原世界亮度 (确保彩色特征在滤镜下依然可用)
+    #     roi = iu.restore_world_brightness(roi)
 
-        # 3. 准备彩色模板
-        target_feature = self.get_feature_by_name(Labels.target)
-        if target_feature is None:
-            return None
-        template_bgr = target_feature.mat
-        match_templates = self._get_target_match_templates(template_bgr)
+    #     # 3. 准备彩色模板
+    #     target_feature = self.get_feature_by_name(Labels.target)
+    #     if target_feature is None:
+    #         return None
+    #     template_bgr = target_feature.mat
+    #     match_templates = self._get_target_match_templates(template_bgr)
 
-        # 4. 预处理：边缘图与二值图 (用于处理内核/空心图标并过滤杂讯)
-        roi_gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
-        _, roi_bin = cv2.threshold(roi_gray, 180, 255, cv2.THRESH_BINARY)
-        roi_edge = None
+    #     # 4. 预处理：边缘图与二值图 (用于处理内核/空心图标并过滤杂讯)
+    #     roi_gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
+    #     _, roi_bin = cv2.threshold(roi_gray, 180, 255, cv2.THRESH_BINARY)
+    #     roi_edge = None
 
-        best_res = None
+    #     best_res = None
 
-        # 5. 多尺度搜索
-        for tpl in match_templates:
-            tw = tpl["w"]
-            th = tpl["h"]
-            # 模式 A: 彩色匹配 (针对完整图标，置信度高)
-            res_c = cv2.matchTemplate(roi, tpl["bgr"], cv2.TM_CCOEFF_NORMED)
-            _, max_val_c, _, max_loc_c = cv2.minMaxLoc(res_c)
+    #     # 5. 多尺度搜索
+    #     for tpl in match_templates:
+    #         tw = tpl["w"]
+    #         th = tpl["h"]
+    #         # 模式 A: 彩色匹配 (针对完整图标，置信度高)
+    #         res_c = cv2.matchTemplate(roi, tpl["bgr"], cv2.TM_CCOEFF_NORMED)
+    #         _, max_val_c, _, max_loc_c = cv2.minMaxLoc(res_c)
 
-            # 挑选候选者
-            if max_val_c > 0.6:
-                tx, ty, score_base = max_loc_c[0], max_loc_c[1], max_val_c
-            else:
-                # 模式 B: 边缘匹配 (针对空心/只有内核的图标)
-                if roi_edge is None:
-                    roi_edge = cv2.Canny(roi_gray, 50, 150)
-                res_e = cv2.matchTemplate(roi_edge, tpl["edge"], cv2.TM_CCOEFF_NORMED)
-                _, max_val_e, _, max_loc_e = cv2.minMaxLoc(res_e)
-                if max_val_e <= 0.5:
-                    continue
-                # 边缘匹配作为兜底，门槛稍低，但后续对称性校验会更严
-                tx, ty, score_base = max_loc_e[0], max_loc_e[1], max_val_e
+    #         # 挑选候选者
+    #         if max_val_c > 0.6:
+    #             tx, ty, score_base = max_loc_c[0], max_loc_c[1], max_val_c
+    #         else:
+    #             # 模式 B: 边缘匹配 (针对空心/只有内核的图标)
+    #             if roi_edge is None:
+    #                 roi_edge = cv2.Canny(roi_gray, 50, 150)
+    #             res_e = cv2.matchTemplate(roi_edge, tpl["edge"], cv2.TM_CCOEFF_NORMED)
+    #             _, max_val_e, _, max_loc_e = cv2.minMaxLoc(res_e)
+    #             if max_val_e <= 0.5:
+    #                 continue
+    #             # 边缘匹配作为兜底，门槛稍低，但后续对称性校验会更严
+    #             tx, ty, score_base = max_loc_e[0], max_loc_e[1], max_val_e
 
-            # 6. 二次校验：几何特征
-            candidate = self._score_target_candidate(roi_bin, roi.shape, tx, ty, tw, th, score_base)
-            if candidate is None:
-                continue
+    #         # 6. 二次校验：几何特征
+    #         candidate = self._score_target_candidate(roi_bin, roi.shape, tx, ty, tw, th, score_base)
+    #         if candidate is None:
+    #             continue
 
-            if candidate["confidence"] > 0.6:
-                if best_res is None or candidate["confidence"] > best_res["confidence"]:
-                    best_res = {
-                        "x": box.x + tx + tw // 2,
-                        "y": box.y + ty + th // 2,
-                        "w": tw,
-                        "h": th,
-                        "confidence": candidate["confidence"],
-                    }
+    #         if candidate["confidence"] > 0.6:
+    #             if best_res is None or candidate["confidence"] > best_res["confidence"]:
+    #                 best_res = {
+    #                     "x": box.x + tx + tw // 2,
+    #                     "y": box.y + ty + th // 2,
+    #                     "w": tw,
+    #                     "h": th,
+    #                     "confidence": candidate["confidence"],
+    #                 }
 
-        if best_res:
-            result_box = Box(
-                best_res["x"] - best_res["w"] // 2,
-                best_res["y"] - best_res["h"] // 2,
-                width=best_res["w"],
-                height=best_res["h"],
-                confidence=best_res["confidence"],
-            )
-            self.draw_boxes("target", result_box, color="red")
-            return result_box
+    #     if best_res:
+    #         result_box = Box(
+    #             best_res["x"] - best_res["w"] // 2,
+    #             best_res["y"] - best_res["h"] // 2,
+    #             width=best_res["w"],
+    #             height=best_res["h"],
+    #             confidence=best_res["confidence"],
+    #         )
+    #         self.draw_boxes("target", result_box, color="red")
+    #         return result_box
 
-        return False
+    #     return False
 
-    def resize_target(self, scale=1):
-        template = self.get_feature_by_name(Labels.target).mat
-        if scale == 1:
-            return template
-        h, w = template.shape[:2]
-        template = cv2.resize(
-            template, (int(w * scale), int(h * scale)), interpolation=cv2.INTER_NEAREST
-        )
-        return template
+    # def resize_target(self, scale=1):
+    #     template = self.get_feature_by_name(Labels.target).mat
+    #     if scale == 1:
+    #         return template
+    #     h, w = template.shape[:2]
+    #     template = cv2.resize(
+    #         template, (int(w * scale), int(h * scale)), interpolation=cv2.INTER_NEAREST
+    #     )
+    #     return template
 
     def has_health_bar(self):
         if self._find_red_health_bar():  # or self._find_boss_health_bar():
@@ -390,7 +388,7 @@ class CombatCheck(BaseNTETask):
 
             # now = time.time()
             is_boss = self.is_boss()
-            has_lv = self.find_lv()
+            has_lv = bool(self.find_lv())
             is_auto = self.config.get("自动目标") or not isinstance(self, AutoCombatTask)
             if target and not has_target():
                 self.log_debug("try target")
@@ -407,74 +405,74 @@ class CombatCheck(BaseNTETask):
                 self._in_combat = self.load_chars()
                 return self._in_combat
 
-    def find_lv(self, frame=None, bg=False):
-        # now = time.time()
-        if frame is None:
-            frame = self.frame
+    # def find_lv(self, frame=None, bg=False):
+    #     # now = time.time()
+    #     if frame is None:
+    #         frame = self.frame
 
-        viewport = self.main_viewport
-        # 1. 先裁剪局部区域再处理，大幅降低 CPU 负载 (避免全屏色彩过滤和连通域计算)
-        roi = viewport.crop_frame(frame)
-        roi = gf.isolate_lv_to_black(roi)
+    #     viewport = self.main_viewport
+    #     # 1. 先裁剪局部区域再处理，大幅降低 CPU 负载 (避免全屏色彩过滤和连通域计算)
+    #     roi = viewport.crop_frame(frame)
+    #     roi = gf.isolate_lv_to_black(roi)
 
-        # 计算基于 2K (2560x1440) 分辨率的目标矩形面积
-        scale = self.width / 2560.0
-        # 使用范围型体积过滤：从单个小字符到完整的 Lv+数字 区域
-        min_area = (15 * scale) * (15 * scale) * 0.8
-        max_area = (20 * scale) * (20 * scale) * 1.2
+    #     # 计算基于 2K (2560x1440) 分辨率的目标矩形面积
+    #     scale = self.width / 2560.0
+    #     # 使用范围型体积过滤：从单个小字符到完整的 Lv+数字 区域
+    #     min_area = (15 * scale) * (15 * scale) * 0.8
+    #     max_area = (20 * scale) * (20 * scale) * 1.2
 
-        # 转换为二值图并取反（使文字区域为白色 255，背景为黑色 0）
-        gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
-        binary = cv2.bitwise_not(gray)
+    #     # 转换为二值图并取反（使文字区域为白色 255，背景为黑色 0）
+    #     gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
+    #     binary = cv2.bitwise_not(gray)
 
-        # 连通域分析
-        num_labels, labels, stats, _ = cv2.connectedComponentsWithStats(binary)
+    #     # 连通域分析
+    #     num_labels, labels, stats, _ = cv2.connectedComponentsWithStats(binary)
 
-        # 过滤：只保留矩形范围面积在 [min_area, max_area] 之间的部分
-        new_binary = np.zeros_like(binary)
-        for i in range(1, num_labels):
-            w = stats[i, cv2.CC_STAT_WIDTH]
-            h = stats[i, cv2.CC_STAT_HEIGHT]
-            # 这里使用矩形框面积 (w * h) 进行过滤
-            if min_area <= (w * h) <= max_area:
-                new_binary[labels == i] = 255
+    #     # 过滤：只保留矩形范围面积在 [min_area, max_area] 之间的部分
+    #     new_binary = np.zeros_like(binary)
+    #     for i in range(1, num_labels):
+    #         w = stats[i, cv2.CC_STAT_WIDTH]
+    #         h = stats[i, cv2.CC_STAT_HEIGHT]
+    #         # 这里使用矩形框面积 (w * h) 进行过滤
+    #         if min_area <= (w * h) <= max_area:
+    #             new_binary[labels == i] = 255
 
-        # 还原回 BGR 格式：文字为黑 (0)，背景为白 (255)
-        processed_roi = cv2.cvtColor(cv2.bitwise_not(new_binary), cv2.COLOR_GRAY2BGR)
+    #     # 还原回 BGR 格式：文字为黑 (0)，背景为白 (255)
+    #     processed_roi = cv2.cvtColor(cv2.bitwise_not(new_binary), cv2.COLOR_GRAY2BGR)
 
-        # 2. 贴回纯白全屏底图，以完美兼容 self.ocr 的 Box 裁剪和坐标偏移逻辑
-        full_frame = np.full_like(frame, 255)
-        full_frame[
-            viewport.y : viewport.y + viewport.height, viewport.x : viewport.x + viewport.width
-        ] = processed_roi
+    #     # 2. 贴回纯白全屏底图，以完美兼容 self.ocr 的 Box 裁剪和坐标偏移逻辑
+    #     full_frame = np.full_like(frame, 255)
+    #     full_frame[
+    #         viewport.y : viewport.y + viewport.height, viewport.x : viewport.x + viewport.width
+    #     ] = processed_roi
 
-        if bg:
-            lib = "bg_onnx_ocr"
-            with self._bg_ocr_lock:
-                res = self.ocr(
-                    frame=full_frame,
-                    box=viewport,
-                    match=re.compile(r"lv", re.IGNORECASE),
-                    lib=lib,
-                )
-        else:
-            lib = "default"
-            res = self.ocr(
-                frame=full_frame,
-                box=viewport,
-                match=re.compile(r"lv", re.IGNORECASE),
-                lib=lib,
-            )
+    #     if bg:
+    #         lib = "bg_onnx_ocr"
+    #         with self._bg_ocr_lock:
+    #             res = self.ocr(
+    #                 frame=full_frame,
+    #                 box=viewport,
+    #                 match=re.compile(r"lv", re.IGNORECASE),
+    #                 lib=lib,
+    #             )
+    #     else:
+    #         lib = "default"
+    #         res = self.ocr(
+    #             frame=full_frame,
+    #             box=viewport,
+    #             match=re.compile(r"lv", re.IGNORECASE),
+    #             lib=lib,
+    #         )
 
-        # self.log_debug(f"find_lv time: {time.time() - now}")
-        return res
+    #     # self.log_debug(f"find_lv time: {time.time() - now}")
+    #     return res
 
     def combat_detect(self, frame=None, target=True, lv=True):
-        if lv and self.find_lv(frame=frame, bg=False):
-            return True, "lv"
+        if lv and self.find_lv(frame=frame):
+            return True
         if target and self.openvino_detect_sync():
-            return True, "target"
-        return False, None
+            return True
+        return False
 
     def find_lv_async(self, frame=None, force=False):
         ret = self._lv_async
@@ -483,15 +481,13 @@ class CombatCheck(BaseNTETask):
                 self.find_lv_future.cancel()
             if frame is None:
                 frame = self.frame
-            self.find_lv_future = self.thread_pool_executor.submit(
-                self.find_lv, frame=frame, bg=True
-            )
+            self.find_lv_future = self.thread_pool_executor.submit(self.find_lv, frame=frame)
 
             def callback(f):
                 if self.find_lv_future is not f:
                     return
                 try:
-                    self._lv_async = f.result()
+                    self._lv_async = bool(f.result())
                 except Exception:
                     self._lv_async = None
 
@@ -522,6 +518,145 @@ class CombatCheck(BaseNTETask):
             return None
 
         return False
+
+    def find_lv(self, frame=None):
+        if not self._init_lv_templates():
+            return []
+
+        if frame is None:
+            frame = self.frame
+
+        viewport = self.main_viewport
+        self.draw_boxes(boxes=viewport, color="blue")
+        roi = viewport.crop_frame(frame)
+        binary = gf.isolate_lv_to_white(roi)
+
+        contours, _ = cv2.findContours(binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+        scale = self.width / 2560.0
+        min_area = (15 * scale) ** 2 * 0.8
+        max_area = (20 * scale) ** 2 * 1.5
+
+        L_candidates = []
+        v_candidates = []
+
+        for cnt in contours:
+            x, y, w, h = cv2.boundingRect(cnt)
+            area_bbox = w * h
+
+            if not (min_area <= area_bbox <= max_area):
+                continue
+
+            # 提取实时特征
+            solidity, cx, cy = self._extract_shape_fingerprint(cnt, x, y, w, h)
+            aspect_ratio = w / float(h)
+
+            # 匹配 L
+            if (
+                abs(solidity - self._lv_feat_L[0]) < 0.15
+                and abs(cx - self._lv_feat_L[1]) < 0.15
+                and abs(cy - self._lv_feat_L[2]) < 0.15
+            ):
+                dist = cv2.matchShapes(self._lv_cnt_L, cnt, cv2.CONTOURS_MATCH_I3, 0)
+                if (
+                    self._lv_aspect_L * 0.6 < aspect_ratio < self._lv_aspect_L * 1.5
+                ) and dist < 3.0:
+                    L_candidates.append({"x": x, "y": y, "w": w, "h": h, "score": 1 - (dist / 5.0)})
+
+            # 匹配 v
+            elif (
+                abs(solidity - self._lv_feat_v[0]) < 0.15
+                and abs(cx - self._lv_feat_v[1]) < 0.15
+                and abs(cy - self._lv_feat_v[2]) < 0.15
+            ):
+                dist = cv2.matchShapes(self._lv_cnt_v, cnt, cv2.CONTOURS_MATCH_I3, 0)
+                if (
+                    self._lv_aspect_v * 0.6 < aspect_ratio < self._lv_aspect_v * 1.5
+                ) and dist < 1.0:
+                    v_candidates.append({"x": x, "y": y, "w": w, "h": h, "score": 1 - dist})
+
+        results = []
+        for L in L_candidates:
+            best_v = None
+            min_gap = float("inf")
+
+            for v in v_candidates:
+                gap = v["x"] - (L["x"] + L["w"])
+                y_diff = abs(v["y"] - L["y"])
+
+                # 逻辑核心：v 在 L 的右侧，距离合理，且 Y 轴大致平齐
+                if -(L["w"] * 0.5) <= gap <= (L["h"] * 1.5) and y_diff <= (L["h"] * 0.5):
+                    if gap < min_gap:
+                        min_gap = gap
+                        best_v = v
+
+            if best_v:
+                box_x = L["x"]
+                box_y = min(L["y"], best_v["y"])
+                box_w = (best_v["x"] + best_v["w"]) - L["x"]
+                box_h = max(L["y"] + L["h"], best_v["y"] + best_v["h"]) - box_y
+
+                results.append(
+                    Box(
+                        x=int(viewport.x + box_x),
+                        y=int(viewport.y + box_y),
+                        width=int(box_w),
+                        height=int(box_h),
+                        confidence=float((L["score"] + best_v["score"]) / 2.0),
+                        name="lv",
+                    )
+                )
+        if results:
+            self.draw_boxes(Labels.lv, results, color="red")
+        return results
+
+    def _extract_shape_fingerprint(self, cnt, x, y, w, h):
+        """提取形状的物理指纹：填充率和相对重心位置"""
+        m = cv2.moments(cnt)
+        if m["m00"] == 0:
+            return 0.0, 0.5, 0.5
+        solidity = cv2.contourArea(cnt) / float(w * h)
+        cx = (m["m10"] / m["m00"] - x) / float(w)
+        cy = (m["m01"] / m["m00"] - y) / float(h)
+        return solidity, cx, cy
+
+    def _init_lv_templates(self):
+        """初始化 LV 识别所需的模板特征数据"""
+        # 如果已经初始化且分辨率没变，直接返回
+        if hasattr(self, "_lv_feat_L") and getattr(self, "_lv_tpl_res", None) == (
+            self.width,
+            self.height,
+        ):
+            return True
+
+        tpl_img = self.get_feature_by_name(Labels.lv).mat
+        tpl_bin = gf.isolate_lv_to_white(tpl_img)
+
+        contours, _ = cv2.findContours(tpl_bin, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        valid_cnts = [
+            c for c in contours if cv2.boundingRect(c)[2] > 2 and cv2.boundingRect(c)[3] > 2
+        ]
+        valid_cnts.sort(key=lambda c: cv2.boundingRect(c)[0])
+
+        if len(valid_cnts) < 2:
+            self.log_error(f"[LV-Init] 模板切割失败，仅找到 {len(valid_cnts)} 个轮廓")
+            return False
+
+        # 提取 L 和 v 的标准指纹
+        self._lv_tpl_res = (self.width, self.height)
+        self._lv_cnt_L = valid_cnts[0]
+        self._lv_cnt_v = valid_cnts[1]
+
+        xl, yl, wl, hl = cv2.boundingRect(self._lv_cnt_L)
+        self._lv_aspect_L = wl / float(hl)
+        self._lv_feat_L = self._extract_shape_fingerprint(self._lv_cnt_L, xl, yl, wl, hl)
+
+        xv, yv, wv, hv = cv2.boundingRect(self._lv_cnt_v)
+        self._lv_aspect_v = wv / float(hv)
+        self._lv_feat_v = self._extract_shape_fingerprint(self._lv_cnt_v, xv, yv, wv, hv)
+
+        self.log_info("[LV-Init] 模板特征初始化完成")
+        return True
 
 
 enemy_health_hsv = iu.HSVRange((0, 190, 175), (10, 255, 255))

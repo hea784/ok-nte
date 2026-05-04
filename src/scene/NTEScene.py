@@ -54,8 +54,8 @@ class NTEScene(BaseScene):
                     logger.info("Warming up default OCR...")
                     all_tasks[0].ocr(frame=white_frame)
                 
-                self.make_bg_ocr()
-                all_tasks[0].ocr(frame=white_frame, lib="bg_onnx_ocr")
+                # self.make_bg_ocr()
+                # all_tasks[0].ocr(frame=white_frame, lib="bg_onnx_ocr")
 
                 logger.info("OCR initialization finished.")
             except Exception as e:

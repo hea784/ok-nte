@@ -3,7 +3,7 @@ import threading
 from concurrent.futures import ThreadPoolExecutor
 from threading import Event
 
-from ok import Logger
+from ok import Logger, get_path_relative_to_exe
 from PySide6.QtCore import QObject
 
 from src.sound_trigger.SoundCombatContext import SoundCombatContext
@@ -103,7 +103,7 @@ class Globals(QObject):
             from src.YOLO26OpenVINOAsyncDetector import YOLO26OpenVINOAsyncDetector
 
             self._openvino_model_async = YOLO26OpenVINOAsyncDetector(
-                xml_path=os.path.join("assets", "openvino", "best.xml")
+                xml_path=get_path_relative_to_exe("assets", "openvino", "best.xml")
             )
         return self._openvino_model_async
 
@@ -135,7 +135,13 @@ class Globals(QObject):
         context = SoundCombatContext()
         if self._sound_context_stop_event.is_set():
             return
-        context.setup(task=None)
+        dodge = get_path_relative_to_exe("assets", "sounds", "dodge.wav")
+        counter_attack = get_path_relative_to_exe("assets", "sounds", "counter.wav")
+        context.setup(
+            task=None,
+            sample_path=dodge,
+            counter_attack_sample_path=counter_attack,
+        )
         if self._sound_context_stop_event.is_set():
             context.shutdown()
             return

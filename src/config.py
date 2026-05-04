@@ -6,7 +6,7 @@ from ok import ConfigOption
 from src.interaction.NTEInteraction import NTEInteraction
 from src.process_feature import process_feature
 
-version = "v0.0.19"
+version = "v0.0.20"
 # 不需要修改version, Github Action打包会自动修改
 
 key_config_option = ConfigOption(
@@ -103,13 +103,13 @@ config = {
                 "use_openvino": True,
             },
         },
-        "bg_onnx_ocr": {
-            "lib": "onnxocr",
-            "auto_simplify": True,
-            "params": {
-                "use_openvino": True,
-            },
-        },
+        # "bg_onnx_ocr": {
+        #     "lib": "onnxocr",
+        #     "auto_simplify": True,
+        #     "params": {
+        #         "use_openvino": True,
+        #     },
+        # },
     },
     "windows": {  # Windows游戏请填写此设置
         "exe": "HTGame.exe",

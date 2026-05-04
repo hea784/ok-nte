@@ -572,6 +572,19 @@
             ],
             "area": 1054,
             "iscrowd": 0
+        },
+        {
+            "id": 38,
+            "image_id": 14,
+            "category_id": 38,
+            "bbox": [
+                1225,
+                451,
+                36,
+                28
+            ],
+            "area": 1008,
+            "iscrowd": 0
         }
     ],
     "categories": [
@@ -758,6 +771,11 @@
         {
             "id": 37,
             "name": "auto_play",
+            "supercategory": ""
+        },
+        {
+            "id": 38,
+            "name": "lv",
             "supercategory": ""
         }
     ]
