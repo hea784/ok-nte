@@ -400,3 +400,63 @@ msgstr "Esquivar todos los ataques"
 
 msgid "Dodge all attacks without performing counter attacks"
 msgstr "Esquivar todos los ataques sin realizar contraataques"
+
+msgid "不支持从OK启动游戏"
+msgstr "No se admite iniciar el juego desde OK"
+
+msgid "任务完成后自动切换至下一个项目"
+msgstr "Cambiar automáticamente al siguiente elemento tras completar la tarea"
+
+msgid "任务类型"
+msgstr "Tipo de tarea"
+
+msgid "具体奖励目标"
+msgstr "Objetivo de recompensa específico"
+
+msgid "异能升级材料"
+msgstr "Mejora de habilidad"
+
+msgid "异能材料序号"
+msgstr "Índice de mejora de habilidad"
+
+msgid "异象界域"
+msgstr "Zona de Anomalías"
+
+msgid "弧盘材料序号"
+msgstr "Índice de ascensión de arco"
+
+msgid "弧盘突破材料"
+msgstr "Ascensión de arco"
+
+msgid "弧盘经验"
+msgstr "Experiencia de disco de arco"
+
+msgid "甲硬币"
+msgstr "Monedas Escarabajo"
+
+msgid "空幕"
+msgstr "Consola"
+
+msgid "空幕序号"
+msgstr "Índice de consola"
+
+msgid "经验与甲硬币"
+msgstr "EXP y Monedas Escarabajo"
+
+msgid "自动循环项目"
+msgstr "Ciclo automático de elementos"
+
+msgid "自动进行异象界域任务"
+msgstr "Realizar automáticamente tareas de la Zona de Anomalías"
+
+msgid "角色经验"
+msgstr "Experiencia de personaje"
+
+msgid "选择经验与甲硬币任务的具体奖励目标"
+msgstr "Seleccionar el objetivo de recompensa específico para tareas de EXP y Monedas Escarabajo"
+
+msgid "选择要进行的任务类型"
+msgstr "Seleccionar el tipo de tarea a realizar"
+
+msgid "选择列表中的第几个项目 ({}-{})"
+msgstr "Seleccionar qué elemento de la lista ({}-{})"

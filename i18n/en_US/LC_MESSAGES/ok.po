@@ -400,3 +400,63 @@ msgstr ""
 
 msgid "Dodge all attacks without performing counter attacks"
 msgstr ""
+
+msgid "不支持从OK启动游戏"
+msgstr "Launching the game from OK is not supported"
+
+msgid "任务完成后自动切换至下一个项目"
+msgstr "Automatically switch to the next item after task completion"
+
+msgid "任务类型"
+msgstr "Task Type"
+
+msgid "具体奖励目标"
+msgstr "Specific Reward Target"
+
+msgid "异能升级材料"
+msgstr "Ability Upgrade"
+
+msgid "异能材料序号"
+msgstr "Ability Upgrade Index"
+
+msgid "异象界域"
+msgstr "Anomaly Zone"
+
+msgid "弧盘材料序号"
+msgstr "Arc Ascension Index"
+
+msgid "弧盘突破材料"
+msgstr "Arc Ascension"
+
+msgid "弧盘经验"
+msgstr "Arc Disk Experience"
+
+msgid "甲硬币"
+msgstr "Beetle Coins"
+
+msgid "空幕"
+msgstr "Console"
+
+msgid "空幕序号"
+msgstr "Console Index"
+
+msgid "经验与甲硬币"
+msgstr "EXP & Beetle Coins"
+
+msgid "自动循环项目"
+msgstr "Auto Cycle Items"
+
+msgid "自动进行异象界域任务"
+msgstr "Automatically perform Anomaly Zone tasks"
+
+msgid "角色经验"
+msgstr "Character Experience"
+
+msgid "选择经验与甲硬币任务的具体奖励目标"
+msgstr "Select the specific reward target for EXP & Beetle Coins tasks"
+
+msgid "选择要进行的任务类型"
+msgstr "Select the type of task to perform"
+
+msgid "选择列表中的第几个项目 ({}-{})"
+msgstr "Select which item in the list ({}-{})"

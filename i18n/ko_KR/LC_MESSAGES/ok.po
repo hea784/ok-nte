@@ -400,3 +400,63 @@ msgstr "모든 공격 회피"
 
 msgid "Dodge all attacks without performing counter attacks"
 msgstr "반격을 수행하지 않고 모든 공격을 회피합니다"
+
+msgid "不支持从OK启动游戏"
+msgstr "OK에서 게임을 시작하는 것은 지원되지 않습니다"
+
+msgid "任务完成后自动切换至下一个项目"
+msgstr "작업 완료 후 자동으로 다음 항목으로 전환"
+
+msgid "任务类型"
+msgstr "작업 유형"
+
+msgid "具体奖励目标"
+msgstr "구체적인 보상 목표"
+
+msgid "异能升级材料"
+msgstr "이능 업그레이드"
+
+msgid "异能材料序号"
+msgstr "이능 업그레이드 번호"
+
+msgid "异象界域"
+msgstr "아노말리 존"
+
+msgid "弧盘材料序号"
+msgstr "아크 어센션 번호"
+
+msgid "弧盘突破材料"
+msgstr "아크 어센션"
+
+msgid "弧盘经验"
+msgstr "아크 디스크 경험치"
+
+msgid "甲硬币"
+msgstr "비틀 코인"
+
+msgid "空幕"
+msgstr "콘솔"
+
+msgid "空幕序号"
+msgstr "콘솔 번호"
+
+msgid "经验与甲硬币"
+msgstr "EXP 및 비틀 코인"
+
+msgid "自动循环项目"
+msgstr "자동 순환 항목"
+
+msgid "自动进行异象界域任务"
+msgstr "자동으로 아노말리 존 작업 수행"
+
+msgid "角色经验"
+msgstr "캐릭터 경험치"
+
+msgid "选择经验与甲硬币任务的具体奖励目标"
+msgstr "EXP 및 비틀 코인 작업의 구체적인 보상 목표 선택"
+
+msgid "选择要进行的任务类型"
+msgstr "수행할 작업 유형 선택"
+
+msgid "选择列表中的第几个项目 ({}-{})"
+msgstr "목록의 몇 번째 항목을 선택할지 ({}-{})"

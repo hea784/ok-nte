@@ -400,3 +400,63 @@ msgstr "すべての攻撃を回避"
 
 msgid "Dodge all attacks without performing counter attacks"
 msgstr "カウンター攻撃を行わず、すべての攻撃を回避します"
+
+msgid "不支持从OK启动游戏"
+msgstr "OKからのゲーム起動はサポートされていません"
+
+msgid "任务完成后自动切换至下一个项目"
+msgstr "タスク完了後に次の項目へ自動で切り替えます"
+
+msgid "任务类型"
+msgstr "タスクタイプ"
+
+msgid "具体奖励目标"
+msgstr "具体的な報酬目標"
+
+msgid "异能升级材料"
+msgstr "異能強化"
+
+msgid "异能材料序号"
+msgstr "異能強化番号"
+
+msgid "异象界域"
+msgstr "アノマリーゾーン"
+
+msgid "弧盘材料序号"
+msgstr "弧盤突破番号"
+
+msgid "弧盘突破材料"
+msgstr "弧盤突破"
+
+msgid "弧盘经验"
+msgstr "弧盤経験値"
+
+msgid "甲硬币"
+msgstr "ビートルコイン"
+
+msgid "空幕"
+msgstr "コンソール"
+
+msgid "空幕序号"
+msgstr "コンソール番号"
+
+msgid "经验与甲硬币"
+msgstr "EXP & ビートルコイン"
+
+msgid "自动循环项目"
+msgstr "項目を自動循環"
+
+msgid "自动进行异象界域任务"
+msgstr "アノマリーゾーンタスクを自動実行"
+
+msgid "角色经验"
+msgstr "キャラクター経験値"
+
+msgid "选择经验与甲硬币任务的具体奖励目标"
+msgstr "EXP & ビートルコインタスクの具体的な報酬目標を選択"
+
+msgid "选择要进行的任务类型"
+msgstr "実行するタスクタイプを選択"
+
+msgid "选择列表中的第几个项目 ({}-{})"
+msgstr "リストの何番目の項目を選択するか ({}-{})"

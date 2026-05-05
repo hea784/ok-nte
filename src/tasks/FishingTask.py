@@ -2,7 +2,7 @@ import time
 
 import cv2
 import numpy as np
-from ok import TaskDisabledException
+from ok import Box, TaskDisabledException
 from qfluentwidgets import FluentIcon
 
 from src.Labels import Labels
@@ -11,7 +11,7 @@ from src.tasks.NTEOneTimeTask import NTEOneTimeTask
 from src.utils import image_utils as iu
 
 
-class FishingTask(BaseNTETask):
+class FishingTask(NTEOneTimeTask, BaseNTETask):
     # --- 配置项键名 ---
     CONF_ROUNDS = "循环次数"
     CONF_CONTROL_MODE = "控条模式"
@@ -26,7 +26,7 @@ class FishingTask(BaseNTETask):
         super().__init__(*args, **kwargs)
         self.name = "自动钓鱼"
         self.description = "自动完成一轮或多轮钓鱼"
-        self.icon = FluentIcon.GAME
+        self.icon = FluentIcon.SYNC
         self.support_schedule_task = True
         self.default_config.update(
             {
@@ -61,7 +61,7 @@ class FishingTask(BaseNTETask):
         self.add_exit_after_config()
 
     def run(self):
-        NTEOneTimeTask.run(self)
+        super().run()
         try:
             return self.do_run()
         except TaskDisabledException:
@@ -93,7 +93,7 @@ class FishingTask(BaseNTETask):
         self.log_info(f"自动钓鱼结束，成功 {success_count}/{rounds}", notify=True)
 
     def run_once(self, round_index: int) -> bool:
-        self.clear_success_overlay_if_present()
+        self.close_success_overlay()
 
         if not self.cast_rod():
             raise TaskDisabledException("未检测到进入抛竿状态")
@@ -107,10 +107,10 @@ class FishingTask(BaseNTETask):
     def enter_fishing_scene(self) -> bool:
         """检测并进入钓鱼准备界面"""
         ENTER_SCENE_TIMEOUT = 5
-        if self.is_fish_start_exist():
+        if self.is_fish_start_exist() or self.is_success_overlay():
             self.log_info("已在钓鱼准备界面")
             return True
-        
+
         if self.wait_until(self.find_interac, time_out=ENTER_SCENE_TIMEOUT):
             box = self.box_of_screen(0.9094, 0.8278, 0.9746, 0.9104)
 
@@ -140,6 +140,7 @@ class FishingTask(BaseNTETask):
             if self.is_success_overlay():
                 self.log_info("抛竿时检测到成功面板, 尝试关闭")
                 self.do_close_success_overlay()
+            self.sleep(0.1)
 
         self.log_info("执行抛竿操作")
         if not self.wait_until(
@@ -316,16 +317,22 @@ class FishingTask(BaseNTETask):
         return self.is_success_text_exist()
 
     def close_success_overlay(self):
+        if self.is_fish_start_exist():
+            self.log_info("已在可抛竿状态")
+            return True
         if self.wait_until(
             lambda: not self.is_success_overlay(),
             pre_action=self.do_close_success_overlay,
-            time_out=10,
+            post_action=lambda: self.sleep(0.1),
+            time_out=20,
         ):
             self.log_info("关闭成功面板")
         else:
             self.log_error("关闭成功面板超时")
             return False
-        if self.wait_until(self.is_fish_start_exist, time_out=5):
+        if self.wait_until(
+            self.is_fish_start_exist, post_action=lambda: self.sleep(0.1), time_out=5
+        ):
             self.log_info("进入可抛竿状态")
             self.sleep(0.5)
         else:
@@ -339,11 +346,6 @@ class FishingTask(BaseNTETask):
             self.send_key("esc", interval=2)
         else:
             self.operate_click(0.12, 0.88, interval=2)
-
-    def clear_success_overlay_if_present(self):
-        if self.is_success_overlay():
-            self.log_info("检测到成功面板")
-            self.close_success_overlay()
 
     def reset_runtime_state(self):
         self._set_bar_key(None)
@@ -467,6 +469,40 @@ class FishingTask(BaseNTETask):
 
         return blue_pixels_ratio > 0.07
 
+    def find_default_bait(self):
+        box = self.box_of_screen(0.0602, 0.2306, 0.2070, 0.2597)
+        image = box.crop_frame(self.frame)
+        mask = iu.create_color_mask(image, default_bait_color, to_bgr=False)
+        mask = iu.morphology_mask(mask, closing=True, to_bgr=False)
+        num_labels, _, stats, _ = cv2.connectedComponentsWithStats(mask, connectivity=8)
+        if num_labels <= 1:
+            return None
+        max_i = max(enumerate(stats[1:, cv2.CC_STAT_AREA]), key=lambda x: x[1])[0] + 1
+        x = stats[max_i, cv2.CC_STAT_LEFT]
+        y = stats[max_i, cv2.CC_STAT_TOP]
+        w = stats[max_i, cv2.CC_STAT_WIDTH]
+        h = stats[max_i, cv2.CC_STAT_HEIGHT]
+        return Box(box.x + x, box.y + y, w, h, name="default_bait")
+
+    def click_default_bait(self):
+        box = self.find_default_bait()
+        if box:
+            self.operate_click(box)
+            return
+        self.operate_click(0.0758, 0.2236)
+
+    def buy_bait(self):
+        self.click_default_bait()
+        self.sleep(0.25)
+        # self.operate_click(0.9520, 0.8812) #拉满数量
+        self.sleep(0.25)
+        self.operate_click(0.8715, 0.9542)  # 确认购买
+        self.sleep(1)
+        self.back_to_fishing_scene()
+
+    def back_to_fishing_scene(self):
+        self.wait_until(self.is_fish_start_exist, post_action=lambda: self.back(interval=1))
+
 
 fishing_bite_blue_color = {
     "r": (30, 35),
@@ -484,4 +520,10 @@ text_black_color = {
     "r": (0, 10),
     "g": (0, 10),
     "b": (0, 10),
+}
+
+default_bait_color = {
+    "r": (147, 255),
+    "g": (47, 133),
+    "b": (104, 184),
 }

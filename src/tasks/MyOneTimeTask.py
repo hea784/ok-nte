@@ -21,6 +21,14 @@ INST = r"""
 
 
 class MyOneTimeTask(BaseNTETask):
+    # --- 配置项键名 ---
+    CONF_DROP_DOWN = "下拉菜单选项"
+    CONF_BOOL = "是否选项默认支持"
+    CONF_INT = "int选项"
+    CONF_TEXT = "文字框选项"
+    CONF_LONG_TEXT = "长文字框选项"
+    CONF_LIST = "list选项"
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.name = "点击触发运行任务"
@@ -30,15 +38,15 @@ class MyOneTimeTask(BaseNTETask):
         self.support_schedule_task = True
         self.default_config.update(
             {
-                "下拉菜单选项": "第一",
-                "是否选项默认支持": False,
-                "int选项": 1,
-                "文字框选项": "默认文字",
-                "长文字框选项": "默认文字默认文字默认文字默认文字默认文字默认文字默认文字默认文字默认文字默认文字默认文字默认文字默认文字默认文字默认文字默认文字默认文字默认文字默认文字",
-                "list选项": ["第一", "第二", "第3"],
+                self.CONF_DROP_DOWN: "第一",
+                self.CONF_BOOL: False,
+                self.CONF_INT: 1,
+                self.CONF_TEXT: "默认文字",
+                self.CONF_LONG_TEXT: "默认文字默认文字默认文字默认文字默认文字默认文字默认文字默认文字默认文字默认文字默认文字默认文字默认文字默认文字默认文字默认文字默认文字默认文字默认文字",
+                self.CONF_LIST: ["第一", "第二", "第3"],
             }
         )
-        self.config_type["下拉菜单选项"] = {
+        self.config_type[self.CONF_DROP_DOWN] = {
             "type": "drop_down",
             "options": ["第一", "第二", "第3"],
         }

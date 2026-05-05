@@ -31,7 +31,7 @@ def isolate_lv_to_white(cv_image):
     mask_white = iu.create_color_mask(cv_image, lv_white_color, to_bgr=False)
     mask_red = iu.create_color_mask(cv_image, lv_red_color, to_bgr=False)
     mask = cv2.bitwise_or(mask_white, mask_red)
-    mask = iu.dilate_mask(mask, to_bgr=False)
+    mask = iu.morphology_mask(mask, to_bgr=False)
     return mask
 
 

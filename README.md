@@ -42,9 +42,19 @@ All issues and consequences arising from the use of this software are not relate
 
 ## ✨ 主要功能
 
+<p align="center">
+  <img width="950" alt="demo_cn" src="https://github.com/user-attachments/assets/6d14e11d-c7c6-42bd-8ce9-f974fd0950df" />
+</p>
 
-*   **后台运行**
-    *   支持 PC 版游戏在后台运行时进行自动化操作
+- **后台运行**：支持 PC 游戏在后台运行时进行自动化操作。
+- **自动钓鱼**：全自动钓鱼。
+- **自动战斗**：基于计算机视觉的战斗算法。
+- **跳过对话**：跳过冗长的剧情对话。
+- **快速传送**：自动点击地图传送。
+- **角色中心**
+  - **角色管理**：支持自定义出招表，灵活配置战斗逻辑。
+  - **特征管理**：适配不同角色皮肤，支持自动识别并切换对应的战斗逻辑。
+- **声音驱动**：基于音频反馈实现的自动闪避和反击。
 
 ## 🖥️ 运行环境与兼容性
 

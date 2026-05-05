@@ -400,3 +400,63 @@ msgstr "閃避所有攻擊"
 
 msgid "Dodge all attacks without performing counter attacks"
 msgstr "閃避所有攻擊，不執行反擊"
+
+msgid "不支持从OK启动游戏"
+msgstr "不支援從 OK 啟動遊戲"
+
+msgid "任务完成后自动切换至下一个项目"
+msgstr "任務完成後自動切換至下一個項目"
+
+msgid "任务类型"
+msgstr "任務類型"
+
+msgid "具体奖励目标"
+msgstr "具體獎勵目標"
+
+msgid "异能升级材料"
+msgstr "異能升級材料"
+
+msgid "异能材料序号"
+msgstr "異能材料序號"
+
+msgid "异象界域"
+msgstr "異象界域"
+
+msgid "弧盘材料序号"
+msgstr "弧盤材料序號"
+
+msgid "弧盘突破材料"
+msgstr "弧盤突破材料"
+
+msgid "弧盘经验"
+msgstr "弧盤經驗"
+
+msgid "甲硬币"
+msgstr "甲硬幣"
+
+msgid "空幕"
+msgstr "空幕"
+
+msgid "空幕序号"
+msgstr "空幕序號"
+
+msgid "经验与甲硬币"
+msgstr "經驗與甲硬幣"
+
+msgid "自动循环项目"
+msgstr "自動循環項目"
+
+msgid "自动进行异象界域任务"
+msgstr "自動進行異象界域任務"
+
+msgid "角色经验"
+msgstr "角色經驗"
+
+msgid "选择经验与甲硬币任务的具体奖励目标"
+msgstr "選擇經驗與甲硬幣任務的具體獎勵目標"
+
+msgid "选择要进行的任务类型"
+msgstr "選擇要進行的任務類型"
+
+msgid "选择列表中的第几个项目 ({}-{})"
+msgstr "選擇列表中的第幾個項目 ({}-{})"

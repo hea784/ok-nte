@@ -377,12 +377,14 @@ class BaseCombatTask(CombatCheck):
                 switch_to = safe_get(self.chars, self.get_longest_idle_char_index())
                 if switch_to is not None and switch_to != current_char:
                     logger.warning(
-                        f"switch_next_char forced to next char {switch_to} after repeated self selection"
+                        f"switch_next_char forced to next char {switch_to} "
+                        f"after repeated self selection"
                     )
                     break
 
             logger.warning(
-                f"{current_char} can't find next char to switch to, performing too fast add a normal attack"
+                f"{current_char} can't find next char to switch to, "
+                "performing too fast add a normal attack"
             )
             current_char.continues_normal_attack(0.2)
 
@@ -395,7 +397,8 @@ class BaseCombatTask(CombatCheck):
         switch_to_name = self._get_char_log_name(switch_to)
 
         logger.info(
-            f"switch_next_char {current_char_name} -> {switch_to_name} has_intro {switch_to.has_intro}"
+            f"switch_next_char {current_char_name} -> {switch_to_name}, "
+            f"has_intro {switch_to.has_intro}"
         )
 
         last_click_time = 0.0
@@ -431,12 +434,14 @@ class BaseCombatTask(CombatCheck):
                     switch_to.has_intro = True
                     switch_to_name = self._get_char_log_name(switch_to)
                     logger.info(
-                        f"switch_next_char updated target to {switch_to_name} has_intro {switch_to.has_intro}"
+                        f"switch_next_char updated target to {switch_to_name}, "
+                        f"has_intro {switch_to.has_intro}"
                     )
 
             if not self.is_in_team():
                 logger.info(
-                    f"not in world while switching chars_{current_char_name}_to_{switch_to_name} {current_time - start_time}"
+                    f"not in world while switching {current_char_name} -> {switch_to_name},"
+                    f" {current_time - start_time}"
                 )
                 # if self.debug:
                 #     self.screenshot(f'not in team while switching chars_{current_char}_to_{switch_to} {now - start}')
@@ -447,7 +452,8 @@ class BaseCombatTask(CombatCheck):
                 #         self.raise_not_in_combat(f'char dead', exception_type=CharDeadException)
                 if current_time - start_time > self.switch_char_time_out:
                     self.raise_not_in_combat(
-                        f"switch too long failed chars_{current_char_name}_to_{switch_to_name}, {current_time - start_time}"
+                        f"switch too long failed {current_char_name} -> {switch_to_name},"
+                        f" {current_time - start_time}"
                     )
                 self.sleep(0.01)
                 continue
@@ -567,7 +573,9 @@ class BaseCombatTask(CombatCheck):
             counter_thresh = self.sound_config.get("Counter Attack Threshold", 0.12)
             dodge_thresh = np.clip(dodge_thresh, 0.0, 1.0)
             counter_thresh = np.clip(counter_thresh, 0.0, 1.0)
-            SoundCombatContext().update_config(enable, dodge_all_attacks, dodge_thresh, counter_thresh)
+            SoundCombatContext().update_config(
+                enable, dodge_all_attacks, dodge_thresh, counter_thresh
+            )
         SoundCombatContext().update_task(self)
 
     def check_combat(self):
@@ -663,9 +671,10 @@ class BaseCombatTask(CombatCheck):
                     char.is_current_char = True
                 else:
                     char.is_current_char = False
-                self.log_info(
-                    f"loaded chars success {char} {char.char_name} {char.confidence:.2f} {char.element}"
-                )
+                name = char.char_name
+                conf = char.confidence
+                elem = char.element
+                self.log_info(f"load char success {char} {name} {conf:.2f} {elem}")
                 self.info_add_to_list("chars", f"{char.char_name}: {char.combo_label}")
 
         if self.team_size > 0:
@@ -835,6 +844,29 @@ class BaseCombatTask(CombatCheck):
         is_full = ratio > 0.9
 
         return is_full
+
+    def walk_until_combat(self, direction="w", time_out=10, run=False, delay=0, raise_if_not_found=False):
+        ret = False
+        try:
+            self.middle_click(after_sleep=0.2)
+            self.send_key_down(direction)
+            if run:
+                self.sleep(0.1)
+                self.send_key_down("shift")
+            ret = bool(
+                self.wait_until(
+                    self.in_combat,
+                    time_out=time_out,
+                    raise_if_not_found=raise_if_not_found,
+                )
+            )
+            self.sleep(delay)
+        finally:
+            if run:
+                self.send_key_down("shift")
+                self.sleep(0.1)
+            self.send_key_up(direction)
+        return ret
 
 
 def convert_cd(text):

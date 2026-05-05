@@ -3,7 +3,6 @@ from typing import Tuple
 
 import cv2
 import numpy as np
-
 from ok import color_range_to_bound
 
 
@@ -240,7 +239,10 @@ def show_images(images, names=None, scale=None, wait_key=0):
             for image in images
         ]
     for i, image in enumerate(images):
-        cv2.imshow(f"{names[i]}_{i}", image)
+        win_name = f"{names[i]}_{i}"
+        cv2.namedWindow(win_name, cv2.WINDOW_AUTOSIZE)
+        cv2.moveWindow(win_name, 100 * i, 100 * i)
+        cv2.imshow(win_name, image)
     cv2.waitKey(wait_key)
 
 
@@ -308,23 +310,32 @@ def adjust_lightness_contrast_lab(img, brightness=0, contrast=0):
     result_lab = cv2.merge((lightness, a, b))
     return cv2.cvtColor(result_lab, cv2.COLOR_Lab2BGR)
 
-def dilate_mask(mask: np.ndarray, kernel_size: int = 3, to_bgr: bool = True) -> np.ndarray:
+
+def morphology_mask(
+    mask: np.ndarray, kernel_size: int = 3, closing: bool = False, to_bgr: bool = True
+) -> np.ndarray:
     """
-    对遮罩（二值图像）进行膨胀处理。
+    对遮罩（二值图像）进行形态学处理。
 
     Args:
         mask (np.ndarray): 输入的二值遮罩图像.
-        kernel_size (int): 膨胀核的大小, 默认为 3.
+        kernel_size (int): 结构元的大小, 默认为 3.
+        closing (bool): 是否进行闭运算 (先膨胀再腐蚀), 默认为 False (仅膨胀).
         to_bgr (bool): 是否将结果转换为 BGR 3通道格式, 默认为 True.
 
     Returns:
-        np.ndarray: 膨胀后的遮罩图像 (3通道BGR或单通道二值图).
+        np.ndarray: 处理后的遮罩图像 (3通道BGR或单通道二值图).
     """
     kernel = np.ones((kernel_size, kernel_size), np.uint8)
-    dilated = cv2.dilate(mask, kernel, iterations=1)
-    if to_bgr and len(dilated.shape) == 2:
-        dilated = cv2.cvtColor(dilated, cv2.COLOR_GRAY2BGR)
-    return dilated
+    if closing:
+        result = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
+    else:
+        result = cv2.dilate(mask, kernel, iterations=1)
+
+    if to_bgr and len(result.shape) == 2:
+        result = cv2.cvtColor(result, cv2.COLOR_GRAY2BGR)
+    return result
+
 
 def restore_world_brightness(image, percentile=0.99):
     """

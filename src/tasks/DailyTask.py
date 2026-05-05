@@ -1,37 +1,52 @@
 from datetime import datetime
+from typing import Callable, List, Tuple
 
 from ok import CannotFindException, TaskDisabledException, find_color_rectangles
 from qfluentwidgets import FluentIcon
 
 from src import text_white_color
 from src.Labels import Labels
+from src.tasks.AnomalyTask import AnomalyTask
 from src.tasks.BaseNTETask import BaseNTETask
+from src.tasks.NTEOneTimeTask import NTEOneTimeTask
 from src.utils import image_utils as iu
 
 
-class DailyTask(BaseNTETask):
+class DailyTask(NTEOneTimeTask, BaseNTETask):
     """日常任务执行器"""
+
+    # --- 配置项键名 ---
+    CONF_CLAIM_MAIL = "领取邮件"
+    CONF_COMPLETE_DAILY = "完成每日活跃度"
+    CONF_CLAIM_ACTIVITY = "领取活跃度奖励"
+    CONF_CLAIM_BP = "领取环期任务奖励"
+
+    CONF_AUTO_CYCLE_SUB_TASK = "自动循环项目"
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.name = "日常任务"
-        self.description = "暂不可用"
-        self.icon = FluentIcon.SYNC
+        self.description = "不支持从OK启动游戏"
+        self.icon = FluentIcon.CAR
         self.support_schedule_task = False
         self.task_status = {"success": [], "failed": [], "skipped": [], "pending": []}
-
+        
+        AnomalyTask.setup_config(self)
         self.default_config.update(
             {
-                "领取邮件": True,
-                "完成每日活跃度": True,
-                "领取活跃度奖励": True,
-                "领取环期任务奖励": True,
+                self.CONF_AUTO_CYCLE_SUB_TASK: False,
+            }
+        )
+        self.config_description.update(
+            {
+                self.CONF_AUTO_CYCLE_SUB_TASK: "任务完成后自动切换至下一个项目",
             }
         )
         self.current_task_key = None
         self.add_exit_after_config()
 
     def run(self):
+        super().run()
         try:
             self.do_run()
         except TaskDisabledException:
@@ -41,13 +56,15 @@ class DailyTask(BaseNTETask):
 
     def do_run(self):
         """执行日常任务主流程"""
+        self._logged_in = False
+        self.ensure_main()
         self.log_info("开始执行日常任务")
 
-        tasks = [
-            ("领取邮件", self.claim_mail),
-            ("完成每日活跃度", self.complete_daily_activities),
-            ("领取活跃度奖励", self.claim_activity_rewards),
-            ("领取环期任务奖励", self.claim_battle_pass_rewards),
+        tasks: List[Tuple[str, Callable]] = [
+            (self.CONF_CLAIM_MAIL, self.claim_mail),
+            (self.CONF_COMPLETE_DAILY, self.complete_daily_activities),
+            (self.CONF_CLAIM_ACTIVITY, self.claim_activity_rewards),
+            (self.CONF_CLAIM_BP, self.claim_battle_pass_rewards),
         ]
 
         self._reset_task_status(tasks)
@@ -71,7 +88,7 @@ class DailyTask(BaseNTETask):
         self.task_status["pending"].remove(key)
 
         # 开关控制
-        if not self.config.get(key, False):
+        if not self.config.get(key, True):
             self.task_status["skipped"].append(key)
             return
 
@@ -149,17 +166,42 @@ class DailyTask(BaseNTETask):
         return True
 
     def complete_daily_activities(self):
-        """执行操作完成每日活跃度"""
-        # TODO: 待实现具体逻辑
-        self.log_info("正在执行每日活跃度任务 (TODO)")
-        return True
+        """执行操作完成每日活跃度""" 
+        self.log_info("正在执行每日活跃度任务")
+        task: AnomalyTask = self.get_task_by_class(AnomalyTask)
+        ret = task.do_run(self.config)
+        if ret:
+            self.shift_idx(task)
+        return ret
+
+    def shift_idx(self, task):
+        """切换任务索引"""
+        if self.config.get(self.CONF_AUTO_CYCLE_SUB_TASK):
+            if isinstance(task, AnomalyTask):
+                task_type = self.config.get(task.CONF_TASK_TYPE)
+                next_idx = task.get_next_sub_idx(self.config)
+                if task_type == task.TASK_EXP_COIN:
+                    self.config[task.CONF_EXP_TARGET] = task.EXP_ALL[next_idx]
+                else:
+                    conf_key = {
+                        task.TASK_ABILITY: task.CONF_ABILITY_ID,
+                        task.TASK_ARC: task.CONF_ARC_ID,
+                        task.TASK_CONSOLE: task.CONF_CONSOLE_ID,
+                    }.get(task_type)
+                    if conf_key:
+                        self.config[conf_key] = int(next_idx + 1)
+            self.sync_config()
+
+
 
     def claim_activity_rewards(self):
         """领取活跃度奖励"""
         self.log_info("正在领取活跃度奖励")
         self.openF1panel()
         self.operate_click(0.0551, 0.3833)
-        self.wait_panel(Labels.f1_activity_panel)
+        if not self.wait_panel(Labels.f1_activity_panel):
+            self.log_error("无法找到活跃度面板")
+            return False
         if self.find_one(Labels.f1_activity_mission):
             self.operate_click(0.2348, 0.7653)
             self.sleep(2)
@@ -176,7 +218,7 @@ class DailyTask(BaseNTETask):
         target = None
         box = self.get_box_by_name(Labels.box_f1_activity_reward)
         mask = iu.binarize_bgr_by_brightness(self.frame, threshold=245, to_bgr=False)
-        mask = iu.dilate_mask(mask, kernel_size=7, to_bgr=True)
+        mask = iu.morphology_mask(mask, kernel_size=7, to_bgr=True)
         reward_boxes = find_color_rectangles(
             mask, color_range=text_white_color, min_width=10, min_height=10, box=box, threshold=0.6
         )
@@ -190,7 +232,9 @@ class DailyTask(BaseNTETask):
         self.log_info("正在领取环期任务奖励")
         self.openF2panel()
         self.operate_click(0.0570, 0.3451)
-        self.wait_panel(Labels.f2_mission_panel)
+        if not self.wait_panel(Labels.f2_mission_panel):
+            self.log_error("无法找到环期任务面板")
+            return False
         self.operate_click(0.8777, 0.8187)
         self.sleep(0.5)
         self.operate_click(0.0570, 0.2333)

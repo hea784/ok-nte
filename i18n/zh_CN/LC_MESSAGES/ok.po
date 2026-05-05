@@ -13,7 +13,7 @@ msgid "<b style=\"color: #0078d7;\">角色</b> 和 <b style=\"color: #0078d7;\">
 msgstr ""
 
 msgid "Arc Key"
-msgstr "弧盤技快捷鍵"
+msgstr "弧盘技快捷键"
 
 msgid "Check Monthly Card"
 msgstr "检查月卡"
@@ -46,7 +46,7 @@ msgid "Monthly Card Time"
 msgstr "月卡时间"
 
 msgid "Skill Key"
-msgstr "變軌技快捷鍵"
+msgstr "变轨技快捷键"
 
 msgid "Turn on to avoid interruption by monthly card when executing tasks"
 msgstr "执行任务时开启以避免月卡中断"
@@ -55,7 +55,7 @@ msgid "Ultimate Key"
 msgstr "极轨技快捷键"
 
 msgid "Your computer's local time when the monthly card will popup, hour in (1-24)"
-msgstr "月卡弹出时的电脑本地时间，小時 (1-24)"
+msgstr "月卡弹出时的电脑本地时间，小时 (1-24)"
 
 msgid "[内置代码]"
 msgstr ""
@@ -390,3 +390,63 @@ msgstr "闪避所有攻击"
 
 msgid "Dodge all attacks without performing counter attacks"
 msgstr "闪避所有攻击，不执行反击"
+
+msgid "不支持从OK启动游戏"
+msgstr ""
+
+msgid "任务完成后自动切换至下一个项目"
+msgstr ""
+
+msgid "任务类型"
+msgstr ""
+
+msgid "具体奖励目标"
+msgstr ""
+
+msgid "异能升级材料"
+msgstr ""
+
+msgid "异能材料序号"
+msgstr ""
+
+msgid "异象界域"
+msgstr ""
+
+msgid "弧盘材料序号"
+msgstr ""
+
+msgid "弧盘突破材料"
+msgstr ""
+
+msgid "弧盘经验"
+msgstr ""
+
+msgid "甲硬币"
+msgstr ""
+
+msgid "空幕"
+msgstr ""
+
+msgid "空幕序号"
+msgstr ""
+
+msgid "经验与甲硬币"
+msgstr ""
+
+msgid "自动循环项目"
+msgstr ""
+
+msgid "自动进行异象界域任务"
+msgstr ""
+
+msgid "角色经验"
+msgstr ""
+
+msgid "选择经验与甲硬币任务的具体奖励目标"
+msgstr ""
+
+msgid "选择要进行的任务类型"
+msgstr ""
+
+msgid "选择列表中的第几个项目 ({}-{})"
+msgstr ""

@@ -89,6 +89,24 @@
             "file_name": "images/0.png",
             "width": 2560,
             "height": 1440
+        },
+        {
+            "id": 16,
+            "file_name": "images/0.png",
+            "width": 2560,
+            "height": 1440
+        },
+        {
+            "id": 17,
+            "file_name": "images/0.png",
+            "width": 2560,
+            "height": 1440
+        },
+        {
+            "id": 18,
+            "file_name": "images/1.png",
+            "width": 2560,
+            "height": 1440
         }
     ],
     "annotations": [
@@ -585,6 +603,45 @@
             ],
             "area": 1008,
             "iscrowd": 0
+        },
+        {
+            "id": 39,
+            "image_id": 16,
+            "category_id": 39,
+            "bbox": [
+                899,
+                666,
+                29,
+                19
+            ],
+            "area": 551,
+            "iscrowd": 0
+        },
+        {
+            "id": 40,
+            "image_id": 17,
+            "category_id": 40,
+            "bbox": [
+                706,
+                902,
+                68,
+                66
+            ],
+            "area": 4488,
+            "iscrowd": 0
+        },
+        {
+            "id": 41,
+            "image_id": 18,
+            "category_id": 41,
+            "bbox": [
+                2071,
+                1195,
+                67,
+                71
+            ],
+            "area": 4757,
+            "iscrowd": 0
         }
     ],
     "categories": [
@@ -776,6 +833,21 @@
         {
             "id": 38,
             "name": "lv",
+            "supercategory": ""
+        },
+        {
+            "id": 39,
+            "name": "treasure",
+            "supercategory": ""
+        },
+        {
+            "id": 40,
+            "name": "claim_icon",
+            "supercategory": ""
+        },
+        {
+            "id": 41,
+            "name": "stamina_icon",
             "supercategory": ""
         }
     ]
