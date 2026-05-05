@@ -21,15 +21,24 @@ class ScreenPosition:
 
     @property
     def top_right(self) -> Box:
-        return Box(x=self.parent.width // 2, y=0, to_x=self.parent.width, to_y=self.parent.height // 2)
+        return Box(
+            x=self.parent.width // 2, y=0, to_x=self.parent.width, to_y=self.parent.height // 2
+        )
 
     @property
     def bottom_left(self) -> Box:
-        return Box(x=0, y=self.parent.height // 2, to_x=self.parent.width // 2, to_y=self.parent.height)
+        return Box(
+            x=0, y=self.parent.height // 2, to_x=self.parent.width // 2, to_y=self.parent.height
+        )
 
     @property
     def bottom_right(self) -> Box:
-        return Box(x=self.parent.width // 2, y=self.parent.height // 2, to_x=self.parent.width, to_y=self.parent.height)
+        return Box(
+            x=self.parent.width // 2,
+            y=self.parent.height // 2,
+            to_x=self.parent.width,
+            to_y=self.parent.height,
+        )
 
     @property
     def left(self) -> Box:
@@ -49,10 +58,16 @@ class ScreenPosition:
 
     @property
     def center(self) -> Box:
-        return Box(x=self.parent.width // 4, y=self.parent.height // 4,
-                   to_x=self.parent.width * 3 // 4, to_y=self.parent.height * 3 // 4)
+        return Box(
+            x=self.parent.width // 4,
+            y=self.parent.height // 4,
+            to_x=self.parent.width * 3 // 4,
+            to_y=self.parent.height * 3 // 4,
+        )
 
-    def _scale_box(self, x: int, y: int, w: int, h: int, ref_width: int = 2560, ref_height: int = 1440) -> Box:
+    def _scale_box(
+        self, x: int, y: int, w: int, h: int, ref_width: int = 2560, ref_height: int = 1440
+    ) -> Box:
         """将基于参考分辨率(2560x1440)的bbox缩放到当前屏幕分辨率"""
         scale_x = self.parent.width / ref_width
         scale_y = self.parent.height / ref_height
@@ -60,7 +75,7 @@ class ScreenPosition:
             x=int(x * scale_x),
             y=int(y * scale_y),
             to_x=int((x + w) * scale_x),
-            to_y=int((y + h) * scale_y)
+            to_y=int((y + h) * scale_y),
         )
 
     @property

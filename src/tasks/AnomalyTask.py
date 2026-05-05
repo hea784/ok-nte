@@ -1,6 +1,6 @@
-from ok import TaskDisabledException, og
 from qfluentwidgets import FluentIcon
 
+from ok import TaskDisabledException, og
 from src.combat.BaseCombatTask import BaseCombatTask
 from src.Labels import Labels
 from src.tasks.BaseNTETask import BaseNTETask
@@ -15,9 +15,9 @@ class AnomalyTask(NTEOneTimeTask, BaseCombatTask):
     CONF_ARC_ID = "弧盘材料序号"
     CONF_CONSOLE_ID = "空幕序号"
 
-    ABILITY_IDX_RANGE = [1, 5]
-    ARC_IDX_RANGE = [1, 5]
-    CONSOLE_IDX_RANGE = [1, 6]
+    ABILITY_IDX_RANGE = (1, 5)
+    ARC_IDX_RANGE = (1, 5)
+    CONSOLE_IDX_RANGE = (1, 6)
 
     # --- 任务类型选项 ---
     TASK_EXP_COIN = "经验与甲硬币"
@@ -172,7 +172,7 @@ class AnomalyTask(NTEOneTimeTask, BaseCombatTask):
         for i in range(double_count + single_count):
             double = i < double_count
             self.do_combat_and_claim(double)
-            self.sleep(0.1)
+            self.sleep(2)
             if i < double_count + single_count - 1:
                 self.operate_click(0.621, 0.864)
         self.operate_click(0.381, 0.861)
@@ -216,7 +216,7 @@ class AnomalyTask(NTEOneTimeTask, BaseCombatTask):
             return self._config_validate(config, self.CONSOLE_IDX_RANGE, self.CONF_CONSOLE_ID) - 1
         return 0
 
-    def _config_validate(self, config, range, key):
+    def _config_validate(self, config: dict, range: tuple[int, int], key: str):
         """验证配置项的值"""
         min_idx, max_idx = range
         val = config.get(key, 1)

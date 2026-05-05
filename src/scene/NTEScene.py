@@ -1,6 +1,7 @@
 import time
 
 import numpy as np
+
 from ok import BaseScene, Logger
 
 logger = Logger.get_logger(__name__)
@@ -61,19 +62,20 @@ class NTEScene(BaseScene):
             except Exception as e:
                 logger.error(f"Failed to initialize OCR in background: {e}")
 
-    def make_bg_ocr(self):
-        from ok import og
-        from ok.task.TaskExecutor import logger as te_logger
-        from onnxocr.onnx_paddleocr import ONNXPaddleOcr
+    # def make_bg_ocr(self):
+    #     from onnxocr.onnx_paddleocr import ONNXPaddleOcr
 
-        ocr_config = og.executor.config.get("ocr", {})
-        bg_config = ocr_config.get("bg_onnx_ocr") or ocr_config.get("default", {})
-        config_params = bg_config.get("params", {})
+    #     from ok import og
+    #     from ok.task.TaskExecutor import logger as te_logger
 
-        logger.info(f"Initializing bg onnxocr with params: {config_params}")
-        og.executor._ocr_lib["bg_onnx_ocr"] = ONNXPaddleOcr(
-            use_angle_cls=False,
-            logger=te_logger,
-            use_npu=config_params.get("use_npu", True),
-            use_openvino=config_params.get("use_openvino", False),
-        )
+    #     ocr_config = og.executor.config.get("ocr", {})
+    #     bg_config = ocr_config.get("bg_onnx_ocr") or ocr_config.get("default", {})
+    #     config_params = bg_config.get("params", {})
+
+    #     logger.info(f"Initializing bg onnxocr with params: {config_params}")
+    #     og.executor._ocr_lib["bg_onnx_ocr"] = ONNXPaddleOcr(
+    #         use_angle_cls=False,
+    #         logger=te_logger,
+    #         use_npu=config_params.get("use_npu", True),
+    #         use_openvino=config_params.get("use_openvino", False),
+    #     )

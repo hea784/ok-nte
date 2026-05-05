@@ -3,7 +3,6 @@ import time
 from typing import Optional
 
 from ok import Logger
-
 from src.sound_trigger.DodgeCounterTrigger import DodgeCounterTrigger
 from src.sound_trigger.SoundListener import SoundListener
 
@@ -178,7 +177,11 @@ class SoundCombatContext:
 
     def _queue_action(self, action):
         with self._context_lock:
-            if self._trigger is None or self._trigger.task is None or self._trigger.task.executor.paused:
+            if (
+                self._trigger is None
+                or self._trigger.task is None
+                or self._trigger.task.executor.paused
+            ):
                 return
             if self.should_interrupt_combat():
                 return
@@ -208,7 +211,12 @@ class SoundCombatContext:
             self._pending_action = None
             trigger = self._trigger
 
-        if action is None or trigger is None or trigger.task is None or trigger.task.executor.paused:
+        if (
+            action is None
+            or trigger is None
+            or trigger.task is None
+            or trigger.task.executor.paused
+        ):
             self.exit_priority()
             return
 
@@ -218,7 +226,7 @@ class SoundCombatContext:
             elif action == "counter":
                 trigger.execute_counter_attack()
         except Exception as e:
-            logger.error(f"Failed to execute sound action: {e}", exc_info=True)
+            logger.error("Failed to execute sound action", e)
         finally:
             self.exit_priority()
 

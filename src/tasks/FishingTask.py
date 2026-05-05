@@ -2,9 +2,9 @@ import time
 
 import cv2
 import numpy as np
-from ok import Box, TaskDisabledException
 from qfluentwidgets import FluentIcon
 
+from ok import Box, TaskDisabledException
 from src.Labels import Labels
 from src.tasks.BaseNTETask import BaseNTETask
 from src.tasks.NTEOneTimeTask import NTEOneTimeTask

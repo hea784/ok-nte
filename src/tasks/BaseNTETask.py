@@ -11,8 +11,8 @@ import win32api
 import win32con
 import win32gui
 import win32process
-from ok import BaseTask, Box, CannotFindException, Logger, og, safe_get
 
+from ok import BaseTask, Box, CannotFindException, Logger, og, safe_get
 from src.Labels import Labels
 from src.scene.NTEScene import NTEScene
 from src.scene.ScreenPosition import ScreenPosition
@@ -20,7 +20,7 @@ from src.utils import game_filters as gf
 from src.utils import image_utils as iu
 
 logger = Logger.get_logger(__name__)
-stamina_re = re.compile(r"(\d+)\s*[/\\|!Il／-]\s*240")
+stamina_re = re.compile(r"(\d+)[\s/\\|!Il／-]+240")
 
 
 class BaseNTETask(BaseTask):
@@ -695,7 +695,8 @@ class BaseNTETask(BaseTask):
             # ):
             #     self.log_debug(f"found agree {agree}")
             #     if self.find_boxes(
-            #         texts, boundary=self.box_of_screen(0.3, 0.3, 0.7, 0.7), match=re.compile("隐私")
+            #         texts, boundary=self.box_of_screen(0.3, 0.3, 0.7, 0.7),
+            #         match=re.compile(r"\d{11}"),
             #     ):
             #         self.click(agree, after_sleep=1)
             #         self.log_info("点击同意按钮!")
@@ -849,7 +850,7 @@ class BaseNTETask(BaseTask):
             self.send_key("esc")
             self.sleep(0.5)
             logger.info("handle_claim_button found a claim reward")
-            return True
+        return True
 
     def has_claim(self):
         return not self.is_in_team() and self.find_all_claim()

@@ -3,9 +3,10 @@ import time
 
 import win32api
 import win32con
+from win32api import GetCursorPos, SetCursorPos
+
 from ok.device.intercation import PostMessageInteraction
 from ok.util.logger import Logger
-from win32api import GetCursorPos, SetCursorPos
 
 logger = Logger.get_logger(__name__)
 

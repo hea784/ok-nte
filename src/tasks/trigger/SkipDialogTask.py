@@ -1,7 +1,6 @@
 import time
 
 from ok import Logger, TriggerTask
-
 from src.Labels import Labels
 from src.tasks.BaseNTETask import BaseNTETask
 from src.utils import game_filters as gf

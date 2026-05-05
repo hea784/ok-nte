@@ -50,7 +50,7 @@ class DodgeCounterTrigger:
             self._last_dodge_time = now
             logger.info(f"Dodge executed successfully at {now:.3f}")
         except Exception as e:
-            logger.error(f"Dodge execution error: {e}", exc_info=True)
+            logger.error("Dodge execution error", e)
         finally:
             self._is_executing = False
 
@@ -70,7 +70,7 @@ class DodgeCounterTrigger:
             self._last_counter_time = now
             logger.info(f"Counter attack executed successfully at {now:.3f}")
         except Exception as e:
-            logger.error(f"Counter execution error: {e}", exc_info=True)
+            logger.error("Counter execution error", e)
         finally:
             self._is_executing = False
 

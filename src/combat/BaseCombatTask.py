@@ -4,8 +4,8 @@ from typing import List
 
 import cv2
 import numpy as np
-from ok import Logger, safe_get
 
+from ok import Logger, safe_get
 from src import text_white_color
 from src.char.BaseChar import BaseChar, Element, Priority
 from src.char.CharFactory import get_char_by_name, get_char_by_pos
@@ -444,12 +444,17 @@ class BaseCombatTask(CombatCheck):
                     f" {current_time - start_time}"
                 )
                 # if self.debug:
-                #     self.screenshot(f'not in team while switching chars_{current_char}_to_{switch_to} {now - start}')
-                # confirm = self.wait_feature('revive_confirm_hcenter_vcenter', threshold=0.8, time_out=2)
+                #     self.screenshot(
+                #         f"not in team while switching chars_{current_char}_to_{switch_to}"
+                #         f"{now - start}"
+                #     )
+                # confirm = self.wait_feature(
+                #     "revive_confirm_hcenter_vcenter", threshold=0.8, time_out=2
+                # )
                 # if confirm:
-                #     self.log_info(f'char dead')
+                #     self.log_info(f"char dead")
                 #     if not self.revive_action():
-                #         self.raise_not_in_combat(f'char dead', exception_type=CharDeadException)
+                #         self.raise_not_in_combat(f"char dead", exception_type=CharDeadException)
                 if current_time - start_time > self.switch_char_time_out:
                     self.raise_not_in_combat(
                         f"switch too long failed {current_char_name} -> {switch_to_name},"
@@ -845,7 +850,9 @@ class BaseCombatTask(CombatCheck):
 
         return is_full
 
-    def walk_until_combat(self, direction="w", time_out=10, run=False, delay=0, raise_if_not_found=False):
+    def walk_until_combat(
+        self, direction="w", time_out=10, run=False, delay=0, raise_if_not_found=False
+    ):
         ret = False
         try:
             self.middle_click(after_sleep=0.2)

@@ -14,9 +14,10 @@ from typing import Optional
 import librosa
 import numpy as np
 import soundcard as sc
-from ok import Logger
 from scipy.signal import butter, correlate, filtfilt
 from sklearn.preprocessing import scale
+
+from ok import Logger
 
 warnings.filterwarnings("ignore", message="data discontinuity in recording")
 
@@ -68,11 +69,15 @@ class SoundListener:
 
     def _load_samples(self):
         try:
-            self._b, self._a = butter(self.degree, self.cut_off, btype='highpass', output='ba', fs=self.used_sr)
-            
+            self._b, self._a = butter(
+                self.degree, self.cut_off, btype="highpass", output="ba", fs=self.used_sr
+            )
+
             self._sample_waveform = self._load_and_cache(self.sample_path)
             if self.counter_attack_sample_path:
-                self._counter_sample_waveform = self._load_and_cache(self.counter_attack_sample_path)
+                self._counter_sample_waveform = self._load_and_cache(
+                    self.counter_attack_sample_path
+                )
 
             logger.info(f"Sound samples loaded: {self.used_sr}Hz")
         except Exception as e:
@@ -80,12 +85,13 @@ class SoundListener:
 
     def _load_and_cache(self, path: str):
         import os
+
         cache_path = f"{path}_{self.used_sr}_{self.degree}_{self.cut_off}.npy"
-        
+
         if os.path.exists(cache_path) and os.path.exists(path):
             if os.path.getmtime(cache_path) > os.path.getmtime(path):
                 return np.load(cache_path)
-                
+
         waveform, _ = librosa.load(path, sr=self.used_sr)
         waveform = self._filtering(waveform)
         np.save(cache_path, waveform)
@@ -101,9 +107,15 @@ class SoundListener:
         norm_sample_waveform = scale(sample_waveform, with_mean=False)
 
         if norm_stream_waveform.shape[0] > norm_sample_waveform.shape[0]:
-            correlation = correlate(norm_stream_waveform, norm_sample_waveform, mode='same', method='fft') / norm_stream_waveform.shape[0]
+            correlation = (
+                correlate(norm_stream_waveform, norm_sample_waveform, mode="same", method="fft")
+                / norm_stream_waveform.shape[0]
+            )
         else:
-            correlation = correlate(norm_sample_waveform, norm_stream_waveform, mode='same', method='fft') / norm_sample_waveform.shape[0]
+            correlation = (
+                correlate(norm_sample_waveform, norm_stream_waveform, mode="same", method="fft")
+                / norm_sample_waveform.shape[0]
+            )
 
         max_corr = np.max(correlation) * self.expansion_ratio
 
@@ -128,10 +140,10 @@ class SoundListener:
     def _listen_loop(self):
         try:
             logger.info("Initializing audio loopback device...")
-            
+
             default_speaker = sc.default_speaker()
             logger.info(f"Default speaker: {default_speaker.name}")
-            
+
             loopback = sc.get_microphone(id=str(default_speaker.name), include_loopback=True)
             logger.info(f"Using loopback device: {loopback.name}")
 
@@ -140,7 +152,7 @@ class SoundListener:
             check_count = 0
             with audio_instance as audio_recorder:
                 logger.info("Audio recording started, monitoring for triggers...")
-                
+
                 max_samples = int(self.used_sr * self.sample_len)
                 chunks_per_interval = int(self.used_sr * self.detection_interval / self.chunk_size)
                 new_samples_per_interval = chunks_per_interval * self.chunk_size
@@ -155,7 +167,7 @@ class SoundListener:
                     for _ in range(chunks_per_interval):
                         stream_data = audio_recorder.record(numframes=self.chunk_size)
                         read_chunks = librosa.to_mono(stream_data.T)
-                        current_frame[idx:idx + self.chunk_size] = read_chunks
+                        current_frame[idx : idx + self.chunk_size] = read_chunks
                         idx += self.chunk_size
 
                     end_pos = buffer_pos + new_samples_per_interval
@@ -164,19 +176,21 @@ class SoundListener:
                     else:
                         first_part = max_samples * 2 - buffer_pos
                         ring_buffer[buffer_pos:] = current_frame[:first_part]
-                        ring_buffer[:end_pos - max_samples * 2] = current_frame[first_part:]
+                        ring_buffer[: end_pos - max_samples * 2] = current_frame[first_part:]
 
                     buffer_pos = end_pos % (max_samples * 2)
                     total_written += new_samples_per_interval
 
                     if total_written >= max_samples:
                         if buffer_pos >= max_samples:
-                            window = ring_buffer[buffer_pos - max_samples:buffer_pos]
+                            window = ring_buffer[buffer_pos - max_samples : buffer_pos]
                         else:
-                            window = np.concatenate([
-                                ring_buffer[-(max_samples - buffer_pos):],
-                                ring_buffer[:buffer_pos]
-                            ])
+                            window = np.concatenate(
+                                [
+                                    ring_buffer[-(max_samples - buffer_pos) :],
+                                    ring_buffer[:buffer_pos],
+                                ]
+                            )
 
                         if self.is_computation_required and not self.is_computation_required():
                             continue
@@ -192,48 +206,71 @@ class SoundListener:
 
                         check_count += 1
                         if check_count % self.log_interval == 0:
-                            logger.info(f"Audio monitoring - dodge_score: {dodge_score:.4f} (threshold: {self.threshold}), counter_score: {counter_score:.4f} (threshold: {self.counter_attack_threshold})")
+                            logger.info(
+                                "Audio monitoring - dodge_score: {:.4f} (threshold: {}), "
+                                "counter_score: {:.4f} (threshold: {})".format(
+                                    dodge_score,
+                                    self.threshold,
+                                    counter_score,
+                                    self.counter_attack_threshold,
+                                )
+                            )
         except Exception as e:
-            logger.error(f"Listener error: {e}", exc_info=True)
+            logger.error("Listener error", e)
         finally:
             self._running = False
             logger.info("Audio listener stopped")
 
     def _check_triggers(self, dodge_score, counter_score):
         now = time.time()
-        if not self.is_allow_successive_trigger and now - self._last_trigger_time < self._trigger_interval:
+        if (
+            not self.is_allow_successive_trigger
+            and now - self._last_trigger_time < self._trigger_interval
+        ):
             return
 
         if dodge_score > 0 and dodge_score > self.threshold:
             if self.on_dodge_triggered:
-                logger.info(f"Dodge TRIGGERED! score: {dodge_score:.4f}, threshold: {self.threshold}")
+                logger.info(
+                    "Dodge TRIGGERED! score: {:.4f}, threshold: {}".format(
+                        dodge_score,
+                        self.threshold,
+                    )
+                )
                 self.on_dodge_triggered()
                 self._last_trigger_time = now
                 return
 
         if counter_score > 0 and counter_score > self.counter_attack_threshold:
             if self.on_counter_triggered:
-                logger.info(f"Counter attack TRIGGERED! score: {counter_score:.4f}, threshold: {self.counter_attack_threshold}")
+                logger.info(
+                    "Counter attack TRIGGERED! score: {:.4f}, threshold: {}".format(
+                        counter_score,
+                        self.counter_attack_threshold,
+                    )
+                )
                 self.on_counter_triggered()
                 self._last_trigger_time = now
 
     def _draw_debug_visual(self, dodge_score, counter_score):
-        if not hasattr(self, '_visual_queue'):
+        if not hasattr(self, "_visual_queue"):
             import queue
+
             self._visual_queue = queue.Queue(maxsize=1)
             self._mouse_x = -1
-            
+
             def on_mouse(event, x, y, flags, param):
-                if event == 0: # cv2.EVENT_MOUSEMOVE
+                if event == 0:  # cv2.EVENT_MOUSEMOVE
                     self._mouse_x = x
 
             def visual_worker():
                 logger.info("Debug visual thread started")
                 import cv2
+
                 window_name = "Sound Listener Debug Wave"
                 cv2.namedWindow(window_name)
                 cv2.setMouseCallback(window_name, on_mouse)
-                
+
                 while self._running:
                     try:
                         # Timeout should be similar to detection_interval
@@ -242,9 +279,9 @@ class SoundListener:
                         self._do_draw_debug_visual(d, c, update_history=True)
                     except Exception:
                         if self._running:
-                            # If no data, redraw last state without updating history (stops movement)
-                            last_d = getattr(self, '_last_received_d', 0.0)
-                            last_c = getattr(self, '_last_received_c', 0.0)
+                            # If no data, redraw last state without updating history
+                            last_d = getattr(self, "_last_received_d", 0.0)
+                            last_c = getattr(self, "_last_received_c", 0.0)
                             self._do_draw_debug_visual(last_d, last_c, update_history=False)
                         continue
                 try:
@@ -326,20 +363,28 @@ class SoundListener:
         )
 
         # Mouse interaction: Timeline and Values
-        if hasattr(self, '_mouse_x') and 0 <= self._mouse_x < width:
+        if hasattr(self, "_mouse_x") and 0 <= self._mouse_x < width:
             mx = self._mouse_x
             idx = int(mx * (self._max_history - 1) / width)
             if 0 <= idx < self._max_history:
                 d_val = self._debug_history["dodge"][idx]
                 c_val = self._debug_history["counter"][idx]
-                
+
                 # Draw vertical timeline line
                 cv2.line(canvas, (mx, 0), (mx, height), (150, 150, 150), 1, cv2.LINE_AA)
-                
+
                 # Display detailed values at cursor
                 info_text = f"T-{self._max_history - idx} | D: {d_val:.4f} | C: {c_val:.4f}"
-                cv2.putText(canvas, info_text, (min(mx + 10, width - 250), 100), 
-                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (220, 220, 220), 1, cv2.LINE_AA)
+                cv2.putText(
+                    canvas,
+                    info_text,
+                    (min(mx + 10, width - 250), 100),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    0.5,
+                    (220, 220, 220),
+                    1,
+                    cv2.LINE_AA,
+                )
 
         # Text labels
         cv2.putText(

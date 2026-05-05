@@ -6,8 +6,8 @@ from typing import TYPE_CHECKING, Optional
 
 import cv2
 import numpy as np
-from ok import Box, Logger, find_color_rectangles
 
+from ok import Box, Logger, find_color_rectangles
 from src.Labels import Labels
 from src.tasks.BaseNTETask import BaseNTETask
 from src.utils import game_filters as gf
@@ -230,7 +230,9 @@ class CombatCheck(BaseNTETask):
     #             tx, ty, score_base = max_loc_e[0], max_loc_e[1], max_val_e
 
     #         # 6. 二次校验：几何特征
-    #         candidate = self._score_target_candidate(roi_bin, roi.shape, tx, ty, tw, th, score_base)
+    #         candidate = self._score_target_candidate(
+    #             roi_bin, roi.shape, tx, ty, tw, th, score_base
+    #         )
     #         if candidate is None:
     #             continue
 
@@ -560,12 +562,8 @@ class CombatCheck(BaseNTETask):
                 and abs(cy - self._lv_feat_L[2]) < 0.15
             ):
                 iou = self._match_contour_iou(self._lv_norm_L, cnt, x, y, w, h)
-                if (
-                    self._lv_aspect_L * 0.6 < aspect_ratio < self._lv_aspect_L * 1.5
-                ) and iou > 0.5:
-                    L_candidates.append(
-                        {"x": x, "y": y, "w": w, "h": h, "score": iou}
-                    )
+                if (self._lv_aspect_L * 0.6 < aspect_ratio < self._lv_aspect_L * 1.5) and iou > 0.5:
+                    L_candidates.append({"x": x, "y": y, "w": w, "h": h, "score": iou})
 
             # 匹配 v
             elif (
@@ -574,12 +572,8 @@ class CombatCheck(BaseNTETask):
                 and abs(cy - self._lv_feat_v[2]) < 0.15
             ):
                 iou = self._match_contour_iou(self._lv_norm_v, cnt, x, y, w, h)
-                if (
-                    self._lv_aspect_v * 0.6 < aspect_ratio < self._lv_aspect_v * 1.5
-                ) and iou > 0.5:
-                    v_candidates.append(
-                        {"x": x, "y": y, "w": w, "h": h, "score": iou}
-                    )
+                if (self._lv_aspect_v * 0.6 < aspect_ratio < self._lv_aspect_v * 1.5) and iou > 0.5:
+                    v_candidates.append({"x": x, "y": y, "w": w, "h": h, "score": iou})
 
         results: list[Box] = []
         for L in L_candidates:

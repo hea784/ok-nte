@@ -1,9 +1,9 @@
 from datetime import datetime
 from typing import Callable, List, Tuple
 
-from ok import CannotFindException, TaskDisabledException, find_color_rectangles
 from qfluentwidgets import FluentIcon
 
+from ok import CannotFindException, TaskDisabledException, find_color_rectangles
 from src import text_white_color
 from src.Labels import Labels
 from src.tasks.AnomalyTask import AnomalyTask
@@ -74,6 +74,7 @@ class DailyTask(NTEOneTimeTask, BaseNTETask):
 
         self.ensure_main()
         self._print_result()
+        self.log_info("结束执行日常任务", notify=True)
 
     def execute_task(self, key, func):
         """执行单个子任务。
@@ -192,8 +193,6 @@ class DailyTask(NTEOneTimeTask, BaseNTETask):
                         self.config[conf_key] = int(next_idx + 1)
             self.sync_config()
 
-
-
     def claim_activity_rewards(self):
         """领取活跃度奖励"""
         self.log_info("正在领取活跃度奖励")
@@ -236,9 +235,9 @@ class DailyTask(NTEOneTimeTask, BaseNTETask):
             self.log_error("无法找到环期任务面板")
             return False
         self.operate_click(0.8777, 0.8187)
-        self.sleep(0.5)
+        self.sleep(1)
         self.operate_click(0.0570, 0.2333)
-        self.sleep(0.5)
+        self.sleep(1)
         self.operate_click(0.6934, 0.8229)
         self.sleep(1)
         return True
