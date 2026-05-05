@@ -177,6 +177,7 @@ class AnomalyTask(NTEOneTimeTask, BaseCombatTask):
                 self.operate_click(0.621, 0.864)
         self.operate_click(0.381, 0.861)
         self.log_info("任务执行完毕")
+        return True
 
     def do_combat_and_claim(self, double: bool):
         self.log_info("开始执行战斗流程")
