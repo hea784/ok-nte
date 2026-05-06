@@ -460,3 +460,39 @@ msgstr "Select the type of task to perform"
 
 msgid "选择列表中的第几个项目 ({}-{})"
 msgstr "Select which item in the list ({}-{})"
+
+msgid "使用滚轮加速拾取"
+msgstr "Use Scroll Wheel to Speed Up Looting"
+
+msgid "切换角色快速奔跑"
+msgstr "Switch Characters for Rapid Sprinting"
+
+msgid "切换角色数量"
+msgstr "Number of Characters for Switching"
+
+msgid "快速奔跑角色数量"
+msgstr "Number of Rapid Sprint Characters"
+
+msgid "按住Shift生效"
+msgstr "Effective while holding Shift"
+
+msgid "粉爪大劫案"
+msgstr "Pink Paws Heist"
+
+msgid "粉爪大劫案便利性功能"
+msgstr "Pink Paws Heist Convenience Features"
+
+msgid "触发按键"
+msgstr "Trigger Key"
+
+msgid "触发连点将同步生效"
+msgstr "Trigger Auto-Clicking Synchronously"
+
+msgid "触发连点的按键"
+msgstr "Auto-Clicking Key"
+
+msgid "自动补饵卖鱼"
+msgstr "Auto-Refill Bait & Sell Fish"
+
+msgid "首次抛竿失败时，补充默认鱼饵并出售鱼获"
+msgstr "Refill default bait and sell fish catch when the first cast fails"

@@ -4,8 +4,8 @@ from typing import List
 
 import cv2
 import numpy as np
-
 from ok import Logger, safe_get
+
 from src import text_white_color
 from src.char.BaseChar import BaseChar, Element, Priority
 from src.char.CharFactory import get_char_by_name, get_char_by_pos

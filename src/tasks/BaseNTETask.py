@@ -1,5 +1,7 @@
+import contextvars
 import ctypes
 import re
+import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta
@@ -20,11 +22,12 @@ from src.utils import game_filters as gf
 from src.utils import image_utils as iu
 
 logger = Logger.get_logger(__name__)
-stamina_re = re.compile(r"(\d+)[\s/\\|!Il／-]+240")
+stamina_re = re.compile(r"(\d+)[\s/\\|!Il／-]+\d+")
 
 
 class BaseNTETask(BaseTask):
     DEFAULT_MOVE = False
+    _current_move = contextvars.ContextVar("current_move", default=None)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -37,6 +40,8 @@ class BaseNTETask(BaseTask):
         self.default_box = ScreenPosition(self)
         self.char_ui_offset = False
         self.next_monthly_card_start = 0
+        self._last_interval_action_time = {}
+        self._action_interval_lock = threading.Lock()
 
     def sync_config(self, config=None):
         """同步并保存配置"""
@@ -64,6 +69,20 @@ class BaseNTETask(BaseTask):
         if og.my_app is None:
             return None
         return og.my_app.get_thread_pool_executor()
+
+    def submit_periodic_task(self, delay, task, *args, **kwargs):
+        """
+        提交一个循环任务到线程池。
+        如果要停止循环，任务函数应返回 False。
+
+        :param task: 要执行的函数
+        :param delay: 每次执行后的间隔时间（秒）
+        :param args: 位置参数
+        :param kwargs: 关键字参数
+        """
+        if og.my_app is None:
+            return
+        og.my_app.submit_periodic_task(delay, task, *args, **kwargs)
 
     def _openvino_detect(self, frame, sync, box, threshold, force=False):
         if og.my_app is None:
@@ -107,35 +126,69 @@ class BaseNTETask(BaseTask):
     @overload
     def click(self, x: int | Box | List[Box] = -1, y=-1, move_back=False, name=None, interval=-1,
               move=False, down_time=0.02, after_sleep=0, key='left', hcenter=False,
-              vcenter=False) -> Any:
+              vcenter=False, action_name=None) -> Any:
         ...
     # fmt: on
 
-    def click(self, *args, **kwargs):
-        is_top_level = not hasattr(self, "_current_move")
+    def click(self, *args, action_name=None, **kwargs):
+        if action_name is not None:
+            interval = kwargs.get("interval", 0.1)
+            if not self.check_action_interval(action_name, interval):
+                return False
+            kwargs["interval"] = -1
 
-        if is_top_level:
-            self._current_move = kwargs.get("move", self.DEFAULT_MOVE)
-        kwargs["move"] = self._current_move
+        current_move = self._current_move.get()
+        token = None
+
+        if current_move is None:
+            token = self._current_move.set(kwargs.get("move", self.DEFAULT_MOVE))
+            current_move = self._current_move.get()
+        kwargs["move"] = current_move
 
         try:
             return super().click(*args, **kwargs)
         finally:
-            if is_top_level:
-                delattr(self, "_current_move")
+            if token is not None:
+                self._current_move.reset(token)
 
     # fmt: off
     @overload
     def operate_click(self, x: int | Box | List[Box] = -1, y=-1, move_back=False, name=None,
-                      interval=-1, down_time=0.02, key='left',
-                      hcenter=False, vcenter=False) -> Any:
+                       interval=-1, down_time=0.02, key='left',
+                       hcenter=False, vcenter=False, action_name=None) -> Any:
         ...
     # fmt: on
 
     def operate_click(self, *args, **kwargs):
         kwargs["move"] = True
         kwargs["after_sleep"] = 0
-        self.operate(lambda: self.click(*args, **kwargs), block=True)
+        return self.operate(lambda: self.click(*args, **kwargs), block=True)
+
+    # fmt: off
+    @overload
+    def send_key(self, key, down_time=0.02, interval=-1, after_sleep=0, action_name=None) -> Any:
+        ...
+    # fmt: on
+
+    def send_key(self, *args, action_name=None, **kwargs):
+        if action_name is not None:
+            interval = kwargs.get("interval", 0.1)
+            if not self.check_action_interval(action_name, interval):
+                return False
+            kwargs["interval"] = -1
+        return super().send_key(*args, **kwargs)
+
+    def check_action_interval(self, action_name: str, interval: float) -> bool:
+        if interval <= 0:
+            return True
+        # action_name must be a stable identifier, not a dynamic value.
+        with self._action_interval_lock:
+            now = time.time()
+            last_time = self._last_interval_action_time.get(action_name, 0)
+            if now - last_time < interval:
+                return False
+            self._last_interval_action_time[action_name] = now
+            return True
 
     def operate(self, func: Callable, block=False):
         from src.interaction.NTEInteraction import NTEInteraction
@@ -406,7 +459,7 @@ class BaseNTETask(BaseTask):
         in_world = self.in_world()
         return in_team and in_world
 
-    def wait_in_team(self, time_out=10, raise_if_not_found=True, esc=False):
+    def wait_in_team(self, time_out=30, raise_if_not_found=True, esc=False):
         success = self.wait_until(
             self.is_in_team,
             time_out=time_out,
@@ -417,7 +470,7 @@ class BaseNTETask(BaseTask):
             self.sleep(0.1)
         return success
 
-    def wait_in_team_and_world(self, time_out=10, raise_if_not_found=True, esc=False):
+    def wait_in_team_and_world(self, time_out=30, raise_if_not_found=True, esc=False):
         success = self.wait_until(
             self.in_team_and_world,
             time_out=time_out,
@@ -456,8 +509,19 @@ class BaseNTETask(BaseTask):
         og.device_manager.set_interaction(m)
         self.log_info(f"已切换交互式方式: {get_name(m)}")
 
-    def bring_to_front(self):
+    def is_foreground(self):
+        """
+        检查窗口是否在最前端。
+        """
         if not self.hwnd:
+            return False
+        return self.hwnd.is_foreground()
+
+    def bring_to_front(self):
+        """
+        强制将窗口带到最前端。
+        """
+        if self.is_foreground():
             return
 
         hwnd = self.hwnd.hwnd

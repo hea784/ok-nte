@@ -450,3 +450,39 @@ msgstr ""
 
 msgid "选择列表中的第几个项目 ({}-{})"
 msgstr ""
+
+msgid "使用滚轮加速拾取"
+msgstr ""
+
+msgid "切换角色快速奔跑"
+msgstr ""
+
+msgid "切换角色数量"
+msgstr ""
+
+msgid "快速奔跑角色数量"
+msgstr ""
+
+msgid "按住Shift生效"
+msgstr ""
+
+msgid "粉爪大劫案"
+msgstr ""
+
+msgid "粉爪大劫案便利性功能"
+msgstr ""
+
+msgid "触发按键"
+msgstr ""
+
+msgid "触发连点将同步生效"
+msgstr ""
+
+msgid "触发连点的按键"
+msgstr ""
+
+msgid "自动补饵卖鱼"
+msgstr ""
+
+msgid "首次抛竿失败时，补充默认鱼饵并出售鱼获"
+msgstr ""

@@ -107,6 +107,12 @@
             "file_name": "images/1.png",
             "width": 2560,
             "height": 1440
+        },
+        {
+            "id": 19,
+            "file_name": "images/0.png",
+            "width": 2560,
+            "height": 1440
         }
     ],
     "annotations": [
@@ -642,6 +648,19 @@
             ],
             "area": 4757,
             "iscrowd": 0
+        },
+        {
+            "id": 42,
+            "image_id": 19,
+            "category_id": 42,
+            "bbox": [
+                929,
+                126,
+                132,
+                23
+            ],
+            "area": 3036,
+            "iscrowd": 0
         }
     ],
     "categories": [
@@ -848,6 +867,11 @@
         {
             "id": 41,
             "name": "stamina_icon",
+            "supercategory": ""
+        },
+        {
+            "id": 42,
+            "name": "fising_sucess",
             "supercategory": ""
         }
     ]

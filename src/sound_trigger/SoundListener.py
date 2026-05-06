@@ -14,10 +14,9 @@ from typing import Optional
 import librosa
 import numpy as np
 import soundcard as sc
+from ok import Logger
 from scipy.signal import butter, correlate, filtfilt
 from sklearn.preprocessing import scale
-
-from ok import Logger
 
 warnings.filterwarnings("ignore", message="data discontinuity in recording")
 

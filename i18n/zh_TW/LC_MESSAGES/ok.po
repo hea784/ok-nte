@@ -460,3 +460,39 @@ msgstr "選擇要進行的任務類型"
 
 msgid "选择列表中的第几个项目 ({}-{})"
 msgstr "選擇列表中的第幾個項目 ({}-{})"
+
+msgid "使用滚轮加速拾取"
+msgstr "使用滾輪加速拾取"
+
+msgid "切换角色快速奔跑"
+msgstr "切換角色快速奔跑"
+
+msgid "切换角色数量"
+msgstr "切換角色數量"
+
+msgid "快速奔跑角色数量"
+msgstr "快速奔跑角色數量"
+
+msgid "按住Shift生效"
+msgstr "按住 Shift 生效"
+
+msgid "粉爪大劫案"
+msgstr "粉爪大劫案"
+
+msgid "粉爪大劫案便利性功能"
+msgstr "粉爪大劫案便利性功能"
+
+msgid "触发按键"
+msgstr "觸發按鍵"
+
+msgid "触发连点将同步生效"
+msgstr "觸發連點將同步生效"
+
+msgid "触发连点的按键"
+msgstr "觸發連點的按鍵"
+
+msgid "自动补饵卖鱼"
+msgstr "自動補餌賣魚"
+
+msgid "首次抛竿失败时，补充默认鱼饵并出售鱼获"
+msgstr "首次拋竿失敗時，補充默認魚餌並出售魚獲"

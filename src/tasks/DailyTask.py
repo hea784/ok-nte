@@ -1,9 +1,9 @@
 from datetime import datetime
 from typing import Callable, List, Tuple
 
+from ok import CannotFindException, TaskDisabledException, find_color_rectangles
 from qfluentwidgets import FluentIcon
 
-from ok import CannotFindException, TaskDisabledException, find_color_rectangles
 from src import text_white_color
 from src.Labels import Labels
 from src.tasks.AnomalyTask import AnomalyTask

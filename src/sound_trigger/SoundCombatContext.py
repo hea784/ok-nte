@@ -3,6 +3,7 @@ import time
 from typing import Optional
 
 from ok import Logger
+
 from src.sound_trigger.DodgeCounterTrigger import DodgeCounterTrigger
 from src.sound_trigger.SoundListener import SoundListener
 

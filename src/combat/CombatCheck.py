@@ -92,7 +92,7 @@ class CombatCheck(BaseNTETask):
         raise NotImplementedError("子类必须实现 load_chars 方法")
 
     def check_health_bar(self):
-        return self.has_health_bar() or self.is_boss()
+        return self.has_health_bar()
 
     def is_boss(self):
         def filter(image):
@@ -277,6 +277,10 @@ class CombatCheck(BaseNTETask):
     def _find_red_health_bar(self):
         min_height = self.height_of_screen(5 / 1440)
         min_width = self.width_of_screen(100 / 2560)
+        # if self._in_combat:
+        #     min_width = self.width_of_screen(100 / 2560)
+        # else:
+        #     min_width = self.width_of_screen(30 / 2560)
         max_height = min_height * 2.5
         max_width = self.width_of_screen(200 / 2560)
 
@@ -390,18 +394,28 @@ class CombatCheck(BaseNTETask):
             def has_target():
                 return self.openvino_detect_async()
 
+            @cache
+            def has_lv():
+                return bool(self.find_lv())
+
+            @cache
+            def has_health_bar():
+                return self.has_health_bar()
+
+            @cache
+            def is_boss():
+                return self.is_boss()
+
             # now = time.time()
-            is_boss = self.is_boss()
-            has_lv = bool(self.find_lv())
             is_auto = self.config.get("自动目标") or not isinstance(self, AutoCombatTask)
             if target and not has_target():
                 self.log_debug("try target")
                 self.middle_click(after_sleep=0.1)
 
-            in_combat = (is_boss or has_lv) and (is_auto or has_target())
+            in_combat = (is_boss() or has_lv() or has_health_bar()) and (is_auto or has_target())
             if in_combat:
                 # self.log_info(f"enter combat cost1 {time.time() - now}")
-                if is_boss:
+                if is_boss():
                     self.middle_click()
                 elif not has_target() and not self.target_enemy(wait=True, lv=False):
                     return False

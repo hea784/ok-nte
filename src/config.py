@@ -6,7 +6,7 @@ from ok import ConfigOption
 from src.interaction.NTEInteraction import NTEInteraction
 from src.process_feature import process_feature
 
-version = "v0.0.22"
+version = "v0.0.23"
 # 不需要修改version, Github Action打包会自动修改
 
 key_config_option = ConfigOption(
@@ -200,6 +200,7 @@ config = {
         ["src.tasks.trigger.AutoCombatTask", "AutoCombatTask"],
         ["src.tasks.trigger.SkipDialogTask", "SkipDialogTask"],
         ["src.tasks.trigger.FastTravelTask", "FastTravelTask"],
+        ["src.tasks.trigger.HeistTask", "HeistTask"],
     ],
     "custom_tabs": [
         ["src.ui.CharHubTab", "CharHubTab"]

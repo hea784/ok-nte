@@ -460,3 +460,39 @@ msgstr "Seleccionar el tipo de tarea a realizar"
 
 msgid "选择列表中的第几个项目 ({}-{})"
 msgstr "Seleccionar qué elemento de la lista ({}-{})"
+
+msgid "使用滚轮加速拾取"
+msgstr "Usar rueda del ratón para acelerar la recogida"
+
+msgid "切换角色快速奔跑"
+msgstr "Cambiar de personaje para correr rápido"
+
+msgid "切换角色数量"
+msgstr "Número de personajes para cambiar"
+
+msgid "快速奔跑角色数量"
+msgstr "Número de personajes para carrera rápida"
+
+msgid "按住Shift生效"
+msgstr "Efectivo al mantener pulsado Shift"
+
+msgid "粉爪大劫案"
+msgstr "Atraco de la Garra Rosa"
+
+msgid "粉爪大劫案便利性功能"
+msgstr "Funciones de conveniencia del Atraco de la Garra Rosa"
+
+msgid "触发按键"
+msgstr "Tecla de activación"
+
+msgid "触发连点将同步生效"
+msgstr "La activación de clics automáticos surtirá efecto simultáneamente"
+
+msgid "触发连点的按键"
+msgstr "Tecla de clics automáticos"
+
+msgid "自动补饵卖鱼"
+msgstr "Auto-recarga cebo y vende pescado"
+
+msgid "首次抛竿失败时，补充默认鱼饵并出售鱼获"
+msgstr "Recarga el cebo predeterminado y vende la captura cuando el primer lanzamiento falle"

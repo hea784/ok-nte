@@ -1,4 +1,4 @@
-from typing import Any, Union
+from typing import Any
 
 from ok import og
 from PySide6.QtCore import (

@@ -1,4 +1,3 @@
-import time
 
 from src.char.BaseChar import BaseChar
 

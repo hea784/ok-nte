@@ -38,7 +38,6 @@ class AnomalyTask(NTEOneTimeTask, BaseCombatTask):
         self.name = "异象界域"
         self.description = "自动进行异象界域任务"
         self.icon = FluentIcon.FLAG
-        self.support_schedule_task = True
         self._outer_config = None
         self.setup_config(self)
 
@@ -166,11 +165,11 @@ class AnomalyTask(NTEOneTimeTask, BaseCombatTask):
         # 共同操作 3
         self.log_info("进入副本并等待")
         self.operate_click(0.8008, 0.9042)
-        self.wait_in_team()
-        self.sleep(0.25)
 
         for i in range(double_count + single_count):
             double = i < double_count
+            self.wait_in_team()
+            self.sleep(0.25)
             self.do_combat_and_claim(double)
             self.sleep(2)
             if i < double_count + single_count - 1:

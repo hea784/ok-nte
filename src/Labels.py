@@ -27,6 +27,7 @@ class Labels(str, Enum):
     f2_panel = 'f2_panel'
     fish_bait = 'fish_bait'
     fish_start = 'fish_start'
+    fising_sucess = 'fising_sucess'
     health_bar_slash = 'health_bar_slash'
     interactable = 'interactable'
     is_current_char = 'is_current_char'

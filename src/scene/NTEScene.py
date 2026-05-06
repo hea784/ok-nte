@@ -1,7 +1,6 @@
 import time
 
 import numpy as np
-
 from ok import BaseScene, Logger
 
 logger = Logger.get_logger(__name__)
