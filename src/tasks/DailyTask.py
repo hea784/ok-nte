@@ -1,9 +1,9 @@
 from datetime import datetime
 from typing import Callable, List, Tuple
 
-from ok import CannotFindException, TaskDisabledException, find_color_rectangles
 from qfluentwidgets import FluentIcon
 
+from ok import CannotFindException, TaskDisabledException, find_color_rectangles
 from src import text_white_color
 from src.Labels import Labels
 from src.tasks.AnomalyTask import AnomalyTask
@@ -22,6 +22,7 @@ class DailyTask(NTEOneTimeTask, BaseNTETask):
     CONF_CLAIM_BP = "领取环期任务奖励"
 
     CONF_AUTO_CYCLE_SUB_TASK = "自动循环项目"
+    DAILY_STAMINA_TARGET = 180
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -170,7 +171,7 @@ class DailyTask(NTEOneTimeTask, BaseNTETask):
         """执行操作完成每日活跃度""" 
         self.log_info("正在执行每日活跃度任务")
         task: AnomalyTask = self.get_task_by_class(AnomalyTask)
-        ret = task.do_run(self.config)
+        ret = task.do_run(self.config, stamina_target=self.DAILY_STAMINA_TARGET)
         if ret:
             self.shift_idx(task)
         return ret

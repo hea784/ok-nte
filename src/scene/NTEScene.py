@@ -1,6 +1,7 @@
 import time
 
 import numpy as np
+
 from ok import BaseScene, Logger
 
 logger = Logger.get_logger(__name__)
@@ -14,10 +15,12 @@ class NTEScene(BaseScene):
         self.cd_refreshed = False
         self._ocr_warm_up = False
         self._is_in_team_record = {"state": None, "timestamp": 0}
+        self._scene_frame = None
 
     def reset(self):
         self._is_in_team = None
         self._in_combat = None
+        self._scene_frame = None
         self.cd_refreshed = False
         self.ocr_warm_up()
 
@@ -42,6 +45,11 @@ class NTEScene(BaseScene):
 
     def get_is_in_team_record(self):
         return self._is_in_team_record["state"], self._is_in_team_record["timestamp"]
+
+    def get_scene_frame(self, fun):
+        if self._scene_frame is None:
+            self._scene_frame = fun()
+        return self._scene_frame
     
     def ocr_warm_up(self):
         if not self._ocr_warm_up:

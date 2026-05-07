@@ -6,8 +6,7 @@ class Jiuyuan(BaseChar):
         super().__init__(*args, **kwargs)
 
     def do_perform(self):
-        if self.has_intro:
-            self.continues_normal_attack(2)
+        self.wait_intro()
         self.click_ultimate()
         if self.click_skill()[0]:
             self.continues_normal_attack(1.4)

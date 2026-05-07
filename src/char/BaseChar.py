@@ -59,6 +59,8 @@ role_values = list(Role)
 class BaseChar:
     """角色基类，定义了游戏角色的通用属性和行为。"""
 
+    INTRO_MOTION_FREEZE_DURATION = 1.5
+
     def __init__(self, task, index, char_name=None, confidence=1):
         """初始化角色基础属性。
 
@@ -79,7 +81,9 @@ class BaseChar:
         self._ultimate_available = False
         self._skill_available = False
         self.last_perform = 0
+        self.last_skill_time = -1
         self.last_outro_time = -1
+        self.start_combat = False
         self.confidence = confidence
         self.logger = Logger.get_logger(self.name)
         self.cycle_start_time = 0.0
@@ -121,6 +125,8 @@ class BaseChar:
     def perform(self):
         """执行当前角色的主要战斗行动序列。"""
         self.last_perform = time.time()
+        if self.has_intro:
+            self.add_intro_motion_freeze(self.last_perform)
         if self.need_fast_perform():
             self.do_fast_perform()
         else:
@@ -128,19 +134,24 @@ class BaseChar:
         self.logger.debug(f"set current char false {self.index}")
         self.switch_next_char()
 
-    def wait_intro(self, time_out=1.2, click=True):
+    def add_intro_motion_freeze(self, start):
+        self.add_freeze_duration(start, self.INTRO_MOTION_FREEZE_DURATION, freeze_time=-100)
+
+    def wait_intro(self, time_out=-1, click=True):
         """等待角色入场动画结束。
 
         Args:
             time_out (float, optional): 等待超时时间 (秒)。默认为 1.2。
             click (bool, optional): 等待期间是否持续点击。默认为 True。
         """
+        if time_out < 0:
+            time_out = self.INTRO_MOTION_FREEZE_DURATION
+
         if self.has_intro:
-            self.task.wait_until(
-                self.down,
-                post_action=self.click_with_interval if click else None,
-                time_out=time_out,
-            )
+            if click:
+                self.continues_normal_attack(time_out)
+            else:
+                self.sleep(time_out)
 
     def click_with_interval(self, interval=0.1):
         """以指定间隔执行点击操作。
@@ -249,7 +260,6 @@ class BaseChar:
             send_click (bool, optional): 在释放技能前是否发送普通点击。默认为 True。
             animation_min_duration (float, optional): 动画的最短持续时间。默认为 0。
             time_out (float, optional): 技能释放的超时时间。默认为 0。
-
         Returns:
             tuple: (是否成功点击 (bool), 技能持续时间 (float), 是否检测到动画 (bool))。
         """
@@ -315,6 +325,7 @@ class BaseChar:
             self.task.next_frame()
         self.task.in_ultimate = False
         if clicked:
+            self.last_skill_time = skill_click_time
             self.sleep(post_sleep)
         duration = time.time() - skill_click_time if skill_click_time != 0 else 0
         if animation_start > 0:
@@ -552,18 +563,16 @@ class BaseChar:
         """计算技能对切换优先级的贡献值。"""
         return 10
 
-    def skill_available(self):
+    def skill_available(self, check_color=True):
         """判断技能是否可用。
 
         Args:
-            current (float, optional): 可选的, 当前技能UI白色像素百分比。默认为 None。
-            check_ready (bool, optional): 是否检查技能UI是否完全点亮。默认为 False。
-            check_cd (bool, optional): 是否严格检查冷却时间。默认为 False。
+            check_color (bool, optional): 是否检查技能UI颜色(是否点亮)。默认为 True。
 
         Returns:
             bool: 如果可用则返回 True。
         """
-        return self.available("skill", check_color=False)
+        return self.available("skill", check_color=check_color)
 
     def available(self, box, check_color=True, check_cd=True):
         if self.is_current_char:
@@ -699,10 +708,16 @@ class BaseChar:
         current_char = self.task.get_current_char(raise_exception=False)
         for char in self.task.chars:
             if char != current_char:
+                if char.need_fast_perform_entry(current_char):
+                    self.logger.info(f"In fast perform entry with {char}")
+                    return True
                 priority = char.do_get_switch_priority(current_char, has_intro=False)
                 if priority >= Priority.FAST_SWITCH:
                     self.logger.info(f"In lock with {char}")
                     return True
+        return False
+
+    def need_fast_perform_entry(self, current_char):
         return False
 
     def check_outro(self):

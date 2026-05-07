@@ -93,7 +93,7 @@ class AnomalyTask(NTEOneTimeTask, BaseCombatTask):
         except Exception as e:
             self.log_error("AnomalyTask Error", e)
 
-    def do_run(self, config=None):
+    def do_run(self, config=None, stamina_target=None):
         if config is None:
             config = self.config
         task_type = config.get(self.CONF_TASK_TYPE)
@@ -151,10 +151,13 @@ class AnomalyTask(NTEOneTimeTask, BaseCombatTask):
 
         self.wait_until(lambda: self.find_one(Labels.stamina_icon), settle_time=0.5, time_out=10)
 
-        double_cost = self.TASK_COST * 2
-        double_count = stamina // double_cost
-        remaining_stamina = stamina % double_cost
-        single_count = remaining_stamina // self.TASK_COST
+        stamina_units = stamina // self.TASK_COST
+        if stamina_target is not None:
+            target_units = (stamina_target + self.TASK_COST - 1) // self.TASK_COST
+            stamina_units = min(stamina_units, target_units)
+            self.info_set("体力消耗目标", stamina_target)
+        double_count = stamina_units // 2
+        single_count = stamina_units % 2
         self.log_info(f"双倍次数: {double_count}, 单倍次数: {single_count}")
 
         # 不同操作 2: 选择对应序号的项目

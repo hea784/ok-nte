@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING
 from typing_extensions import Any
 
 from src.char.BaseChar import BaseChar, Element
+from src.char.Hotori import Hotori
 from src.char.Jiuyuan import Jiuyuan
 from src.char.Mint import Mint
 from src.char.Nanally import Nanally
@@ -12,8 +13,8 @@ from src.char.Zero import Zero
 
 if TYPE_CHECKING:
     import numpy as np
-    from ok import Box
 
+    from ok import Box
     from src.char.custom.CustomCharManager import CustomCharManager
     from src.combat.BaseCombatTask import BaseCombatTask
 
@@ -24,6 +25,7 @@ char_dict: dict[str, dict[str, Any]] = {
     "char_jiuyuan": {"cls": Jiuyuan, "cn_name": "九原", "element": Element.GREEN},
     "char_sakiri": {"cls": Sakiri, "cn_name": "早雾", "element": Element.RED},
     "char_nanally": {"cls": Nanally, "cn_name": "娜娜莉", "element": Element.GREEN},
+    "char_hotori": {"cls": Hotori, "cn_name": "浔", "element": Element.WHITE},
 }
 
 char_names = char_dict.keys()

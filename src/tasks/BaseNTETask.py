@@ -313,18 +313,20 @@ class BaseNTETask(BaseTask):
         cache = self._char_template_cache
         return cache["mat"], cache["mask"], cache["white_pixels"]
 
-    def get_char_match_score(self, index):
+    def get_char_match_score(self, index, frame=None):
         """获取指定位置的匹配得分（基于模板匹配），分值越小越匹配"""
         template_mat, _, template_white_count = self._get_char_template_data()
         if template_white_count == 0:
             return 1.0
+        if frame is None:
+            frame = self.frame
 
         base_box = self.get_box_by_name(Labels.is_current_char)
         base_box = self.shift_char_ui_box(base_box, expend=True)
         box = self.get_box_by_char_spacing(base_box, index)
         # self.draw_boxes(boxes=box, color="blue")
 
-        current_mat = gf.current_char_filter(box.crop_frame(self.frame), blur=True)
+        current_mat = gf.current_char_filter(box.crop_frame(frame), blur=True)
 
         # 全白检测：过滤后近乎全白说明不是有效弧形，直接排除
         total_pixels = current_mat.shape[0] * current_mat.shape[1]
@@ -343,9 +345,9 @@ class BaseNTETask(BaseTask):
 
         return 1.0
 
-    def is_char_at_index(self, index, threshold=0.3):
+    def is_char_at_index(self, index, threshold=0.3, frame=None):
         """判断指定索引是否为当前角色"""
-        score = self.get_char_match_score(index)
+        score = self.get_char_match_score(index, frame=frame)
         new = f"idx {index} conf {score:.3f}"
         if self.info_get("current char") != new:
             self.info_set("current char", new)

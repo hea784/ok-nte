@@ -1,11 +1,12 @@
+import random
 import re
 import time
 from typing import List
 
 import cv2
 import numpy as np
-from ok import Logger, safe_get
 
+from ok import Logger, safe_get
 from src import text_white_color
 from src.char.BaseChar import BaseChar, Element, Priority
 from src.char.CharFactory import get_char_by_name, get_char_by_pos
@@ -298,6 +299,7 @@ class BaseCombatTask(CombatCheck):
             self.in_combat, time_out=wait_combat_time, raise_if_not_found=raise_if_not_found
         )
         self.load_chars()
+        self.switch_to_combat_start_char()
         self.info["Combat Count"] = self.info.get("Combat Count", 0) + 1
         try:
             while self.in_combat():
@@ -483,6 +485,46 @@ class BaseCombatTask(CombatCheck):
             post_action(switch_to, has_intro)
 
         logger.info(f"switch_next_char end {(current_char.last_switch_time - start_time):.3f}s")
+
+    def switch_to_combat_start_char(self):
+        start_chars = [
+            char for char in self.chars if char is not None and getattr(char, "start_combat", False)
+        ]
+        if not start_chars:
+            return
+
+        switch_to = random.choice(start_chars)
+        current_char = self.get_current_char(raise_exception=False)
+        if current_char == switch_to:
+            logger.info(f"combat start char already current {switch_to}")
+            return
+
+        switch_to_name = self._get_char_log_name(switch_to)
+        logger.info(f"switch to combat start char {switch_to_name}")
+        start_time = time.time()
+        last_click_time = 0.0
+
+        while True:
+            self.check_combat()
+            current_time = time.time()
+
+            if self.is_char_at_index(switch_to.index):
+                if current_char:
+                    current_char.switch_out()
+                switch_to.is_current_char = True
+                switch_to.has_intro = False
+                logger.info(f"switch to combat start char end {current_time - start_time:.3f}s")
+                return
+
+            if current_time - last_click_time > 0.2:
+                self.send_key(switch_to.index + 1)
+                self.sleep(0.001)
+                last_click_time = current_time
+
+            if current_time - start_time > self.switch_char_time_out:
+                self.raise_not_in_combat(f"switch to combat start char failed {switch_to_name}")
+
+            self.sleep(0.01)
 
     def get_ultimate_key(self):
         """获取终结技技能的按键。

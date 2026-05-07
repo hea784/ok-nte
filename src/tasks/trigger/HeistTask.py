@@ -91,12 +91,12 @@ class HeistTask(BaseNTETask, TriggerTask):
             self._submitted = False
             return False
 
-        key = self.config.get(self.CONF_TRIGGER_KEY)
-        interval = self.SEND_KEY_INTERVAL
-
-        if not self.is_foreground():
+        if not self.scene.is_in_team(self.is_in_team) or not self.is_foreground():
             self._reset_quick_run()
             return True
+
+        key = self.config.get(self.CONF_TRIGGER_KEY)
+        interval = self.SEND_KEY_INTERVAL
 
         self._handle_quick_run()
 
@@ -149,7 +149,9 @@ class HeistTask(BaseNTETask, TriggerTask):
             self._quick_run_index += 1
             self.send_key(key)
             max_time = now + self.QUICK_RUN_KEY_AFTER_SLEEP
-            while max_time > time.time() and not self.is_char_at_index(int(key) - 1, 0.5):
+            while max_time > time.time() and not self.is_char_at_index(
+                int(key) - 1, 0.5, frame=self._get_quick_run_frame()
+            ):
                 time.sleep(0.1)
             self._quick_run_step = 1
             self._quick_run_time = now
@@ -169,6 +171,11 @@ class HeistTask(BaseNTETask, TriggerTask):
         self._quick_run_index = 0
         self._quick_run_time = 0
         self._quick_run_step = 0
+
+    def _get_quick_run_frame(self):
+        if self.scene is None:
+            return self.frame
+        return self.scene.get_scene_frame(lambda: self.frame)
 
     def _is_key_pressed(self, key):
         vk_code = self._get_vk_code(key)

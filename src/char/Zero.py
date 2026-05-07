@@ -7,7 +7,6 @@ class Zero(BaseChar):
         super().__init__(*args, **kwargs)
 
     def do_perform(self):
-        if self.has_intro:
-            self.continues_normal_attack(2)
+        self.wait_intro()
         self.click_ultimate()
         self.click_skill()

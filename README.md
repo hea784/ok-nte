@@ -70,7 +70,8 @@ All issues and consequences arising from the use of this software are not relate
 
 *   **[GitHub](https://github.com/BnanZ0/ok-nte/releases)**: 官方发布页，全球访问速度快。
 *   **[Mirror酱](https://mirrorchyan.com/zh/projects?rid=ok-nte&channel=stable)**: 国内镜像，下载可能需要购买其平台的 CD-KEY。
-*   **[夸克网盘](https://pan.quark.cn/s/db2517830901)**: 国内网盘，免费，但需要注册并使用其客户端下载。
+*   **[百度网盘](https://pan.baidu.com/s/102Mh1djq2B1T-cIJhct9Gg?pwd=okww)**: 免费下载
+*   **[夸克网盘](https://pan.quark.cn/s/418018ddf7a0)**: 免费下载
 
 ### 方式二：从源码运行 (适合开发者)
 
@@ -107,6 +108,7 @@ All issues and consequences arising from the use of this software are not relate
 在启动自动化前，请务必检查并确认以下设置：
 
 *   **图形设置**
+    *   **UI 设置**：**禁用** 所有会导致 UI 与默认不同的设置。
     *   **显卡滤镜**：**关闭** 所有显卡滤镜和锐化效果（如 NVIDIA Freestyle, AMD FidelityFX）。
     *   **游戏亮度**：使用游戏 **默认亮度**。
 *   **分辨率**
