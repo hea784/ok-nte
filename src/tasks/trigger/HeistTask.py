@@ -40,6 +40,8 @@ class HeistTask(BaseNTETask, TriggerTask):
         self._submitted = False
         self._scroll_time = 0
         self._scroll_switch = False
+        self._scroll_count = 0
+        self._trigger_key_pressed = False
         self._shift_pressed = False
         self._shift_down_time = 0
         self._quick_running = False
@@ -75,12 +77,16 @@ class HeistTask(BaseNTETask, TriggerTask):
         if not self.config.get(self.CONF_USE_SCROLL):
             return
         if time.time() - self._scroll_time >= interval:
+            time.sleep(0.01)
             if self._scroll_switch:
-                self.scroll(0, 0, 3)
+                self.scroll(0, 0, 1)
             else:
-                self.scroll(0, 0, -3)
+                self.scroll(0, 0, -1)
             self._scroll_time = time.time()
-            self._scroll_switch = not self._scroll_switch
+            self._scroll_count += 1
+            if self._scroll_count >= 3:
+                self._scroll_count = 0
+                self._scroll_switch = not self._scroll_switch
 
     def _is_onetime_task_running(self):
         if self.executor.current_task in self.executor.onetime_tasks:
@@ -100,8 +106,15 @@ class HeistTask(BaseNTETask, TriggerTask):
 
         self._handle_quick_run()
 
-        if not self._is_key_pressed(key):
+        key_pressed = self._is_key_pressed(key)
+        if not key_pressed:
+            self._trigger_key_pressed = False
             return True
+
+        if not self._trigger_key_pressed:
+            self._scroll_switch = False
+            self._scroll_count = 0
+            self._trigger_key_pressed = True
 
         self.send_key(key, interval=interval)
         self.alternate_scroll(interval=interval)

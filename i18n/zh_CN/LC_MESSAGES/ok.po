@@ -486,3 +486,30 @@ msgstr ""
 
 msgid "首次抛竿失败时，补充默认鱼饵并出售鱼获"
 msgstr ""
+
+msgid "4列对应的键盘按键"
+msgstr ""
+
+msgid "单曲超时时间(秒)"
+msgstr ""
+
+msgid "异环鼓组音游自动打击与重试"
+msgstr ""
+
+msgid "打歌次数, 0=无限循环"
+msgstr ""
+
+msgid "自动音游"
+msgstr ""
+
+msgid "调试日志"
+msgstr ""
+
+msgid "超时秒数"
+msgstr ""
+
+msgid "输出调试日志"
+msgstr ""
+
+msgid "键位"
+msgstr ""

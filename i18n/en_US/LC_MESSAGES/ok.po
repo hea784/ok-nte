@@ -496,3 +496,30 @@ msgstr "Auto-Refill Bait & Sell Fish"
 
 msgid "首次抛竿失败时，补充默认鱼饵并出售鱼获"
 msgstr "Refill default bait and sell fish catch when the first cast fails"
+
+msgid "4列对应的键盘按键"
+msgstr "Keyboard keys for 4 columns"
+
+msgid "单曲超时时间(秒)"
+msgstr "Single song timeout (s)"
+
+msgid "异环鼓组音游自动打击与重试"
+msgstr "NTE Rhythm Game Auto Play & Retry"
+
+msgid "打歌次数, 0=无限循环"
+msgstr "Play count, 0=Endless"
+
+msgid "自动音游"
+msgstr "Auto Rhythm Game"
+
+msgid "调试日志"
+msgstr "Debug Log"
+
+msgid "超时秒数"
+msgstr "Timeout (s)"
+
+msgid "输出调试日志"
+msgstr "Output debug logs"
+
+msgid "键位"
+msgstr "Keys"

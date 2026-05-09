@@ -496,3 +496,30 @@ msgstr "자동 미끼 보충 및 물고기 판매"
 
 msgid "首次抛竿失败时，补充默认鱼饵并出售鱼获"
 msgstr "첫 투척 실패 시 기본 미끼를 보충하고 잡은 물고기를 판매합니다"
+
+msgid "4列对应的键盘按键"
+msgstr "4열 대응 키보드 키"
+
+msgid "单曲超时时间(秒)"
+msgstr "곡당 제한 시간(초)"
+
+msgid "异环鼓组音游自动打击与重试"
+msgstr "NTE 리듬 게임 자동 연주 및 재시도"
+
+msgid "打歌次数, 0=无限循环"
+msgstr "연주 횟수, 0=무한"
+
+msgid "自动音游"
+msgstr "자동 리듬 게임"
+
+msgid "调试日志"
+msgstr "디버그 로그"
+
+msgid "超时秒数"
+msgstr "제한 시간(초)"
+
+msgid "输出调试日志"
+msgstr "디버그 로그 출력"
+
+msgid "键位"
+msgstr "키 설정"

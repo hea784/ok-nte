@@ -496,3 +496,30 @@ msgstr "自動補餌賣魚"
 
 msgid "首次抛竿失败时，补充默认鱼饵并出售鱼获"
 msgstr "首次拋竿失敗時，補充默認魚餌並出售魚獲"
+
+msgid "4列对应的键盘按键"
+msgstr "4列對應的鍵盤按鍵"
+
+msgid "单曲超时时间(秒)"
+msgstr "單曲超時時間(秒)"
+
+msgid "异环鼓组音游自动打击与重试"
+msgstr "異環鼓組音遊自動打擊與重試"
+
+msgid "打歌次数, 0=无限循环"
+msgstr "打歌次數, 0=無限循環"
+
+msgid "自动音游"
+msgstr "自動音遊"
+
+msgid "调试日志"
+msgstr "調試日誌"
+
+msgid "超时秒数"
+msgstr "超時秒數"
+
+msgid "输出调试日志"
+msgstr "輸出調試日誌"
+
+msgid "键位"
+msgstr "鍵位"
