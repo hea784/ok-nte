@@ -2,9 +2,9 @@ import threading
 from concurrent.futures import ThreadPoolExecutor
 from threading import Event
 
-from ok import Logger, get_path_relative_to_exe
 from PySide6.QtCore import QObject
 
+from ok import Logger, get_path_relative_to_exe
 from src.sound_trigger.SoundCombatContext import SoundCombatContext
 
 logger = Logger.get_logger(__name__)
@@ -110,18 +110,23 @@ class Globals(QObject):
     def openvino_latency_async(self):
         return self._openvino_model_async.latency
 
-    def openvino_detect_async(self, image, box=None, threshold=0.5, force=False):
+    def openvino_detect_async(self, image, box=None, threshold=0.5, force=False, mask_regions=None):
         """异步检测，返回结果可能为缓存值"""
         ret = self.openvino_model_async.detect(
-            image, box=box, threshold=threshold, label="target", force=force
+            image,
+            box=box,
+            threshold=threshold,
+            label="target",
+            force=force,
+            mask_regions=mask_regions,
         )
         # logger.debug(f"openvino async: {ret}, cost {self.openvino_latency_async:.3f} s")
         return ret
 
-    def openvino_detect_sync(self, image, box=None, threshold=0.5):
+    def openvino_detect_sync(self, image, box=None, threshold=0.5, mask_regions=None):
         """同步检测"""
         ret = self.openvino_model_async.detect_sync(
-            image, box=box, threshold=threshold, label="target"
+            image, box=box, threshold=threshold, label="target", mask_regions=mask_regions
         )
         # logger.debug(f"openvino sync: {ret}, cost {self.openvino_latency_async:.3f} s")
         return ret

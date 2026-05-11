@@ -5,8 +5,8 @@ from typing import List
 
 import cv2
 import numpy as np
-
 from ok import Logger, safe_get
+
 from src import text_white_color
 from src.char.BaseChar import BaseChar, Element, Priority
 from src.char.CharFactory import get_char_by_name, get_char_by_pos
@@ -354,25 +354,12 @@ class BaseCombatTask(CombatCheck):
 
         return switch_to, has_intro
 
-    def switch_next_char(self, current_char: "BaseChar", post_action=None, free_intro=False):
-        """切换到下一个最优角色。
-
-        Args:
-            current_char (BaseChar): 当前角色对象。
-            post_action (callable, optional): 切换后执行的动作 (回调函数)。默认为 None。
-            free_intro (bool, optional): 是否强制认为拥有入场技 (通常在协奏值满时)。默认为 False。
-        """
-        if self.team_size <= 1:
-            self.click(interval=0.1)
-            return
-
-        current_char.wait_switch_cd()
-
+    def _find_switch_target(self, current_char: "BaseChar", free_intro=False):
         switch_to_self_count = 0
         while True:
             switch_to, has_intro = self._decide_switch_to(current_char, free_intro)
             if switch_to != current_char:
-                break
+                return switch_to, has_intro
 
             switch_to_self_count += 1
             if switch_to_self_count > 5:
@@ -382,7 +369,7 @@ class BaseCombatTask(CombatCheck):
                         f"switch_next_char forced to next char {switch_to} "
                         f"after repeated self selection"
                     )
-                    break
+                    return switch_to, has_intro
 
             logger.warning(
                 f"{current_char} can't find next char to switch to, "
@@ -390,42 +377,46 @@ class BaseCombatTask(CombatCheck):
             )
             current_char.continues_normal_attack(0.2)
 
-        if switch_to is None or switch_to == current_char:
-            logger.warning(f"{current_char} failed to find a valid switch target")
-            return
-
+    def _set_current_char(self, current_char: "BaseChar | None", switch_to: "BaseChar", has_intro):
+        self.in_animation = False
+        if current_char:
+            current_char.switch_out()
+            if has_intro:
+                current_char.last_outro_time = time.time()
+        switch_to.is_current_char = True
         switch_to.has_intro = has_intro
-        current_char_name = self._get_char_log_name(current_char)
-        switch_to_name = self._get_char_log_name(switch_to)
 
-        logger.info(
-            f"switch_next_char {current_char_name} -> {switch_to_name}, "
-            f"has_intro {switch_to.has_intro}"
-        )
-
-        last_click_time = 0.0
+    def _switch_to_char(
+        self,
+        switch_to: "BaseChar",
+        current_char: "BaseChar | None" = None,
+        has_intro=False,
+        post_action=None,
+        free_intro=False,
+        retry_intro=False,
+        log_prefix="switch char",
+        time_out=10,
+    ):
+        current_char_name = self._get_char_log_name(current_char) if current_char else "None"
+        switch_to.has_intro = has_intro
         last_decide_time = 0.0
         start_time = time.time()
-        # self.is_char_at_index(switch_to.index, reset_char_slot=True)
+
+        logger.info(
+            f"{log_prefix} {current_char_name} -> {self._get_char_log_name(switch_to)}, "
+            f"has_intro {has_intro}"
+        )
 
         while True:
             self.check_combat()
             current_time = time.time()
+            switch_to_name = self._get_char_log_name(switch_to)
 
-            is_char_switched = self.is_char_at_index(switch_to.index)
-
-            if not is_char_switched:
-                self.click(interval=0.2)
-                self.sleep(0.001)
-            else:
-                self.in_ultimate = False
-                current_char.switch_out()
-                switch_to.is_current_char = True
-                if has_intro:
-                    current_char.last_outro_time = time.time()
+            if self.is_char_at_index(switch_to.index):
+                self._set_current_char(current_char, switch_to, has_intro)
                 break
 
-            if not is_char_switched and not has_intro and current_time - last_decide_time > 0.12:
+            if retry_intro and not has_intro and current_time - last_decide_time > 0.12:
                 last_decide_time = current_time
                 new_switch_to, new_has_intro = self._decide_switch_to(
                     current_char, free_intro, require_intro=True
@@ -436,7 +427,7 @@ class BaseCombatTask(CombatCheck):
                     switch_to.has_intro = True
                     switch_to_name = self._get_char_log_name(switch_to)
                     logger.info(
-                        f"switch_next_char updated target to {switch_to_name}, "
+                        f"{log_prefix} updated target to {switch_to_name}, "
                         f"has_intro {switch_to.has_intro}"
                     )
 
@@ -445,18 +436,6 @@ class BaseCombatTask(CombatCheck):
                     f"not in world while switching {current_char_name} -> {switch_to_name},"
                     f" {current_time - start_time}"
                 )
-                # if self.debug:
-                #     self.screenshot(
-                #         f"not in team while switching chars_{current_char}_to_{switch_to}"
-                #         f"{now - start}"
-                #     )
-                # confirm = self.wait_feature(
-                #     "revive_confirm_hcenter_vcenter", threshold=0.8, time_out=2
-                # )
-                # if confirm:
-                #     self.log_info(f"char dead")
-                #     if not self.revive_action():
-                #         self.raise_not_in_combat(f"char dead", exception_type=CharDeadException)
                 if current_time - start_time > self.switch_char_time_out:
                     self.raise_not_in_combat(
                         f"switch too long failed {current_char_name} -> {switch_to_name},"
@@ -465,26 +444,55 @@ class BaseCombatTask(CombatCheck):
                 self.sleep(0.01)
                 continue
 
-            if current_time - last_click_time > 0.2:
-                self.send_key(switch_to.index + 1)
-                self.sleep(0.001)
-                last_click_time = current_time
+            self.click(action_name="switch_char_click", interval=0.25)
+            self.sleep(0.001)
+            self.send_key(switch_to.index + 1, action_name="switch_char_send", interval=0.25)
 
-            if current_time - start_time > 10:
+            if current_time - start_time > time_out:
                 if self.debug:
                     self.screenshot(f"switch_not_detected_{current_char_name}_to_{switch_to_name}")
-                self.raise_not_in_combat("failed switch chars")
+                self.raise_not_in_combat(f"{log_prefix} failed {switch_to_name}")
 
             self.sleep(0.01)
 
-        if has_intro:
+        if has_intro and current_char:
             self.record_element_ring_reaction(current_char, switch_to)
 
         if post_action:
             logger.debug(f"post_action {post_action}")
             post_action(switch_to, has_intro)
 
-        logger.info(f"switch_next_char end {(current_char.last_switch_time - start_time):.3f}s")
+        logger.info(f"{log_prefix} end {(time.time() - start_time):.3f}s")
+
+    def switch_next_char(self, current_char: "BaseChar", post_action=None, free_intro=False):
+        """切换到下一个最优角色。
+
+        Args:
+            current_char (BaseChar): 当前角色对象。
+            post_action (callable, optional): 切换后执行的动作 (回调函数)。默认为 None。
+            free_intro (bool, optional): 是否强制认为拥有入场技 (通常在协奏值满时)。默认为 False。
+        """
+        if self.team_size <= 1:
+            self.click(action_name="switch_char_click", interval=0.1)
+            return
+
+        current_char.wait_switch_cd()
+
+        switch_to, has_intro = self._find_switch_target(current_char, free_intro)
+
+        if switch_to is None or switch_to == current_char:
+            logger.warning(f"{current_char} failed to find a valid switch target")
+            return
+
+        self._switch_to_char(
+            switch_to,
+            current_char=current_char,
+            has_intro=has_intro,
+            post_action=post_action,
+            free_intro=free_intro,
+            retry_intro=True,
+            log_prefix="switch_next_char",
+        )
 
     def switch_to_combat_start_char(self):
         start_chars = [
@@ -499,32 +507,12 @@ class BaseCombatTask(CombatCheck):
             logger.info(f"combat start char already current {switch_to}")
             return
 
-        switch_to_name = self._get_char_log_name(switch_to)
-        logger.info(f"switch to combat start char {switch_to_name}")
-        start_time = time.time()
-        last_click_time = 0.0
-
-        while True:
-            self.check_combat()
-            current_time = time.time()
-
-            if self.is_char_at_index(switch_to.index):
-                if current_char:
-                    current_char.switch_out()
-                switch_to.is_current_char = True
-                switch_to.has_intro = False
-                logger.info(f"switch to combat start char end {current_time - start_time:.3f}s")
-                return
-
-            if current_time - last_click_time > 0.2:
-                self.send_key(switch_to.index + 1)
-                self.sleep(0.001)
-                last_click_time = current_time
-
-            if current_time - start_time > self.switch_char_time_out:
-                self.raise_not_in_combat(f"switch to combat start char failed {switch_to_name}")
-
-            self.sleep(0.01)
+        self._switch_to_char(
+            switch_to,
+            current_char=current_char,
+            log_prefix="switch to combat start char",
+            time_out=self.switch_char_time_out,
+        )
 
     def get_ultimate_key(self):
         """获取终结技技能的按键。
@@ -602,6 +590,9 @@ class BaseCombatTask(CombatCheck):
             self.get_current_char().on_combat_end(self.chars)
 
     def sleep_check(self):
+        if self.skip_sleep_check:
+            return
+        
         if SoundCombatContext.should_interrupt_combat():
             self.log_info("Combat sleep interrupted by sound action")
             SoundCombatContext().execute_pending_action()

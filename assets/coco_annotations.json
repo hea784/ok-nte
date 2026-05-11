@@ -113,6 +113,12 @@
             "file_name": "images/0.png",
             "width": 2560,
             "height": 1440
+        },
+        {
+            "id": 20,
+            "file_name": "images/3.png",
+            "width": 1920,
+            "height": 1080
         }
     ],
     "annotations": [
@@ -615,12 +621,12 @@
             "image_id": 16,
             "category_id": 39,
             "bbox": [
-                899,
-                666,
-                29,
-                19
+                890,
+                652,
+                47,
+                47
             ],
-            "area": 551,
+            "area": 2209,
             "iscrowd": 0
         },
         {
@@ -660,6 +666,19 @@
                 23
             ],
             "area": 3036,
+            "iscrowd": 0
+        },
+        {
+            "id": 43,
+            "image_id": 20,
+            "category_id": 43,
+            "bbox": [
+                1494,
+                931,
+                45,
+                48
+            ],
+            "area": 2160,
             "iscrowd": 0
         }
     ],
@@ -872,6 +891,11 @@
         {
             "id": 42,
             "name": "fising_sucess",
+            "supercategory": ""
+        },
+        {
+            "id": 43,
+            "name": "launcher_start_game",
             "supercategory": ""
         }
     ]

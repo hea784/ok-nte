@@ -31,6 +31,7 @@ class Labels(str, Enum):
     health_bar_slash = 'health_bar_slash'
     interactable = 'interactable'
     is_current_char = 'is_current_char'
+    launcher_start_game = 'launcher_start_game'
     lv = 'lv'
     mail_panel = 'mail_panel'
     map_location_card = 'map_location_card'

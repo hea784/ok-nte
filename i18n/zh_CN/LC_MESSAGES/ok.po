@@ -478,7 +478,7 @@ msgstr ""
 msgid "触发连点将同步生效"
 msgstr ""
 
-msgid "触发连点的按键"
+msgid "触发连点的按键 (按住生效)"
 msgstr ""
 
 msgid "自动补饵卖鱼"
@@ -511,5 +511,20 @@ msgstr ""
 msgid "输出调试日志"
 msgstr ""
 
+msgid "记录新特征"
+msgstr ""
+
+msgid "输入或选择绑定的{combo} (可选)"
+msgstr ""
+
+msgid "输入或选择关联的角色名称"
+msgstr ""
+
 msgid "键位"
 msgstr ""
+
+msgid "Start Game"
+msgstr "启动游戏"
+
+msgid "Launcher Path"
+msgstr "启动器路径"

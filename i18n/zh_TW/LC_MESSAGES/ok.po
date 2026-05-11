@@ -488,8 +488,8 @@ msgstr "觸發按鍵"
 msgid "触发连点将同步生效"
 msgstr "觸發連點將同步生效"
 
-msgid "触发连点的按键"
-msgstr "觸發連點的按鍵"
+msgid "触发连点的按键 (按住生效)"
+msgstr "觸發連點的按鍵，按住該鍵生效"
 
 msgid "自动补饵卖鱼"
 msgstr "自動補餌賣魚"
@@ -523,3 +523,9 @@ msgstr "輸出調試日誌"
 
 msgid "键位"
 msgstr "鍵位"
+
+msgid "Start Game"
+msgstr "啟動遊戲"
+
+msgid "Launcher Path"
+msgstr "啟動器路徑"

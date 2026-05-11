@@ -488,8 +488,8 @@ msgstr "トリガーキー"
 msgid "触发连点将同步生效"
 msgstr "連打トリガーを同期させる"
 
-msgid "触发连点的按键"
-msgstr "連打トリガーキー"
+msgid "触发连点的按键 (按住生效)"
+msgstr "連打トリガーキー (長押しで有効)"
 
 msgid "自动补饵卖鱼"
 msgstr "自動餌補充・魚売却"
@@ -523,3 +523,9 @@ msgstr "デバッグログを出力"
 
 msgid "键位"
 msgstr "キー設定"
+
+msgid "Start Game"
+msgstr "ゲームを起動"
+
+msgid "Launcher Path"
+msgstr "ランチャーパス"

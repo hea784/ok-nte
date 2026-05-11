@@ -27,9 +27,8 @@ class DailyTask(NTEOneTimeTask, BaseNTETask):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.name = "日常任务"
-        self.description = "不支持从OK启动游戏"
         self.icon = FluentIcon.CAR
-        self.support_schedule_task = False
+        self.support_schedule_task = True
         self.task_status = {"success": [], "failed": [], "skipped": [], "pending": []}
         
         AnomalyTask.setup_config(self)

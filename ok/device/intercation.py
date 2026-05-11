@@ -401,7 +401,6 @@ class PostMessageInteraction(BaseInteraction):
         super().__init__(capture)
         self.hwnd_window = hwnd_window
         self.mouse_pos = (0, 0)
-        self.last_activate = 0
         self.activate_interval = 1
         self.lparam = 0x1e0001
         self.activated = 0
@@ -477,11 +476,13 @@ class PostMessageInteraction(BaseInteraction):
         # Send the WM_MOUSEWHEEL message
         self.post(win32con.WM_MOUSEWHEEL, wParam, long_position)
 
-    def post(self, message, wParam=0, lParam=0):
+    def post(self, message, wParam=0, lParam=0, hwnd=None):
+        if hwnd is None:
+            hwnd = self.hwnd
         try:
-            win32gui.PostMessage(self.hwnd, message, wParam, lParam)
+            win32gui.PostMessage(hwnd, message, wParam, lParam)
         except Exception as e:
-            logger.error(f'PostMessage error {self.hwnd}: {e}')
+            logger.error(f'PostMessage error {hwnd}: {e}')
 
     def swipe(self, x1, y1, x2, y2, duration=3, after_sleep=0.1, settle_time=0):
         # Move the mouse to the start point (x1, y1)
@@ -511,17 +512,24 @@ class PostMessageInteraction(BaseInteraction):
         # Release the left mouse button
         self.mouse_up()
 
-    def activate(self):
-        self.post(win32con.WM_ACTIVATE, win32con.WA_ACTIVE, 0)
+    def activate(self, hwnd=None):
+        self.post(win32con.WM_ACTIVATE, win32con.WA_ACTIVE, 0, hwnd=hwnd)
 
-    def deactivate(self):
-        self.post(win32con.WM_ACTIVATE, win32con.WA_INACTIVE, 0)
+    def deactivate(self, hwnd=None):
+        self.post(win32con.WM_ACTIVATE, win32con.WA_INACTIVE, 0, hwnd=hwnd)
 
     def try_activate(self):
         current_hwnd = self.hwnd
         if self.activated != current_hwnd:
-            if not self.hwnd_window.is_foreground():
-                self.activate()
+            hwnds = []
+            curr = current_hwnd
+            while curr:
+                hwnds.append(curr)
+                curr = win32gui.GetParent(curr)
+            
+            for h in reversed(hwnds):
+                self.activate(h)
+                
             self.activated = current_hwnd
 
     def click(self, x=-1, y=-1, move_back=False, name=None, down_time=0.01, move=True, key="left"):
@@ -582,6 +590,39 @@ class PostMessageInteraction(BaseInteraction):
             
         try:
             abs_x, abs_y = win32gui.ClientToScreen(base_hwnd, (int(x), int(y)))
+            
+            # Validate that the click position falls within the boundary of base_hwnd.
+            # If not, search through the available hwnds list for one that contains it.
+            hwnds = getattr(self.hwnd_window, 'hwnds', [])
+            if hwnds and len(hwnds) > 1:
+                try:
+                    base_rect = win32gui.GetWindowRect(base_hwnd)
+                    in_boundary = base_rect[0] <= abs_x < base_rect[2] and base_rect[1] <= abs_y < base_rect[3]
+                    if not in_boundary:
+                        for hwnd_info in hwnds:
+                            candidate = hwnd_info[0]
+                            if candidate == base_hwnd or not win32gui.IsWindow(candidate):
+                                continue
+                            try:
+                                rect = win32gui.GetWindowRect(candidate)
+                                if rect[0] <= abs_x < rect[2] and rect[1] <= abs_y < rect[3]:
+                                    logger.debug(
+                                        f'update_mouse_pos click ({abs_x},{abs_y}) outside base_hwnd {base_hwnd} rect {base_rect}, switching to hwnd {candidate} rect {rect}')
+                                    base_hwnd = candidate
+                                    # Recompute abs coords relative to the new base_hwnd
+                                    local_candidate_x = hwnd_info[4] if len(hwnd_info) > 4 else 0
+                                    local_candidate_y = hwnd_info[5] if len(hwnd_info) > 5 else 0
+                                    # x,y are in original bg-window coords; translate to candidate client coords
+                                    orig_base_info = next((w for w in hwnds if w[0] == (self.hwnd_window.top_hwnd or self.hwnd_window.hwnd)), None)
+                                    if orig_base_info:
+                                        dx = orig_base_info[4] - local_candidate_x
+                                        dy = orig_base_info[5] - local_candidate_y
+                                        abs_x, abs_y = win32gui.ClientToScreen(candidate, (int(x + dx), int(y + dy)))
+                                    break
+                            except Exception:
+                                continue
+                except Exception:
+                    pass
             
             found_child = None
             if self.hwnd_window.top_hwnd and self.hwnd_window.top_hwnd != self.hwnd_window.hwnd:

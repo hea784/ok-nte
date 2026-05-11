@@ -1,9 +1,10 @@
 import time
 
 import numpy as np
-from ok import Box
 from openvino import AsyncInferQueue, Core, Layout, PartialShape, Type
 from openvino.preprocess import ColorFormat, PrePostProcessor, ResizeAlgorithm
+
+from ok import Box
 
 
 class YOLO26OpenVINOAsyncDetector:
@@ -104,7 +105,15 @@ class YOLO26OpenVINOAsyncDetector:
 
         self.latest_results = tmp_results
 
-    def detect(self, image, box: Box = None, threshold=0.5, label="target", force=False):
+    def detect(
+        self,
+        image,
+        box: Box = None,
+        threshold=0.5,
+        label="target",
+        force=False,
+        mask_regions=None,
+    ):
         """
         发起异步检测
         :param image: 全图 (numpy array)
@@ -112,6 +121,8 @@ class YOLO26OpenVINOAsyncDetector:
         :param threshold: 置信度阈值
         :param label: 指定检测的类别名称
         :param force: 如果为 True，即使队列满也会阻塞提交新任务
+        :param mask_regions: 需要屏蔽的全图归一化区域列表，格式为
+            [(x1, y1, x2, y2), ...]。屏蔽会应用到推理画布，不修改原图。
         :return: list[Box] (返回的是上一帧或最近一次完成的结果)
         """
 
@@ -149,6 +160,14 @@ class YOLO26OpenVINOAsyncDetector:
             # 3. 创建灰底画布并贴图 (耗时极短，保留 PPP 优势)
             canvas = np.full((target_h, target_w, 3), 114, dtype=np.uint8)
             canvas[pad_y : pad_y + crop_h, pad_x : pad_x + crop_w] = input_crop
+            self._apply_canvas_mask(
+                canvas,
+                mask_regions,
+                image_shape=(h, w),
+                box=box,
+                pad_x=pad_x,
+                pad_y=pad_y,
+            )
 
             input_tensor = np.expand_dims(canvas, axis=0)
 
@@ -176,9 +195,35 @@ class YOLO26OpenVINOAsyncDetector:
         """强制阻塞主线程，直到所有正在进行的推理任务全部完成"""
         self.infer_queue.wait_all()
 
-    def detect_sync(self, image, box=None, threshold=0.5, label="target"):
+    def _apply_canvas_mask(self, canvas, mask_regions, image_shape, box, pad_x, pad_y):
+        if not mask_regions:
+            return
+
+        image_h, image_w = image_shape
+        canvas_h, canvas_w = canvas.shape[:2]
+        crop_x1 = max(0, box.x)
+        crop_y1 = max(0, box.y)
+        crop_x2 = min(image_w, box.x + box.width)
+        crop_y2 = min(image_h, box.y + box.height)
+
+        for x1_ratio, y1_ratio, x2_ratio, y2_ratio in mask_regions:
+            x1 = max(crop_x1, min(crop_x2, int(x1_ratio * image_w)))
+            y1 = max(crop_y1, min(crop_y2, int(y1_ratio * image_h)))
+            x2 = max(crop_x1, min(crop_x2, int(x2_ratio * image_w)))
+            y2 = max(crop_y1, min(crop_y2, int(y2_ratio * image_h)))
+            if x1 >= x2 or y1 >= y2:
+                continue
+
+            canvas_x1 = max(0, min(canvas_w, x1 - crop_x1 + pad_x))
+            canvas_y1 = max(0, min(canvas_h, y1 - crop_y1 + pad_y))
+            canvas_x2 = max(0, min(canvas_w, x2 - crop_x1 + pad_x))
+            canvas_y2 = max(0, min(canvas_h, y2 - crop_y1 + pad_y))
+            if canvas_x1 < canvas_x2 and canvas_y1 < canvas_y2:
+                canvas[canvas_y1:canvas_y2, canvas_x1:canvas_x2] = 114
+
+    def detect_sync(self, image, box=None, threshold=0.5, label="target", mask_regions=None):
         """同步检测版本：发起请求后立即堵住，直到拿到结果"""
-        self.detect(image, box, threshold, label)
+        self.detect(image, box, threshold, label, mask_regions=mask_regions)
         self.wait()
         return self.latest_results
 

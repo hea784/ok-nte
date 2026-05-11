@@ -488,8 +488,8 @@ msgstr "트리거 키"
 msgid "触发连点将同步生效"
 msgstr "연타 트리거를 동기화하여 적용"
 
-msgid "触发连点的按键"
-msgstr "연타 트리거 키"
+msgid "触发连点的按键 (按住生效)"
+msgstr "연타 트리거 키 (누르고 있으면 활성)"
 
 msgid "自动补饵卖鱼"
 msgstr "자동 미끼 보충 및 물고기 판매"
@@ -523,3 +523,9 @@ msgstr "디버그 로그 출력"
 
 msgid "键位"
 msgstr "키 설정"
+
+msgid "Start Game"
+msgstr "게임 시작"
+
+msgid "Launcher Path"
+msgstr "런처 경로"

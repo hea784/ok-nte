@@ -52,10 +52,10 @@ class AutoCombatTask(BaseCombatTask, TriggerTask):
 
         combat_start = time.time()
         while self.in_combat():
-            if not ret:
-                ret = True
-                self.switch_to_combat_start_char()
             try:
+                if not ret:
+                    ret = True
+                    self.switch_to_combat_start_char()
                 self.get_current_char().perform()
             except CharDeadException:
                 self.log_error("Characters dead", notify=True)

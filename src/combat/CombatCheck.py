@@ -6,8 +6,8 @@ from typing import TYPE_CHECKING, Optional
 
 import cv2
 import numpy as np
-
 from ok import Box, Logger, find_color_rectangles
+
 from src.Labels import Labels
 from src.tasks.BaseNTETask import BaseNTETask
 from src.utils import game_filters as gf
@@ -28,12 +28,13 @@ class CombatSettle:
 class CombatCheck(BaseNTETask):
     # TARGET_MATCH_SCALES = (0.6, 0.7, 0.8, 0.9, 1.0)
     _LV_NORM_SIZE = 32
+    _TARGET_MASK_REGIONS = [(0.020, 0.017, 0.145, 0.240)]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._in_ultimate = False
+        self._in_animation = False
         self._in_combat = False
-        self.skip_combat_check = False
+        self.skip_sleep_check = False
         self.sleep_check_interval = 0.2
         self.last_out_of_combat_time = 0
         self.out_of_combat_reason = ""
@@ -50,12 +51,12 @@ class CombatCheck(BaseNTETask):
         self._bg_ocr_lock = threading.Lock()
 
     @property
-    def in_ultimate(self):
-        return self._in_ultimate
+    def in_animation(self):
+        return self._in_animation
 
-    @in_ultimate.setter
-    def in_ultimate(self, value):
-        self._in_ultimate = value
+    @in_animation.setter
+    def in_animation(self, value):
+        self._in_animation = value
         if value:
             self._last_ultimate = time.time()
 
@@ -327,7 +328,7 @@ class CombatCheck(BaseNTETask):
             self.in_sleep_check = False
 
     def do_check_in_combat(self, target):
-        if self.in_ultimate:
+        if self.in_animation:
             return True
         if self._in_combat:
             if self.scene.in_combat() is not None:
@@ -392,7 +393,7 @@ class CombatCheck(BaseNTETask):
 
             @cache
             def has_target():
-                return self.openvino_detect_async()
+                return self.openvino_detect_async(mask_regions=self._TARGET_MASK_REGIONS)
 
             @cache
             def has_lv():
@@ -488,7 +489,9 @@ class CombatCheck(BaseNTETask):
     def combat_detect(self, frame=None, target=True, lv=True):
         if lv and self.find_lv(frame=frame):
             return True
-        if target and self.openvino_detect_sync():
+        if target and self.openvino_detect_sync(
+            frame=frame, mask_regions=self._TARGET_MASK_REGIONS
+        ):
             return True
         return False
 
@@ -528,7 +531,9 @@ class CombatCheck(BaseNTETask):
         is_lv_false = not lv or lv_ret is False
 
         if target and (exhaustive or is_lv_false):
-            target_ret = self.openvino_detect_async(frame=frame, force=force)
+            target_ret = self.openvino_detect_async(
+                frame=frame, force=force, mask_regions=self._TARGET_MASK_REGIONS
+            )
             if target_ret:
                 return True
 
@@ -544,7 +549,7 @@ class CombatCheck(BaseNTETask):
         if frame is None:
             frame = self.frame
 
-        box = self.box_of_screen(0.1543, 0.1021, 0.9070, 0.7, name="find_lv")
+        box = self.box_of_screen(0.1543, 0, 0.9070, 0.7, name="find_lv")
         self.draw_boxes(boxes=box, color="blue")
         roi = box.crop_frame(frame)
         binary = gf.isolate_lv_to_white(roi)

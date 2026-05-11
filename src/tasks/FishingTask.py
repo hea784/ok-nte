@@ -628,7 +628,7 @@ class FishingTask(NTEOneTimeTask, BaseNTETask):
     def change_to_default_bait(self):
         def choose_bait():
             self.send_key("e")
-            self.sleep(1)
+            self.sleep(2)
             self.operate_click(0.613, 0.655)
             self.sleep(1)
             self.operate_click(0.613, 0.655)
@@ -688,7 +688,7 @@ text_black_color = {
 }
 
 default_bait_color = {
-    "r": (147, 255),
-    "g": (47, 133),
-    "b": (104, 184),
+    "r": (140, 255),
+    "g": (40, 140),
+    "b": (100, 190),
 }

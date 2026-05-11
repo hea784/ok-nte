@@ -488,8 +488,8 @@ msgstr "Trigger Key"
 msgid "触发连点将同步生效"
 msgstr "Trigger Auto-Clicking Synchronously"
 
-msgid "触发连点的按键"
-msgstr "Auto-Clicking Key"
+msgid "触发连点的按键 (按住生效)"
+msgstr "Auto-Clicking Key (Active while held)"
 
 msgid "自动补饵卖鱼"
 msgstr "Auto-Refill Bait & Sell Fish"
@@ -521,5 +521,20 @@ msgstr "Timeout (s)"
 msgid "输出调试日志"
 msgstr "Output debug logs"
 
+msgid "记录新特征"
+msgstr "Record New Feature"
+
+msgid "输入或选择绑定的{combo} (可选)"
+msgstr "Enter or select the bound {combo} (optional)"
+
+msgid "输入或选择关联的角色名称"
+msgstr "Enter or select the associated character name"
+
 msgid "键位"
 msgstr "Keys"
+
+msgid "Start Game"
+msgstr "Start Game"
+
+msgid "Launcher Path"
+msgstr "Launcher Path"

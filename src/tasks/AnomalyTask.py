@@ -172,7 +172,7 @@ class AnomalyTask(NTEOneTimeTask, BaseCombatTask):
         for i in range(double_count + single_count):
             double = i < double_count
             self.wait_in_team()
-            self.sleep(0.25)
+            self.sleep(1)
             self.do_combat_and_claim(double)
             self.sleep(2)
             if i < double_count + single_count - 1:

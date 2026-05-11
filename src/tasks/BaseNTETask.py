@@ -84,7 +84,7 @@ class BaseNTETask(BaseTask):
             return
         og.my_app.submit_periodic_task(delay, task, *args, **kwargs)
 
-    def _openvino_detect(self, frame, sync, box, threshold, force=False):
+    def _openvino_detect(self, frame, sync, box, threshold, force=False, mask_regions=None):
         if og.my_app is None:
             return []
         if box is None:
@@ -93,24 +93,34 @@ class BaseNTETask(BaseTask):
         if frame is None:
             frame = self.frame
         if sync:
-            results = og.my_app.openvino_detect_sync(image=frame, box=box, threshold=threshold)
+            results = og.my_app.openvino_detect_sync(
+                image=frame, box=box, threshold=threshold, mask_regions=mask_regions
+            )
         else:
             results = og.my_app.openvino_detect_async(
-                image=frame, box=box, threshold=threshold, force=force
+                image=frame,
+                box=box,
+                threshold=threshold,
+                force=force,
+                mask_regions=mask_regions,
             )
         if results:
             self.draw_boxes(boxes=results, color="red")
         return results
 
     def openvino_detect_async(
-        self, frame=None, box: Box = None, threshold=0.5, force=False
+        self, frame=None, box: Box = None, threshold=0.6, force=False, mask_regions=None
     ) -> List[Box]:
         """异步检测，返回结果可能为缓存值"""
-        return self._openvino_detect(frame, False, box, threshold, force=force)
+        return self._openvino_detect(
+            frame, False, box, threshold, force=force, mask_regions=mask_regions
+        )
 
-    def openvino_detect_sync(self, frame=None, box: Box = None, threshold=0.5) -> List[Box]:
+    def openvino_detect_sync(
+        self, frame=None, box: Box = None, threshold=0.5, mask_regions=None
+    ) -> List[Box]:
         """同步检测，会等待结果返回"""
-        return self._openvino_detect(frame, True, box, threshold)
+        return self._openvino_detect(frame, True, box, threshold, mask_regions=mask_regions)
 
     def openvino_clear_cache(self):
         """清空缓存"""
@@ -246,7 +256,7 @@ class BaseNTETask(BaseTask):
 
         if self.scene is not None:
             state, timestamp = self.scene.get_is_in_team_record()
-            if state and (to_sleep := 0.2 - (time.time() - timestamp)) > 0:
+            if state and (to_sleep := 0.5 - (time.time() - timestamp)) > 0:
                 self.sleep(to_sleep)
 
         arr = self.update_char_ui_offset()
@@ -523,10 +533,17 @@ class BaseNTETask(BaseTask):
         """
         强制将窗口带到最前端。
         """
-        if self.is_foreground():
-            return
-
+        if not self.hwnd:
+            self.log_warning("bring_to_front skipped: hwnd_window unavailable")
+            return False
         hwnd = self.hwnd.hwnd
+
+        if self.is_foreground():
+            self.log_info(f"bring_to_front {hwnd} already is foreground")
+            return True
+
+        self.log_info(f"try bring_to_front {hwnd}")
+
         current_thread_id = 0
         target_thread_id = 0
         foreground_thread_id = 0
@@ -561,8 +578,15 @@ class BaseNTETask(BaseTask):
                 win32gui.ShowWindow(hwnd, win32con.SW_RESTORE)
             win32gui.BringWindowToTop(hwnd)
             win32gui.SetForegroundWindow(hwnd)
+            self.sleep(0.1)
+            if self.is_foreground():
+                self.log_info(f"bring_to_front {hwnd} succeeded")
+                return True
+            self.log_info(f"bring_to_front {hwnd} did not keep foreground")
+            return False
         except Exception as e:
             logger.debug(f"bring_to_front failed: {e}")
+            return False
         finally:
             if attached_foreground:
                 ctypes.windll.user32.AttachThreadInput(
@@ -794,8 +818,11 @@ class BaseNTETask(BaseTask):
                 return False
 
     def find_treasure(self):
+        def mask(img):
+            return iu.mask_corners(img, 0.5, 0.5, "all", to_bgr=False)
         return self.find_one(
-            Labels.treasure, box=self.main_viewport, threshold=0.5, use_gray_scale=True
+            Labels.treasure, box=self.main_viewport, threshold=0.7, mask_function=mask,
+            use_gray_scale=True
         )
 
     def walk_to_treasure(self):

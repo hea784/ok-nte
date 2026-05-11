@@ -1,6 +1,6 @@
 import time
 
-from src.char.BaseChar import SKILL_TIME_OUT, BaseChar, Priority
+from src.char.BaseChar import BaseChar, Priority
 
 # from src import text_white_color
 
@@ -44,12 +44,9 @@ class Hotori(BaseChar):
             return Priority.MIN
         return super().do_get_switch_priority(current_char, has_intro)
 
-    def need_fast_perform_entry(self, current_char):
+    def need_fast_perform_entry(self, current_char) -> bool:
         self.update_team_skill_records()
         return self.waiting_for_team_skills()
-
-    def count_ultimate_priority(self):
-        return 0
 
     def start_team_skill_window(self):
         self.team_skill_window_start = (
@@ -130,68 +127,7 @@ class Hotori(BaseChar):
     #     if color_percent > 0.4 and available:
     #         return True
 
-    def click_ultimate(self, send_click=False, wait_if_cd_ready=0.1):
-        if not self.task.use_ultimate:
-            return False
-        if self.task._combat_settle.time is not None:
-            self.logger.info("click_ultimate blocked by combat_detect_settle")
-            return False
-        self.logger.debug("click_ultimate start")
-        start = time.time()
-        last_click = 0
-        clicked = False
-        if not self.task.in_ultimate:
-            while self.ultimate_available():
-                self.logger.debug("click_ultimate ultimate_available click")
-                if send_click:
-                    self.click(interval=0.1)
-                now = time.time()
-                if now - last_click > 0.1:
-                    self.send_ultimate_key()
-                    if not clicked:
-                        clicked = True
-                    last_click = now
-                if time.time() - start > SKILL_TIME_OUT:
-                    self.alert_skill_failed()
-                    self.task.raise_not_in_combat("too long clicking a ultimate")
-                self.task.next_frame()
-            if clicked:
-                if self.task.wait_until(
-                    lambda: not self.task.is_in_team(),
-                    time_out=0.4,
-                    post_action=self.click_with_interval,
-                ):
-                    self.task.in_ultimate = True
-                    self.logger.debug("not in_team successfully casted ultimate")
-                else:
-                    self.task.in_ultimate = False
-                    self.logger.error("clicked ultimate but no effect")
-                    return False
-            else:
-                start = time.time()
-                while not self.has_cd("ultimate") and time.time() - start < wait_if_cd_ready:
-                    self.send_ultimate_key(after_sleep=0.05)
-                    if self.task.wait_until(lambda: not self.task.is_in_team(), time_out=0.1):
-                        self.task.in_ultimate = True
-                        self.logger.debug("not in_team successfully casted ultimate")
-                if not self.task.in_ultimate:
-                    return False
-        start = time.time()
-        while not self.task.is_in_team():
-            self.task.in_ultimate = True
-            if not clicked:
-                clicked = True
-            if send_click:
-                self.click(interval=0.1)
-            if time.time() - start > 7:
-                self.task.in_ultimate = False
-                self.task.raise_not_in_combat(
-                    "too long a ultimate, the boss was killed by the ultimate"
-                )
-            self.task.next_frame()
-
-        self.sleep(0.5)
-
+    def _wait_ultimate_unfreeze(self, start):
         self.logger.debug("waiting for time unfrozen")
         self.task.wait_until(
             lambda: not self.available("ultimate"),
@@ -200,8 +136,4 @@ class Hotori(BaseChar):
         )
         duration = time.time() - start - 0.1
         self.add_freeze_duration(start, duration)
-        self.task.in_ultimate = False
-        self._ultimate_available = False
-        if clicked:
-            self.logger.info(f"click_ultimate end {duration}")
-        return clicked
+        return duration

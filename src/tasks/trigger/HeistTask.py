@@ -60,14 +60,20 @@ class HeistTask(BaseNTETask, TriggerTask):
         )
         self.config_description.update(
             {
-                self.CONF_TRIGGER_KEY: "触发连点的按键",
+                self.CONF_TRIGGER_KEY: "触发连点的按键 (按住生效)",
                 self.CONF_USE_SCROLL: "触发连点将同步生效",
                 self.CONF_QUICK_RUN: "按住Shift生效",
                 self.CONF_QUICK_RUN_CHAR_COUNT: "切换角色数量",
             }
         )
+        self._loop = True
 
     def run(self):
+        self.scene.scene_frame(self.frame)
+        if not self.scene.is_in_team(self.is_in_team):
+            self._loop = False
+            return
+        self._loop = True
         if self._submitted:
             return
         self._submitted = True
@@ -97,7 +103,7 @@ class HeistTask(BaseNTETask, TriggerTask):
             self._submitted = False
             return False
 
-        if not self.scene.is_in_team(self.is_in_team) or not self.is_foreground():
+        if not self._loop or not self.is_foreground():
             self._reset_quick_run()
             return True
 
@@ -162,9 +168,12 @@ class HeistTask(BaseNTETask, TriggerTask):
             self._quick_run_index += 1
             self.send_key(key)
             max_time = now + self.QUICK_RUN_KEY_AFTER_SLEEP
-            while max_time > time.time() and not self.is_char_at_index(
-                int(key) - 1, 0.5, frame=self._get_quick_run_frame()
-            ):
+            frame = self._get_scene_frame()
+            if frame is not None:
+                max_time += 1
+            while max_time > time.time():
+                if frame is not None and not self.is_char_at_index(int(key) - 1, 0.5, frame=frame):
+                    break
                 time.sleep(0.1)
             self._quick_run_step = 1
             self._quick_run_time = now
@@ -185,10 +194,10 @@ class HeistTask(BaseNTETask, TriggerTask):
         self._quick_run_time = 0
         self._quick_run_step = 0
 
-    def _get_quick_run_frame(self):
-        if self.scene is None:
-            return self.frame
-        return self.scene.get_scene_frame(lambda: self.frame)
+    def _get_scene_frame(self):
+        if self.scene is None or self.scene._scene_frame is None:
+            return None
+        return self.scene._scene_frame
 
     def _is_key_pressed(self, key):
         vk_code = self._get_vk_code(key)

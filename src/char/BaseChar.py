@@ -230,17 +230,210 @@ class BaseChar:
         self._ultimate_available = self.ultimate_available()
         self.task.switch_next_char(self, post_action=post_action, free_intro=free_intro)
 
-    def sleep(self, sec, check_combat=True):
-        if not check_combat:
-            self.task.skip_combat_check = True
-        self.task.sleep(sec)
-        self.task.skip_combat_check = False
+    def sleep(self, sec, sleep_check=True):
+        try:
+            if not sleep_check:
+                self.task.skip_sleep_check = True
+            self.task.sleep(sec)
+        finally:
+            self.task.skip_sleep_check = False
 
     def alert_skill_failed(self):
         self.task.log_error(
             "Click skill failed, check if the keybinding is correct in ok-ww settings!", notify=True
         )
         self.task.screenshot("click_skill too long, breaking")
+
+    def _try_available_action(
+        self,
+        action_type,
+        available,
+        send_action,
+        send_click=True,
+        time_out=SKILL_TIME_OUT,
+        has_animation=False,
+        animation_min_duration=0,
+        release_check=None,
+    ):
+        start = time.time()
+        result = {
+            "clicked": False,
+            "action_time": 0,
+            "animation_start": 0,
+            "status": "unavailable",
+            "timed_out": False,
+        }
+
+        while True:
+            status = self._check_available_action_result(
+                action_type,
+                result,
+                start,
+                time_out,
+                available,
+                has_animation=has_animation,
+                animation_min_duration=animation_min_duration,
+                release_check=release_check,
+            )
+            if status != "continue":
+                result["status"] = status
+                return result
+
+            if available():
+                self.logger.debug(f"{action_type} available click/send")
+                if send_click:
+                    self.click(action_name=f"{action_type}_click", interval=0.25)
+                    self.sleep(0.001, sleep_check=False)
+                sent = send_action()
+                if sent is not False and not result["clicked"]:
+                    result["clicked"] = True
+                    result["action_time"] = time.time()
+
+            self.task.next_frame()
+
+    def _check_available_action_result(
+        self,
+        action_type,
+        result,
+        start,
+        time_out,
+        available,
+        has_animation=False,
+        animation_min_duration=0,
+        release_check=None,
+    ):
+        now = time.time()
+        elapsed = now - start
+        if elapsed > time_out:
+            result["timed_out"] = True
+            self.task.in_animation = False
+            return "timeout"
+        if self.task.in_animation and elapsed > 6:
+            self.task.in_animation = False
+            return "animation_timeout"
+        if has_animation and not self.task.is_in_team():
+            self.task.in_animation = True
+            result["animation_start"] = result["animation_start"] or now
+            return "animation"
+
+        self.check_combat()
+        if release_check and release_check():
+            return "released"
+        if not available() and (not has_animation or elapsed > animation_min_duration):
+            self.logger.debug(f"{action_type} not available break")
+            return "released" if result["clicked"] else "unavailable"
+        return "continue"
+
+    def click_ultimate(self, send_click=False, wait_if_cd_ready=0.1):
+        """尝试释放终结技。
+
+        Args:
+            send_click (bool, optional): 进入动画后是否发送普通点击。默认为 False。
+            wait_if_cd_ready (float, optional): 如果技能冷却即将完成, 等待多少秒。默认为 0。
+
+        Returns:
+            bool: 如果成功释放则返回 True。
+        """
+        if not self.task.use_ultimate:
+            return False
+        if self.task._combat_settle.time is not None:
+            self.logger.info("click_ultimate blocked by combat_detect_settle")
+            return False
+        self.logger.debug("click_ultimate start")
+        if not self.task.in_animation:
+            result = self._try_available_action(
+                "ultimate",
+                self.ultimate_available,
+                lambda: self.send_ultimate_key(action_name="ultimate_send", interval=0.25),
+                send_click=send_click,
+                has_animation=True,
+                release_check=lambda: not self.task.is_in_team(),
+            )
+        else:
+            result = {
+                "clicked": True,
+                "action_time": time.time(),
+                "animation_start": 0,
+                "status": "animation",
+                "timed_out": False,
+            }
+
+        return self._finish_ultimate_action(result, send_click, wait_if_cd_ready)
+
+    def _finish_ultimate_action(self, result, send_click, wait_if_cd_ready):
+        if result.get("timed_out"):
+            self.alert_skill_failed()
+            self.task.raise_not_in_combat("too long clicking a ultimate")
+
+        if result["status"] == "animation":
+            self.logger.debug("not in_team successfully casted ultimate")
+        elif result["clicked"]:
+            if self.task.wait_until(
+                lambda: not self.task.is_in_team(),
+                time_out=0.4,
+                post_action=self.click_with_interval,
+            ):
+                self.task.in_animation = True
+                self.logger.debug("not in_team successfully casted ultimate")
+            else:
+                self.task.in_animation = False
+                self.logger.error("clicked ultimate but no effect")
+                return False
+        elif not self._wait_for_ultimate_ready(wait_if_cd_ready):
+            return False
+
+        clicked = result["clicked"]
+        start = result["animation_start"] or time.time()
+        while not self.task.is_in_team():
+            self.task.in_animation = True
+            clicked = True
+            if send_click:
+                self.click(action_name="ultimate_click", interval=0.25)
+            if time.time() - start > 7:
+                self.task.in_animation = False
+                self.task.raise_not_in_combat(
+                    "too long a ultimate, the boss was killed by the ultimate"
+                )
+            self.task.next_frame()
+
+        duration = self._wait_ultimate_unfreeze(start)
+        self.task.in_animation = False
+        self._ultimate_available = False
+        if clicked:
+            self.logger.info(f"click_ultimate end {duration}")
+        return clicked
+
+    def _wait_for_ultimate_ready(self, wait_if_cd_ready):
+        start = time.time()
+        while not self.has_cd("ultimate") and time.time() - start < wait_if_cd_ready:
+            self.send_ultimate_key(after_sleep=0.05, action_name="ultimate_send", interval=0.25)
+            if self.task.wait_until(lambda: not self.task.is_in_team(), time_out=0.1):
+                self.task.in_animation = True
+                self.logger.debug("not in_team successfully casted ultimate")
+                return True
+        return self.task.in_animation
+
+    def _wait_ultimate_unfreeze(self, start):
+        self.logger.debug("waiting for time unfrozen")
+        box_ultimate = self.task.get_box_by_name(Labels.box_ultimate)
+        snapshot = box_ultimate.crop_frame(self.task.frame)
+        processed_snapshot = gf.isolate_cd_to_black(snapshot)
+        self.task.wait_until(
+            lambda: (
+                not self.task.find_one(
+                    template=processed_snapshot,
+                    box=box_ultimate,
+                    frame_processor=gf.isolate_cd_to_black,
+                    threshold=0.7,
+                )
+                or not self.available("ultimate", check_cd=False)
+            ),
+            time_out=10,
+            post_action=self.click_with_interval,
+        )
+        duration = time.time() - start - 0.1
+        self.add_freeze_duration(start, duration)
+        return duration
 
     def click_skill(
         self,
@@ -263,83 +456,57 @@ class BaseChar:
         Returns:
             tuple: (是否成功点击 (bool), 技能持续时间 (float), 是否检测到动画 (bool))。
         """
-        clicked = False
         self.logger.debug("click_skill start")
-        last_click = 0
-        last_op = "click"
-        skill_click_time = 0
-        start = time.time()
-        animation_start = 0
-        if time_out == 0:
-            the_time_out = SKILL_TIME_OUT
-        else:
-            the_time_out = time_out
-        while True:
-            if time.time() - start > the_time_out:
-                self.task.in_ultimate = False
-                if the_time_out == 0:
-                    self.alert_skill_failed()
-                break
-            elif self.task.in_ultimate and time.time() - start > 6:
-                self.task.in_ultimate = False
-                break
-            if has_animation:
-                if not self.task.is_in_team():
-                    self.task.in_ultimate = True
-                    animation_start = time.time()
-                    the_time_out = SKILL_TIME_OUT
-                    if time.time() - skill_click_time > 6:
-                        self.task.in_ultimate = False
-                        self.logger.error("skill animation too long, breaking")
-                    self.task.next_frame()
-                    self.check_combat()
-                    continue
-                elif self.task.in_ultimate:
-                    self.task.in_ultimate = False
-                    self.logger.debug("click_skill animated break")
-                    break
+        the_time_out = SKILL_TIME_OUT if time_out == 0 else time_out
+        result = self._try_available_action(
+            "skill",
+            self.skill_available,
+            lambda: self.send_skill_key(
+                down_time=down_time, action_name="skill_send", interval=0.25
+            ),
+            send_click=send_click,
+            time_out=the_time_out,
+            has_animation=has_animation,
+            animation_min_duration=animation_min_duration,
+        )
+        if result["timed_out"] and time_out == 0:
+            self.alert_skill_failed()
+        clicked, duration, animated = self._finish_skill_action(result, post_sleep, has_animation)
+        self.logger.debug(f"click_skill end clicked {clicked} duration {duration} animated {animated}")
+        return clicked, duration, animated
 
-            self.check_combat()
-            now = time.time()
-            if not self.skill_available() and (
-                not has_animation or now - start > animation_min_duration
-            ):
-                self.logger.debug("click_skill not available break")
-                break
-            self.logger.debug("click_skill skill_available click")
-
-            if now - last_click > 0.1:
-                if send_click and last_op == "skill":
-                    self.click()
-                    last_op = "click"
-                    continue
-                if self.skill_available():
-                    if skill_click_time == 0:
-                        clicked = True
-                        skill_click_time = now
-                    last_op = "skill"
-                    self.send_skill_key(down_time=down_time)
-                    if has_animation:  # sleep if there will be an animation like Jinhsi
-                        self.sleep(0.2, check_combat=False)
-                last_click = now
-            self.task.next_frame()
-        self.task.in_ultimate = False
+    def _finish_skill_action(self, result, post_sleep=0, has_animation=False):
+        clicked = result["clicked"]
+        skill_click_time = result["action_time"]
+        animation_start = result["animation_start"]
+        if animation_start > 0:
+            self._wait_skill_animation(animation_start, skill_click_time)
+        self.task.in_animation = False
         if clicked:
             self.last_skill_time = skill_click_time
+            if has_animation:  # sleep if there will be an animation like Jinhsi
+                self.sleep(0.2, sleep_check=False)
             self.sleep(post_sleep)
         duration = time.time() - skill_click_time if skill_click_time != 0 else 0
         if animation_start > 0:
             self.add_freeze_duration(skill_click_time, time.time() - animation_start)
-        self.logger.debug(
-            f"click_skill end clicked {clicked} duration {duration} animated {animation_start > 0}"
-        )
         return clicked, duration, animation_start > 0
+
+    def _wait_skill_animation(self, animation_start, skill_click_time):
+        while not self.task.is_in_team():
+            self.task.in_animation = True
+            if skill_click_time > 0 and time.time() - skill_click_time > 6:
+                self.task.in_animation = False
+                self.logger.error("skill animation too long, breaking")
+                break
+            self.task.next_frame()
+            self.check_combat()
 
     def click_arc(self):
         self.send_arc_key()
         return True
 
-    def send_skill_key(self, after_sleep=0, interval=-1, down_time=0.01):
+    def send_skill_key(self, after_sleep=0, interval=-1, down_time=0.01, action_name=None):
         """发送技能按键。
 
         Args:
@@ -348,8 +515,12 @@ class BaseChar:
             down_time (float, optional): 按键按下的持续时间。默认为 0.01。
         """
         self._skill_available = False
-        self.send_key(
-            self.get_skill_key(), interval=interval, down_time=down_time, after_sleep=after_sleep
+        return self.send_key(
+            self.get_skill_key(),
+            interval=interval,
+            down_time=down_time,
+            after_sleep=after_sleep,
+            action_name=action_name,
         )
 
     def send_arc_key(self, after_sleep=0, interval=-1, down_time=0.01):
@@ -364,7 +535,7 @@ class BaseChar:
             self.get_arc_key(), interval=interval, down_time=down_time, after_sleep=after_sleep
         )
 
-    def send_ultimate_key(self, after_sleep=0, interval=-1, down_time=0.01):
+    def send_ultimate_key(self, after_sleep=0, interval=-1, down_time=0.01, action_name=None):
         """发送终结技按键。
 
         Args:
@@ -373,8 +544,12 @@ class BaseChar:
             down_time (float, optional): 按键按下的持续时间。默认为 0.01。
         """
         self._ultimate_available = False
-        self.send_key(
-            self.get_ultimate_key(), interval=interval, down_time=down_time, after_sleep=after_sleep
+        return self.send_key(
+            self.get_ultimate_key(),
+            interval=interval,
+            down_time=down_time,
+            after_sleep=after_sleep,
+            action_name=action_name,
         )
 
     def check_combat(self):
@@ -386,100 +561,6 @@ class BaseChar:
         self.has_intro = False
         self._ultimate_available = False
         self._skill_available = False
-
-    def click_ultimate(self, send_click=False, wait_if_cd_ready=0.1):
-        """尝试释放终结技。
-
-        Args:
-            send_click (bool, optional): 进入动画后是否发送普通点击。默认为 False。
-            wait_if_cd_ready (float, optional): 如果技能冷却即将完成, 等待多少秒。默认为 0。
-
-        Returns:
-            bool: 如果成功释放则返回 True。
-        """
-        if not self.task.use_ultimate:
-            return False
-        if self.task._combat_settle.time is not None:
-            self.logger.info("click_ultimate blocked by combat_detect_settle")
-            return False
-        self.logger.debug("click_ultimate start")
-        start = time.time()
-        last_click = 0
-        clicked = False
-        if not self.task.in_ultimate:
-            while self.ultimate_available():
-                self.logger.debug("click_ultimate ultimate_available click")
-                if send_click:
-                    self.click(interval=0.1)
-                now = time.time()
-                if now - last_click > 0.1:
-                    self.send_ultimate_key()
-                    if not clicked:
-                        clicked = True
-                    last_click = now
-                if time.time() - start > SKILL_TIME_OUT:
-                    self.alert_skill_failed()
-                    self.task.raise_not_in_combat("too long clicking a ultimate")
-                self.task.next_frame()
-            if clicked:
-                if self.task.wait_until(
-                    lambda: not self.task.is_in_team(),
-                    time_out=0.4,
-                    post_action=self.click_with_interval,
-                ):
-                    self.task.in_ultimate = True
-                    self.logger.debug("not in_team successfully casted ultimate")
-                else:
-                    self.task.in_ultimate = False
-                    self.logger.error("clicked ultimate but no effect")
-                    return False
-            else:
-                start = time.time()
-                while not self.has_cd("ultimate") and time.time() - start < wait_if_cd_ready:
-                    self.send_ultimate_key(after_sleep=0.05)
-                    if self.task.wait_until(lambda: not self.task.is_in_team(), time_out=0.1):
-                        self.task.in_ultimate = True
-                        self.logger.debug("not in_team successfully casted ultimate")
-                if not self.task.in_ultimate:
-                    return False
-        start = time.time()
-        while not self.task.is_in_team():
-            self.task.in_ultimate = True
-            if not clicked:
-                clicked = True
-            if send_click:
-                self.click(interval=0.1)
-            if time.time() - start > 7:
-                self.task.in_ultimate = False
-                self.task.raise_not_in_combat(
-                    "too long a ultimate, the boss was killed by the ultimate"
-                )
-            self.task.next_frame()
-
-        self.logger.debug("waiting for time unfrozen")
-        box_ultimate = self.task.get_box_by_name(Labels.box_ultimate)
-        snapshot = box_ultimate.crop_frame(self.task.frame)
-        processed_snapshot = gf.isolate_cd_to_black(snapshot)
-        self.task.wait_until(
-            lambda: (
-                not self.task.find_one(
-                    template=processed_snapshot,
-                    box=box_ultimate,
-                    frame_processor=gf.isolate_cd_to_black,
-                    threshold=0.7,
-                )
-                or not self.available("ultimate", check_cd=False)
-            ),
-            time_out=10,
-            post_action=self.click_with_interval,
-        )
-        duration = time.time() - start - 0.1
-        self.add_freeze_duration(start, duration)
-        self.task.in_ultimate = False
-        self._ultimate_available = False
-        if clicked:
-            self.logger.info(f"click_ultimate end {duration}")
-        return clicked
 
     def on_combat_end(self, chars):
         """当战斗结束时, 角色可能需要执行的特定清理逻辑。
@@ -717,7 +798,7 @@ class BaseChar:
                     return True
         return False
 
-    def need_fast_perform_entry(self, current_char):
+    def need_fast_perform_entry(self, current_char) -> bool:
         return False
 
     def check_outro(self):
@@ -776,5 +857,5 @@ class BaseChar:
                 break
             else:
                 self.send_key(next_char)
-            self.sleep(0.2, False)
+            self.sleep(0.2, sleep_check=False)
         self.logger.debug(f"switch_other_char on_combat_end {self.index} switch end")

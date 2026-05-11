@@ -6,7 +6,7 @@ from ok import ConfigOption
 from src.interaction.NTEInteraction import NTEInteraction
 from src.process_feature import process_feature
 
-version = "v0.0.25"
+version = "v0.0.26"
 # 不需要修改version, Github Action打包会自动修改
 
 key_config_option = ConfigOption(
@@ -115,9 +115,9 @@ config = {
         "exe": "HTGame.exe",
         "hwnd_class": "UnrealWindow",
         "interaction": [
-            NTEInteraction,
-            "Pynput",
-        ],  # Genshin:某些操作可以后台, 部分游戏支持 PostMessage:可后台点击, 极少游戏支持 ForegroundPostMessage:前台使用PostMessage Pynput/PyDirect:仅支持前台使用
+            NTEInteraction
+        ],
+        # Genshin:某些操作可以后台, 部分游戏支持 PostMessage:可后台点击, 极少游戏支持 ForegroundPostMessage:前台使用PostMessage Pynput/PyDirect:仅支持前台使用
         "capture_method": [
             "WGC",
             "BitBlt_RenderFull",
@@ -125,6 +125,7 @@ config = {
         "check_hdr": False,  # 当用户开启AutoHDR时候提示用户, 但不禁止使用
         "force_no_hdr": False,  # True=当用户开启AutoHDR时候禁止使用
         "require_bg": True,  # 要求使用后台截图
+        'start_exe': False,
     },
     # 'adb': {  # Windows游戏请填写此设置, mumu模拟器使用原生截图和input,速度极快. 其他模拟器和真机使用adb,截图速度较慢
     #     'packages': ['com.abc.efg1', 'com.abc.efg1']
@@ -187,6 +188,7 @@ config = {
         "Globals",
     ],  # 可选. 全局单例对象, 可以存放加载的模型, 使用og.my_app调用
     "onetime_tasks": [  # 用户点击触发的任务
+        ["src.tasks.LauncherTask", "LauncherTask"],
         ["src.tasks.DailyTask", "DailyTask"],
         ["src.tasks.FishingTask", "FishingTask"],
         ["src.tasks.AnomalyTask", "AnomalyTask"],

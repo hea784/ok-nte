@@ -46,9 +46,9 @@ class NTEScene(BaseScene):
     def get_is_in_team_record(self):
         return self._is_in_team_record["state"], self._is_in_team_record["timestamp"]
 
-    def get_scene_frame(self, fun):
+    def scene_frame(self, frame):
         if self._scene_frame is None:
-            self._scene_frame = fun()
+            self._scene_frame = frame
         return self._scene_frame
     
     def ocr_warm_up(self):

@@ -488,8 +488,8 @@ msgstr "Tecla de activación"
 msgid "触发连点将同步生效"
 msgstr "La activación de clics automáticos surtirá efecto simultáneamente"
 
-msgid "触发连点的按键"
-msgstr "Tecla de clics automáticos"
+msgid "触发连点的按键 (按住生效)"
+msgstr "Tecla de clics automáticos (Mantener para activar)"
 
 msgid "自动补饵卖鱼"
 msgstr "Auto-recarga cebo y vende pescado"
@@ -523,3 +523,9 @@ msgstr "Mostrar logs de depuración"
 
 msgid "键位"
 msgstr "Teclas"
+
+msgid "Start Game"
+msgstr "Iniciar juego"
+
+msgid "Launcher Path"
+msgstr "Ruta del lanzador"
