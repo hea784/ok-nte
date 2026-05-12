@@ -13,8 +13,8 @@ import win32api
 import win32con
 import win32gui
 import win32process
-
 from ok import BaseTask, Box, CannotFindException, Logger, og, safe_get
+
 from src.Labels import Labels
 from src.scene.NTEScene import NTEScene
 from src.scene.ScreenPosition import ScreenPosition
@@ -659,6 +659,7 @@ class BaseNTETask(BaseTask):
         if not result:
             self.log_error("can't find panel, make sure f1 is the hotkey for panel", notify=True)
             raise CannotFindException("can't find panel, make sure f1 is the hotkey for panel")
+        self.sleep(0.5)
         return result
 
     def openF2panel(self):
@@ -672,6 +673,7 @@ class BaseNTETask(BaseTask):
         if not result:
             self.log_error("can't find panel, make sure f2 is the hotkey for panel", notify=True)
             raise CannotFindException("can't find panel, make sure f2 is the hotkey for panel")
+        self.sleep(0.5)
         return result
 
     def wait_panel(self, feature, box=None, threshold=0.8, time_out=4.5):
@@ -694,6 +696,7 @@ class BaseNTETask(BaseTask):
         if not result:
             self.log_error("can't find panel, make sure esc is the hotkey for panel", notify=True)
             raise CannotFindException("can't find panel, make sure esc is the hotkey for panel")
+        self.sleep(0.5)
         return result
 
     def ensure_main(self, esc=True, time_out=30):

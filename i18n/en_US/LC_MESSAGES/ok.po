@@ -538,3 +538,6 @@ msgstr "Start Game"
 
 msgid "Launcher Path"
 msgstr "Launcher Path"
+
+msgid "目标消耗体力"
+msgstr "Target Stamina Consumption"

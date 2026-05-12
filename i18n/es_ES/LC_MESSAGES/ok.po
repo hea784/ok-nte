@@ -529,3 +529,6 @@ msgstr "Iniciar juego"
 
 msgid "Launcher Path"
 msgstr "Ruta del lanzador"
+
+msgid "目标消耗体力"
+msgstr "Consumo objetivo de energía"

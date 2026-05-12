@@ -534,3 +534,6 @@ msgstr "Digite ou selecione o nome do personagem associado"
 
 msgid "键位"
 msgstr "Teclas"
+
+msgid "目标消耗体力"
+msgstr "Consumo de vigor alvo"

@@ -2,9 +2,10 @@ import time
 
 import cv2
 import numpy as np
+from ok import Box, TaskDisabledException
 from qfluentwidgets import FluentIcon
 
-from ok import Box, TaskDisabledException
+from src import text_white_color
 from src.Labels import Labels
 from src.tasks.BaseNTETask import BaseNTETask
 from src.tasks.NTEOneTimeTask import NTEOneTimeTask
@@ -88,6 +89,7 @@ class FishingTask(NTEOneTimeTask, BaseNTETask):
         success_count = 0
         for index in range(rounds):
             self.log_info(f"开始第 {index + 1}/{rounds} 轮钓鱼")
+            self.info_set("轮次", f"{index + 1}/{rounds}")
             if self.run_once(index + 1):
                 success_count += 1
             else:
@@ -99,6 +101,7 @@ class FishingTask(NTEOneTimeTask, BaseNTETask):
 
     def run_once(self, round_index: int) -> bool:
         if not self.close_success_overlay():
+            self.screenshot("close_success_overlay_timeout")
             raise TaskDisabledException("关闭成功界面失败")
 
         if not self.cast_rod():
@@ -206,6 +209,9 @@ class FishingTask(NTEOneTimeTask, BaseNTETask):
         self.log_info("等待鱼儿咬钩")
         if self.wait_until_pause_aware(
             self.is_fishing_bite,
+            post_action=lambda: self.close_success_overlay_once(
+                "抛竿时检测到成功面板, 尝试关闭"
+            ),
             time_out=20,
         ):
             self.log_info("鱼儿咬钩")
@@ -528,15 +534,17 @@ class FishingTask(NTEOneTimeTask, BaseNTETask):
         """
         检测开始钓鱼按钮是否存在
         """
-        return self.find_one(Labels.fish_start)
+        def frame_process(img):
+            return iu.create_color_mask(img, text_white_color)
+        return self.find_one(Labels.fish_start, frame_processor=frame_process)
 
-    def is_success_text_exist(self):
-        """检测界面是否出现“成功”字样（通过黑白像素占比判断）"""
-        box = self.box_of_screen(0.4434, 0.8938, 0.5566, 0.9181, name="success_text")
-        white_text = self.calculate_color_percentage(text_white_color, box)
-        black_border = self.calculate_color_percentage(text_black_color, box)
-        # self.log_debug(f"white_text: {white_text}, black_border: {black_border}")
-        return white_text > 0.2 and black_border > 0.2
+    # def is_success_text_exist(self):
+    #     """检测界面是否出现“成功”字样（通过黑白像素占比判断）"""
+    #     box = self.box_of_screen(0.4434, 0.8938, 0.5566, 0.9181, name="success_text")
+    #     white_text = self.calculate_color_percentage(text_white_color, box)
+    #     black_border = self.calculate_color_percentage(text_black_color, box)
+    #     # self.log_debug(f"white_text: {white_text}, black_border: {black_border}")
+    #     return white_text > 0.2 and black_border > 0.2
 
     def is_fish_bait_exist(self):
         """
@@ -573,7 +581,7 @@ class FishingTask(NTEOneTimeTask, BaseNTETask):
         return blue_pixels_ratio > 0.07
 
     def find_default_bait(self):
-        box = self.box_of_screen(0.0602, 0.2306, 0.313, 0.2597)
+        box = self.box_of_screen(0.1600, 0.2306, 0.313, 0.2597)
         image = box.crop_frame(self.frame)
         mask = iu.create_color_mask(image, default_bait_color, to_bgr=False)
         mask = iu.morphology_mask(mask, closing=True, to_bgr=False)
@@ -592,7 +600,7 @@ class FishingTask(NTEOneTimeTask, BaseNTETask):
         if box:
             self.operate_click(box)
             return
-        self.operate_click(0.0758, 0.2236)
+        self.operate_click(0.185, 0.243)
 
     def sell_fish(self):
         self.send_key("q")  # 背包
@@ -602,8 +610,9 @@ class FishingTask(NTEOneTimeTask, BaseNTETask):
         self.operate_click(0.556, 0.898)  # 一键出售
         self.sleep(1)
         self.operate_click(0.609, 0.656)  # 确认出售
-        self.sleep(1)
+        self.sleep(2)
         self.back_to_fishing_scene()
+        self.sleep(1)
 
     def buy_bait(self):
         self.click_default_bait()
@@ -613,8 +622,9 @@ class FishingTask(NTEOneTimeTask, BaseNTETask):
         self.operate_click(0.8715, 0.9542)  # 购买
         self.sleep(1)
         self.operate_click(0.609, 0.661)  # 确认购买
-        self.sleep(1)
+        self.sleep(2)
         self.back_to_fishing_scene()
+        self.sleep(1)
 
     def back_to_fishing_scene(self):
         self.wait_until_pause_aware(
@@ -675,11 +685,11 @@ fishing_bite_blue_color = {
     "b": (250, 255),
 }
 
-text_white_color = {
-    "r": (210, 255),
-    "g": (210, 255),
-    "b": (210, 255),
-}
+# text_white_color = {
+#     "r": (210, 255),
+#     "g": (210, 255),
+#     "b": (210, 255),
+# }
 
 text_black_color = {
     "r": (0, 10),

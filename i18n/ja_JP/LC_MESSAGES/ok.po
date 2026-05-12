@@ -529,3 +529,6 @@ msgstr "ゲームを起動"
 
 msgid "Launcher Path"
 msgstr "ランチャーパス"
+
+msgid "目标消耗体力"
+msgstr "目標スタミナ消費量"

@@ -110,10 +110,11 @@ class CombatCheck(BaseNTETask):
             logger.info(f"targeting enemy for {self.target_enemy_time_out}s")
             deadline = time.time() + self.target_enemy_time_out
             while time.time() < deadline:
-                self.middle_click()
-                self.sleep(0.25)
-                if self.combat_detect(lv=lv):
-                    return True
+                if self.is_in_team():
+                    self.middle_click()
+                    self.sleep(0.25)
+                    if self.combat_detect(lv=lv):
+                        return True
                 self.next_frame()
 
     # def has_target(self, frame=None):

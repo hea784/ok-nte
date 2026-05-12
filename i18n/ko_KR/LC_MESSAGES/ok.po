@@ -529,3 +529,6 @@ msgstr "게임 시작"
 
 msgid "Launcher Path"
 msgstr "런처 경로"
+
+msgid "目标消耗体力"
+msgstr "목표 스태미나 소모량"

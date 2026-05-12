@@ -529,3 +529,6 @@ msgstr "啟動遊戲"
 
 msgid "Launcher Path"
 msgstr "啟動器路徑"
+
+msgid "目标消耗体力"
+msgstr "目標消耗體力"

@@ -6,10 +6,10 @@ import psutil
 import win32con
 import win32gui
 import win32process
-from qfluentwidgets import FluentIcon
-
 from ok import TaskDisabledException
 from ok.util.process import execute
+from qfluentwidgets import FluentIcon
+
 from src.interaction.NTEInteraction import NTEInteraction
 from src.Labels import Labels
 from src.tasks.BaseNTETask import BaseNTETask
@@ -42,11 +42,13 @@ LAUNCHER_CAPTURE_CONFIG = {
 
 
 class LauncherTask(BaseNTETask):
+    CONF_PATH = "Launcher Path"
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.name = "Start Game"
         self.icon = FluentIcon.SYNC
-        self.default_config.update({"Launcher Path": ""})
+        self.default_config.update({self.CONF_PATH: ""})
         self.enable_after_start = True  # auto run after start
         self.visible = False  # False to hide from the UI
 
@@ -198,8 +200,7 @@ class LauncherTask(BaseNTETask):
 
     def _wait_for_foreground_to_settle(self, time_out=8, settle_time=1):
         self.log_info(
-            f"Waiting for game window to stay foreground for {settle_time}s "
-            f"(timeout={time_out}s)"
+            f"Waiting for game window to stay foreground for {settle_time}s (timeout={time_out}s)"
         )
         deadline = time.time() + time_out
         foreground_since = 0
@@ -255,7 +256,7 @@ class LauncherTask(BaseNTETask):
 
                     if settle_window:
                         if not self._wait_for_window_size_to_settle(
-                                hwnd, exe_name, start, time_out
+                            hwnd, exe_name, start, time_out
                         ):
                             return False
                         size = self._get_window_size(hwnd)
@@ -372,7 +373,7 @@ class LauncherTask(BaseNTETask):
             win32gui.ShowWindow(hwnd, win32con.SW_RESTORE)
 
     def _get_launcher_path(self):
-        configured_path = self.config.get("Launcher Path", "").strip()
+        configured_path = self.config.get(self.CONF_PATH, "").strip()
         self.log_info(f"Configured Launcher Path: {configured_path or '<empty>'}")
         launcher_path = configured_path
         launcher_path = self._extract_launcher_path(launcher_path)
@@ -385,7 +386,7 @@ class LauncherTask(BaseNTETask):
             self.log_warning(
                 f"Configured Launcher Path does not exist; clearing it: {configured_path}"
             )
-            self.config["Launcher Path"] = "" # type: ignore
+            self.config[self.CONF_PATH] = ""  # type: ignore
 
         self.log_info("Launcher Path config is empty or invalid; checking Windows registry")
         launcher_path = self._find_launcher_path_from_registry()
@@ -399,10 +400,10 @@ class LauncherTask(BaseNTETask):
 
     def _update_launcher_path(self, path):
         if path and os.path.basename(path).lower() == LAUNCHER_EXE.lower() and os.path.exists(path):
-            old_path = self.config.get("Launcher Path", "")
+            old_path = self.config.get(self.CONF_PATH, "")
             if old_path != path:
                 self.log_info(f"Updating Launcher Path config: {path}")
-                self.config["Launcher Path"] = path # type: ignore
+                self.config[self.CONF_PATH] = path  # type: ignore
             else:
                 self.log_info(f"Launcher Path config is already current: {path}")
         elif path:
