@@ -6,7 +6,7 @@ from ok import ConfigOption
 from src.interaction.NTEInteraction import NTEInteraction
 from src.process_feature import process_feature
 
-version = "v0.0.27"
+version = "v0.0.28"
 # 不需要修改version, Github Action打包会自动修改
 
 key_config_option = ConfigOption(
@@ -202,6 +202,7 @@ config = {
     ],
     "trigger_tasks": [  # 不断执行的触发式任务
         ["src.tasks.trigger.AutoCombatTask", "AutoCombatTask"],
+        ["src.tasks.trigger.SoundTriggerTask", "SoundTriggerTask"],
         ["src.tasks.trigger.SkipDialogTask", "SkipDialogTask"],
         ["src.tasks.trigger.FastTravelTask", "FastTravelTask"],
         ["src.tasks.trigger.HeistTask", "HeistTask"],

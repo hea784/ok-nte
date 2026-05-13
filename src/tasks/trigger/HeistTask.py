@@ -2,8 +2,8 @@ import time
 
 import win32api
 import win32con
-
 from ok import Logger, TriggerTask
+
 from src.tasks.BaseNTETask import BaseNTETask
 
 logger = Logger.get_logger(__name__)
@@ -172,7 +172,7 @@ class HeistTask(BaseNTETask, TriggerTask):
             if frame is not None:
                 max_time += 1
             while max_time > time.time():
-                if frame is not None and not self.is_char_at_index(int(key) - 1, 0.5, frame=frame):
+                if frame is not None and not self.is_char_at_index(int(key) - 1, frame=frame):
                     break
                 time.sleep(0.1)
             self._quick_run_step = 1

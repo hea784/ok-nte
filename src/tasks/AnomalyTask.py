@@ -1,6 +1,6 @@
+from ok import TaskDisabledException, og
 from qfluentwidgets import FluentIcon
 
-from ok import TaskDisabledException, og
 from src.combat.BaseCombatTask import BaseCombatTask
 from src.Labels import Labels
 from src.tasks.BaseNTETask import BaseNTETask
@@ -112,7 +112,14 @@ class AnomalyTask(NTEOneTimeTask, BaseCombatTask):
         self.ensure_main()
         self.log_info("打开F1面板并选择对应功能")
         self.openF1panel()
-        self.operate_click(0.0563, 0.4924)
+
+        box = self.box_of_screen(0.785, 0.022, 0.814, 0.076, name="stamina_icon")
+        self.wait_until(
+            lambda: self.find_one(Labels.stamina_icon, box=box),
+            pre_action=lambda: self.operate_click(0.0563, 0.4924, interval=0.5),
+            settle_time=0.5,
+            time_out= 10,
+        )
 
         self.sleep(0.5)
 
@@ -172,7 +179,7 @@ class AnomalyTask(NTEOneTimeTask, BaseCombatTask):
         for i in range(double_count + single_count):
             double = i < double_count
             self.wait_in_team()
-            self.sleep(1)
+            self.sleep(2)
             self.do_combat_and_claim(double)
             self.sleep(2)
             if i < double_count + single_count - 1:
@@ -187,13 +194,18 @@ class AnomalyTask(NTEOneTimeTask, BaseCombatTask):
         self.combat_once()
 
         self.log_info("战斗结束，正在前往领取奖励")
-        self.walk_to_treasure()
-        self.send_interac(handle_claim=False)
-        claims = self.find_all_claim()
-        self.log_info(f"发现 {len(claims)} 个领取奖励")
-        if not claims:
-            self.log_warning("未找到领取奖励按钮")
-            return
+
+        def action():
+            self.walk_to_treasure()
+            self.send_interac(handle_claim=False)
+            claims = self.find_all_claim()
+            self.log_info(f"发现 {len(claims)} 个领取奖励")
+            if not claims:
+                self.log_warning("未找到领取奖励按钮")
+                return False
+            return claims
+
+        claims = self.retry_on_action(action)
         if double:
             box = max(claims, key=lambda x: x.x)
         else:

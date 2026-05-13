@@ -530,4 +530,10 @@ msgid "Launcher Path"
 msgstr "启动器路径"
 
 msgid "目标消耗体力"
-msgstr "目标消耗体力"
+msgstr ""
+
+msgid "声音闪避反击"
+msgstr ""
+
+msgid "未处于自动战斗时, 响应声音闪避或反击"
+msgstr ""

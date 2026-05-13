@@ -39,9 +39,6 @@ def isolate_dialog_to_white(cv_image):
     return iu.create_color_mask(cv_image, dialog_white_color, invert=False)
 
 
-def current_char_filter(cv_image, blur=False):
-    if blur:
-        hsv = iu.HSVRange((150, 140, 125), (179, 255, 255))
-    else:
-        hsv = iu.HSVRange((150, 170, 165), (179, 255, 255))
+def current_char_filter(cv_image):
+    hsv = iu.HSVRange((150, 180, 120), (179, 225, 255))
     return iu.filter_by_hsv(cv_image, hsv, return_mask=True)

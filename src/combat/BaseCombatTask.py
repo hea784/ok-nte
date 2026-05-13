@@ -583,7 +583,7 @@ class BaseCombatTask(CombatCheck):
 
     def combat_end(self):
         """战斗结束时调用的清理方法。"""
-        SoundCombatContext().update_task(None)
+        SoundCombatContext().clear_task_if(self)
 
         current_char = self.get_current_char(raise_exception=False)
         if current_char:

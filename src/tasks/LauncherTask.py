@@ -1,6 +1,7 @@
 import os
 import re
 import time
+from enum import Enum
 
 import psutil
 import win32con
@@ -27,6 +28,13 @@ GAME_CAPTURE_CONFIG = {
         ],
     },
 }
+
+class LauncherButtonState(Enum):
+    START = "start"
+    READY_OTHER = "ready_other"
+    NOT_READY = "not_ready"
+
+
 LAUNCHER_CAPTURE_CONFIG = {
     "windows": {
         "exe": LAUNCHER_EXE,
@@ -129,35 +137,37 @@ class LauncherTask(BaseNTETask):
 
     def _click_start_game(self, time_out=120):
         self.log_info(f"Looking for launcher Start Game button for up to {time_out}s")
-        start = time.time()
+        deadline = time.time() + time_out
         last_log_time = 0
+        last_update_click_time = 0
+        ready_other_count = 0
+        update_in_progress = False
         clicked_start_game = False
-        while time.time() - start < time_out:
+        while time.time() < deadline:
+            loop_start = time.time()
             if self._is_launcher_minimized():
                 self.log_info("Launcher window is minimized; Start Game click succeeded")
                 return True
 
             try:
-                start_button = self.find_one(
-                    Labels.launcher_start_game,
-                    horizontal_variance=0.1,
-                    vertical_variance=0.1,
-                )
+                button_state, button = self._launcher_button_state()
             except AttributeError as e:
                 self.log_warning(
-                    f"Launcher frame was unavailable while finding Start Game button {e}"
+                    f"Launcher frame was unavailable while checking launcher button {e}"
                 )
                 if self._is_launcher_minimized():
                     self.log_info("treating as success")
                     return True
                 else:
                     self.sleep(1)
+                    if update_in_progress:
+                        deadline = self._extend_deadline_for_update(deadline, loop_start)
                     continue
-            if start_button:
-                self.log_info(f"Found launcher Start Game button: {start_button}")
-                self.click(start_button, after_sleep=2)
-                if not self._is_launcher_minimized():
-                    self.click(0.5269, 0.6122, after_sleep=2)  # close popup
+
+            if button_state == LauncherButtonState.START:
+                ready_other_count = 0
+                update_in_progress = False
+                self._click_launcher_start_button(button)
                 clicked_start_game = True
                 if self._is_launcher_minimized():
                     self.log_info("Launcher minimized after Start Game click")
@@ -173,6 +183,38 @@ class LauncherTask(BaseNTETask):
                 )
                 return True
 
+            if button_state == LauncherButtonState.READY_OTHER:
+                ready_other_count += 1
+                now = time.time()
+                if ready_other_count < 2:
+                    self.log_info(
+                        "Launcher button is ready but Start Game was not detected; "
+                        "confirming before clicking possible update button"
+                    )
+                elif now - last_update_click_time >= 10:
+                    self.log_info(
+                        "Launcher button is ready but Start Game was not detected; "
+                        "clicking it as a possible update button"
+                    )
+                    self.click(button, after_sleep=2)
+                    last_update_click_time = now
+                    update_in_progress = True
+                else:
+                    self.log_info(
+                        "Launcher button is ready but Start Game was not detected; "
+                        "waiting for update flow to finish"
+                    )
+                self.sleep(1)
+                if update_in_progress:
+                    deadline = self._extend_deadline_for_update(deadline, loop_start)
+                continue
+
+            ready_other_count = 0
+            if update_in_progress:
+                self.sleep(1)
+                deadline = self._extend_deadline_for_update(deadline, loop_start)
+                continue
+
             now = time.time()
             if now - last_log_time >= 5:
                 self.log_info("Launcher Start Game button not found yet")
@@ -180,6 +222,39 @@ class LauncherTask(BaseNTETask):
             self.sleep(1)
         self.log_warning("Launcher did not minimize after Start Game attempts")
         return False
+
+    def _launcher_button_state(self):
+        start_button = self._find_launcher_start_button()
+        if start_button:
+            return LauncherButtonState.START, start_button
+
+        is_ready, button = self._launcher_button_ready()
+        if is_ready:
+            return LauncherButtonState.READY_OTHER, button
+
+        return LauncherButtonState.NOT_READY, None
+
+    def _extend_deadline_for_update(self, deadline, start_time):
+        return deadline + time.time() - start_time
+
+    def _find_launcher_start_button(self):
+        return self.find_one(
+            Labels.launcher_start_game,
+            horizontal_variance=0.1,
+            vertical_variance=0.1,
+        )
+
+    def _click_launcher_start_button(self, start_button):
+        self.log_info(f"Found launcher Start Game button: {start_button}")
+        self.click(start_button, after_sleep=2)
+        if not self._is_launcher_minimized():
+            self.click(0.5269, 0.6122, after_sleep=2)  # close popup
+    
+    def _launcher_button_ready(self):
+        box = self.box_of_screen(0.8137, 0.8678, 0.8387, 0.9022, name="launcher_button")
+        per = self.calculate_color_percentage(launcher_btn_ready_color, box)
+        self.log_info(f"launcher_button color {per}")
+        return per > 0.8, box
 
     def _is_launcher_minimized(self):
         launcher_proc = self._find_process(LAUNCHER_EXE)
@@ -527,3 +602,10 @@ class LauncherTask(BaseNTETask):
         name = proc_info.get("name") or "<unknown>"
         exe = proc_info.get("exe") or "<path unavailable>"
         return f"name={name}, exe={exe}"
+
+
+launcher_btn_ready_color = {
+    "r": (215, 225),
+    "g": (215, 225),
+    "b": (215, 225),
+}

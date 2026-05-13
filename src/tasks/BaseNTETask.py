@@ -1,4 +1,3 @@
-import contextvars
 import ctypes
 import re
 import threading
@@ -27,7 +26,6 @@ stamina_re = re.compile(r"(\d+)[\s/\\|!Il／-]+\d+")
 
 class BaseNTETask(BaseTask):
     DEFAULT_MOVE = False
-    _current_move = contextvars.ContextVar("current_move", default=None)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -142,24 +140,14 @@ class BaseNTETask(BaseTask):
 
     def click(self, *args, action_name=None, **kwargs):
         if action_name is not None:
-            interval = kwargs.get("interval", 0.1)
+            interval = kwargs.get("interval", args[4] if len(args) > 4 else 0.1)
             if not self.check_action_interval(action_name, interval):
                 return False
             kwargs["interval"] = -1
 
-        current_move = self._current_move.get()
-        token = None
-
-        if current_move is None:
-            token = self._current_move.set(kwargs.get("move", self.DEFAULT_MOVE))
-            current_move = self._current_move.get()
-        kwargs["move"] = current_move
-
-        try:
-            return super().click(*args, **kwargs)
-        finally:
-            if token is not None:
-                self._current_move.reset(token)
+        if len(args) <= 5:
+            kwargs.setdefault("move", self.DEFAULT_MOVE)
+        return super().click(*args, **kwargs)
 
     # fmt: off
     @overload
@@ -336,12 +324,13 @@ class BaseNTETask(BaseTask):
         box = self.get_box_by_char_spacing(base_box, index)
         # self.draw_boxes(boxes=box, color="blue")
 
-        current_mat = gf.current_char_filter(box.crop_frame(frame), blur=True)
+        current_mat = gf.current_char_filter(box.crop_frame(frame))
 
         # 全白检测：过滤后近乎全白说明不是有效弧形，直接排除
         total_pixels = current_mat.shape[0] * current_mat.shape[1]
         if total_pixels > 0 and cv2.countNonZero(current_mat) / total_pixels > 0.5:
             return 1.0
+        # iu.show_images([template_mat, current_mat], ["template", f"index_{index}"])
 
         # 滑动覆盖率匹配（允许 current_mat 尺寸 >= template_mat）
         # TM_CCORR 在二值图上 = 255*255 * 重叠白像素数，等价于原 bitwise_and 覆盖率但支持滑动
@@ -355,7 +344,7 @@ class BaseNTETask(BaseTask):
 
         return 1.0
 
-    def is_char_at_index(self, index, threshold=0.3, frame=None):
+    def is_char_at_index(self, index, threshold=0.5, frame=None):
         """判断指定索引是否为当前角色"""
         score = self.get_char_match_score(index, frame=frame)
         new = f"idx {index} conf {score:.3f}"
@@ -968,6 +957,16 @@ class BaseNTETask(BaseTask):
                 current = int(match.group(1))
         self.info_set("当前体力", current)
         return current
+    
+    def retry_on_action(self, action: Callable, reset_action: Callable | None = None, attempt=3):
+        result = None
+        count = 0
+        while not result and count <= attempt:
+            count += 1
+            result = action()
+            if not result and reset_action is not None:
+                reset_action()
+        return result
 
 
 def interac_mask(image):

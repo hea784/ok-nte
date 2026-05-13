@@ -581,19 +581,47 @@ class FishingTask(NTEOneTimeTask, BaseNTETask):
         return blue_pixels_ratio > 0.07
 
     def find_default_bait(self):
-        box = self.box_of_screen(0.1600, 0.2306, 0.313, 0.2597)
-        image = box.crop_frame(self.frame)
-        mask = iu.create_color_mask(image, default_bait_color, to_bgr=False)
-        mask = iu.morphology_mask(mask, closing=True, to_bgr=False)
-        num_labels, _, stats, _ = cv2.connectedComponentsWithStats(mask, connectivity=8)
-        if num_labels <= 1:
+        box_1 = self.box_of_screen(0.0602, 0.2306, 0.313, 0.2597)
+        box_2 = self.box_of_screen(0.0602, 0.4516, 0.313, 0.4807)
+
+        candidates = []
+        for box in (box_1, box_2):
+            image = box.crop_frame(self.frame)
+            mask = iu.create_color_mask(image, default_bait_color, to_bgr=False)
+            mask = iu.morphology_mask(mask, closing=True, to_bgr=False)
+            # iu.show_images(mask)
+            num_labels, _, stats, _ = cv2.connectedComponentsWithStats(
+                mask, connectivity=8
+            )
+            for i in range(1, num_labels):
+                candidates.append(
+                    {
+                        "area": stats[i, cv2.CC_STAT_AREA],
+                        "x": box.x + stats[i, cv2.CC_STAT_LEFT],
+                        "y": box.y + stats[i, cv2.CC_STAT_TOP],
+                        "w": stats[i, cv2.CC_STAT_WIDTH],
+                        "h": stats[i, cv2.CC_STAT_HEIGHT],
+                    }
+                )
+
+        if not candidates:
             return None
-        max_i = max(enumerate(stats[1:, cv2.CC_STAT_AREA]), key=lambda x: x[1])[0] + 1
-        x = stats[max_i, cv2.CC_STAT_LEFT]
-        y = stats[max_i, cv2.CC_STAT_TOP]
-        w = stats[max_i, cv2.CC_STAT_WIDTH]
-        h = stats[max_i, cv2.CC_STAT_HEIGHT]
-        return Box(box.x + x, box.y + y, w, h, name="default_bait")
+
+        max_area = max(candidate["area"] for candidate in candidates)
+        similar_area_threshold = max_area * 0.9
+        similar_area_candidates = [
+            candidate
+            for candidate in candidates
+            if candidate["area"] >= similar_area_threshold
+        ]
+        candidate = min(similar_area_candidates, key=lambda item: (item["x"], item["y"]))
+        return Box(
+            candidate["x"],
+            candidate["y"],
+            candidate["w"],
+            candidate["h"],
+            name="default_bait",
+        )
 
     def click_default_bait(self):
         box = self.find_default_bait()

@@ -157,7 +157,7 @@ class DailyTask(NTEOneTimeTask, BaseNTETask):
             return self.wait_panel(Labels.mail_panel)
 
         self.log_info("正在打开邮件面板")
-        result = retry_on_action(action, self.ensure_main)
+        result = self.retry_on_action(action, self.ensure_main)
         if not result:
             self.log_error("无法找到邮件面板", notify=True)
             raise CannotFindException("can't find mail panel")
@@ -210,7 +210,7 @@ class DailyTask(NTEOneTimeTask, BaseNTETask):
             return self.wait_panel(Labels.f1_activity_panel)
 
         self.log_info("正在领取活跃度奖励")
-        result = retry_on_action(action, self.ensure_main)
+        result = self.retry_on_action(action, self.ensure_main)
         if not result:
             self.log_error("无法找到活跃度面板")
             return False
@@ -249,7 +249,7 @@ class DailyTask(NTEOneTimeTask, BaseNTETask):
             return self.wait_panel(Labels.f2_mission_panel)
 
         self.log_info("正在领取环期任务奖励")
-        result = retry_on_action(action, self.ensure_main)
+        result = self.retry_on_action(action, self.ensure_main)
         if not result:
             self.log_error("无法找到环期任务面板")
             return False
@@ -260,14 +260,3 @@ class DailyTask(NTEOneTimeTask, BaseNTETask):
         self.operate_click(0.6934, 0.8229)
         self.sleep(1)
         return True
-
-
-def retry_on_action(action: Callable, reset_action: Callable | None = None, attempt=3):
-    result = None
-    count = 0
-    while not result and count <= attempt:
-        count += 1
-        result = action()
-        if not result and reset_action is not None:
-            reset_action()
-    return result

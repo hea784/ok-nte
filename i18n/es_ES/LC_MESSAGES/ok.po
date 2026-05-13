@@ -532,3 +532,9 @@ msgstr "Ruta del lanzador"
 
 msgid "目标消耗体力"
 msgstr "Consumo objetivo de energía"
+
+msgid "声音闪避反击"
+msgstr "Esquiva y contraataque por sonido"
+
+msgid "未处于自动战斗时, 响应声音闪避或反击"
+msgstr "Cuando el combate automático no está activo, responde a esquivas o contraataques por sonido"
