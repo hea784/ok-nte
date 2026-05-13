@@ -142,7 +142,7 @@ class LauncherTask(BaseNTETask):
         last_update_click_time = 0
         ready_other_count = 0
         update_in_progress = False
-        clicked_start_game = False
+        start_click_pending = False
         while time.time() < deadline:
             loop_start = time.time()
             if self._is_launcher_minimized():
@@ -168,7 +168,7 @@ class LauncherTask(BaseNTETask):
                 ready_other_count = 0
                 update_in_progress = False
                 self._click_launcher_start_button(button)
-                clicked_start_game = True
+                start_click_pending = True
                 if self._is_launcher_minimized():
                     self.log_info("Launcher minimized after Start Game click")
                     return True
@@ -177,13 +177,20 @@ class LauncherTask(BaseNTETask):
                 )
                 continue
 
-            if clicked_start_game:
-                self.log_info(
-                    "Launcher Start Game button disappeared; treating click as successful"
-                )
+            if start_click_pending and self._is_launcher_minimized():
+                self.log_info("Launcher minimized after Start Game click")
                 return True
 
             if button_state == LauncherButtonState.READY_OTHER:
+                if update_in_progress:
+                    self.log_info(
+                        "Launcher button is ready while update is in progress; "
+                        "waiting for Start Game button"
+                    )
+                    self.sleep(1)
+                    deadline = self._extend_deadline_for_update(deadline, loop_start)
+                    continue
+
                 ready_other_count += 1
                 now = time.time()
                 if ready_other_count < 2:
@@ -242,6 +249,7 @@ class LauncherTask(BaseNTETask):
             Labels.launcher_start_game,
             horizontal_variance=0.1,
             vertical_variance=0.1,
+            threshold=0.85
         )
 
     def _click_launcher_start_button(self, start_button):
