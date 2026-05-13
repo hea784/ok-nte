@@ -206,6 +206,9 @@ class AnomalyTask(NTEOneTimeTask, BaseCombatTask):
             return claims
 
         claims = self.retry_on_action(action)
+        if not claims:
+            return False
+        
         if double:
             box = max(claims, key=lambda x: x.x)
         else:

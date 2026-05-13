@@ -810,12 +810,16 @@ class BaseNTETask(BaseTask):
                 return False
 
     def find_treasure(self):
-        def mask(img):
-            return iu.mask_corners(img, 0.5, 0.5, "all", to_bgr=False)
-        return self.find_one(
-            Labels.treasure, box=self.main_viewport, threshold=0.7, mask_function=mask,
-            use_gray_scale=True
+        # now = time.time()
+        result = self.find_one(
+            Labels.treasure,
+            box=self.main_viewport,
+            threshold=0.75,
+            target_height=720,
         )
+        # if result:
+        #     self.log_info(f"find_treasure conf {result.confidence}, cost {time.time() - now}s")
+        return result
 
     def walk_to_treasure(self):
         if self.find_treasure():
@@ -852,7 +856,7 @@ class BaseNTETask(BaseTask):
         y = max(0, y - self.height_of_screen(y_offset))
         x_abs = abs(x - self.width_of_screen(0.5))
         threshold = 0.04 if not last_direction else x_threshold
-        centered = centered or x_abs <= self.width_of_screen(threshold)
+        centered = x_abs <= self.width_of_screen(threshold)
 
         if not centered:
             direction = "d" if x > self.width_of_screen(0.5) else "a"

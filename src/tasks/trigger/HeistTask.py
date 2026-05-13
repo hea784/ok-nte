@@ -10,12 +10,13 @@ logger = Logger.get_logger(__name__)
 
 
 class HeistTask(BaseNTETask, TriggerTask):
-    CONF_TRIGGER_KEY = "触发按键"
+    CONF_PICK_KEY = "触发按键"
     CONF_USE_SCROLL = "使用滚轮加速拾取"
     CONF_QUICK_RUN = "切换角色快速奔跑"
     CONF_QUICK_RUN_CHAR_COUNT = "快速奔跑角色数量"
     SEND_KEY_INTERVAL = 0.25
     CHECK_INTERVAL = 0.01
+    PICK_KEY_HOLD_INTERVAL = 0.35
     QUICK_RUN_HOLD_INTERVAL = 0.5
     QUICK_RUN_KEY_AFTER_SLEEP = 0.6
     QUICK_RUN_SHIFT_INTERVAL = 0.3
@@ -41,7 +42,8 @@ class HeistTask(BaseNTETask, TriggerTask):
         self._scroll_time = 0
         self._scroll_switch = False
         self._scroll_count = 0
-        self._trigger_key_pressed = False
+        self._pick_key_pressed = False
+        self._pick_key_down_time = 0
         self._shift_pressed = False
         self._shift_down_time = 0
         self._quick_running = False
@@ -52,7 +54,7 @@ class HeistTask(BaseNTETask, TriggerTask):
         self.description = "粉爪大劫案便利性功能"
         self.default_config.update(
             {
-                self.CONF_TRIGGER_KEY: "f",
+                self.CONF_PICK_KEY: "f",
                 self.CONF_USE_SCROLL: True,
                 self.CONF_QUICK_RUN: True,
                 self.CONF_QUICK_RUN_CHAR_COUNT: 4,
@@ -60,7 +62,7 @@ class HeistTask(BaseNTETask, TriggerTask):
         )
         self.config_description.update(
             {
-                self.CONF_TRIGGER_KEY: "触发连点的按键 (按住生效)",
+                self.CONF_PICK_KEY: "触发连点的按键 (按住生效)",
                 self.CONF_USE_SCROLL: "触发连点将同步生效",
                 self.CONF_QUICK_RUN: "按住Shift生效",
                 self.CONF_QUICK_RUN_CHAR_COUNT: "切换角色数量",
@@ -104,27 +106,41 @@ class HeistTask(BaseNTETask, TriggerTask):
             return False
 
         if not self._loop or not self.is_foreground():
+            self._reset_pick_key()
             self._reset_quick_run()
             return True
 
-        key = self.config.get(self.CONF_TRIGGER_KEY)
-        interval = self.SEND_KEY_INTERVAL
-
         self._handle_quick_run()
+        self._handle_pick_key()
+        return True
 
+    def _handle_pick_key(self):
+        key = self._get_pick_key()
         key_pressed = self._is_key_pressed(key)
+        now = time.time()
         if not key_pressed:
-            self._trigger_key_pressed = False
-            return True
+            self._reset_pick_key()
+            return
 
-        if not self._trigger_key_pressed:
+        if not self._pick_key_pressed:
+            if self._pick_key_down_time == 0:
+                self._pick_key_down_time = now
+                return
+            if now - self._pick_key_down_time < self.PICK_KEY_HOLD_INTERVAL:
+                return
             self._scroll_switch = False
             self._scroll_count = 0
-            self._trigger_key_pressed = True
+            self._pick_key_pressed = True
 
-        self.send_key(key, interval=interval)
-        self.alternate_scroll(interval=interval)
-        return True
+        self.send_key(key, interval=self.SEND_KEY_INTERVAL)
+        self.alternate_scroll(interval=self.SEND_KEY_INTERVAL)
+
+    def _reset_pick_key(self):
+        self._pick_key_pressed = False
+        self._pick_key_down_time = 0
+
+    def _get_pick_key(self):
+        return self.config.get(self.CONF_PICK_KEY)
 
     def _handle_quick_run(self):
         if not self.config.get(self.CONF_QUICK_RUN):
