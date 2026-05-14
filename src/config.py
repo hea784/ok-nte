@@ -6,7 +6,7 @@ from ok import ConfigOption
 from src.interaction.NTEInteraction import NTEInteraction
 from src.process_feature import process_feature
 
-version = "v0.0.29"
+version = "v0.0.30"
 # 不需要修改version, Github Action打包会自动修改
 
 key_config_option = ConfigOption(
@@ -15,8 +15,15 @@ key_config_option = ConfigOption(
         "Skill Key": "e",
         "Ultimate Key": "q",
         "Arc Key": "r",
+        "Use QWERTY Physical Keys": False,
     },
     description="In Game Hotkey for Skills",
+    config_description={
+        "Use QWERTY Physical Keys": (
+            "All letter/number keys, including every hotkey above, are replaced by US QWERTY\n"
+            "physical positions, not your current layout's printed keys."
+        ),
+    },
 )
 
 monthly_card_config_option = ConfigOption(

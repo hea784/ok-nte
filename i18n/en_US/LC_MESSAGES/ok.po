@@ -547,3 +547,11 @@ msgstr "Sound Dodge Counterattack"
 
 msgid "未处于自动战斗时, 响应声音闪避或反击"
 msgstr "Respond to sound dodge or counterattack when auto combat is not active"
+
+msgid ""
+"All letter/number keys, including every hotkey above, are replaced by US QWERTY\n"
+"physical positions, not your current layout's printed keys."
+msgstr ""
+
+msgid "Use QWERTY Physical Keys"
+msgstr ""

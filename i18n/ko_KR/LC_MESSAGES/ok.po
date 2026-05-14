@@ -538,3 +538,13 @@ msgstr "소리 회피 반격"
 
 msgid "未处于自动战斗时, 响应声音闪避或反击"
 msgstr "자동 전투 중이 아닐 때 소리 회피 또는 반격에 반응"
+
+msgid ""
+"All letter/number keys, including every hotkey above, are replaced by US QWERTY\n"
+"physical positions, not your current layout's printed keys."
+msgstr ""
+"위의 모든 단축키를 포함한 모든 문자/숫자 키는 현재 배열에 인쇄된 키가 아니라\n"
+"미국 QWERTY 물리 위치로 대체됩니다."
+
+msgid "Use QWERTY Physical Keys"
+msgstr "QWERTY 물리 키 사용"

@@ -4,9 +4,12 @@ import time
 
 import win32api
 import win32con
+from ok import og
 from ok.device.intercation import PostMessageInteraction
 from ok.util.logger import Logger
 from win32api import GetCursorPos, SetCursorPos
+
+from src.interaction.keyboard_layout import QwertyPhysicalKeyMapper
 
 logger = Logger.get_logger(__name__)
 
@@ -18,22 +21,53 @@ class NTEInteraction(PostMessageInteraction):
         self._operating = False
         self._input_lock = threading.RLock()
         self.user32 = ctypes.windll.user32
+        self.qwerty_physical_key_mapper = QwertyPhysicalKeyMapper()
+        self._disable_key_mapping = 0
 
     def send_key(self, *args, **kwargs):
         with self._input_lock:
-            return super().send_key(*args, **kwargs)
+            mapped_args, mapped_kwargs = self._map_key_args(args, kwargs)
+            self._disable_key_mapping += 1
+            try:
+                return super().send_key(*mapped_args, **mapped_kwargs)
+            finally:
+                self._disable_key_mapping -= 1
 
     def send_key_down(self, *args, **kwargs):
         with self._input_lock:
-            return super().send_key_down(*args, **kwargs)
+            mapped_args, mapped_kwargs = self._map_key_args(args, kwargs)
+            return super().send_key_down(*mapped_args, **mapped_kwargs)
 
     def send_key_up(self, *args, **kwargs):
         with self._input_lock:
-            return super().send_key_up(*args, **kwargs)
+            mapped_args, mapped_kwargs = self._map_key_args(args, kwargs)
+            return super().send_key_up(*mapped_args, **mapped_kwargs)
 
     def scroll(self, *args, **kwargs):
         with self._input_lock:
             return super().scroll(*args, **kwargs)
+
+    def _map_key_args(self, args, kwargs):
+        if self._disable_key_mapping or not og.global_config.get_config("Game Hotkey Config").get(
+            "Use QWERTY Physical Keys", False
+        ):
+            return args, kwargs
+
+        if args:
+            key = args[0]
+        else:
+            key = kwargs.get("key")
+
+        mapped_key = self.qwerty_physical_key_mapper.map_key(key)
+        if mapped_key is None:
+            return args, kwargs
+
+        if args:
+            return (mapped_key, *args[1:]), kwargs
+
+        mapped_kwargs = kwargs.copy()
+        mapped_kwargs["key"] = mapped_key
+        return args, mapped_kwargs
 
     def click(
         self, x=-1, y=-1, move_back=False, name=None, down_time=0.001, move=False, key="left"

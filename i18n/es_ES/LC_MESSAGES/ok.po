@@ -538,3 +538,13 @@ msgstr "Esquiva y contraataque por sonido"
 
 msgid "未处于自动战斗时, 响应声音闪避或反击"
 msgstr "Cuando el combate automático no está activo, responde a esquivas o contraataques por sonido"
+
+msgid ""
+"All letter/number keys, including every hotkey above, are replaced by US QWERTY\n"
+"physical positions, not your current layout's printed keys."
+msgstr ""
+"Todas las teclas de letras/números, incluidas las teclas rápidas anteriores, se sustituyen por posiciones físicas QWERTY de EE. UU.,\n"
+"no por las teclas impresas de tu distribución actual."
+
+msgid "Use QWERTY Physical Keys"
+msgstr "Usar teclas físicas QWERTY"

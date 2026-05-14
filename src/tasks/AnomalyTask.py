@@ -195,13 +195,16 @@ class AnomalyTask(NTEOneTimeTask, BaseCombatTask):
 
         self.log_info("战斗结束，正在前往领取奖励")
 
-        def action():
+        def action(count):
             self.walk_to_treasure()
             self.send_interac(handle_claim=False)
             claims = self.find_all_claim()
             self.log_info(f"发现 {len(claims)} 个领取奖励")
             if not claims:
                 self.log_warning("未找到领取奖励按钮")
+                key = "a" if count % 2 else "d"
+                self.send_key(key, down_time=0.5, after_sleep=1)
+                self.next_frame()
                 return False
             return claims
 

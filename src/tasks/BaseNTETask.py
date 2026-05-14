@@ -1,4 +1,5 @@
 import ctypes
+import inspect
 import re
 import threading
 import time
@@ -602,6 +603,7 @@ class BaseNTETask(BaseTask):
             box=self.interac_box,
             threshold=0.7,
             mask_function=interac_mask,
+            use_gray_scale=True,
         )
 
     def walk_until_interac(self, direction="w", time_out=10, raise_if_not_found=False):
@@ -814,8 +816,8 @@ class BaseNTETask(BaseTask):
         result = self.find_one(
             Labels.treasure,
             box=self.main_viewport,
-            threshold=0.75,
-            target_height=720,
+            threshold=0.7,
+            use_gray_scale=True,
         )
         # if result:
         #     self.log_info(f"find_treasure conf {result.confidence}, cost {time.time() - now}s")
@@ -961,13 +963,23 @@ class BaseNTETask(BaseTask):
                 current = int(match.group(1))
         self.info_set("当前体力", current)
         return current
-    
+
     def retry_on_action(self, action: Callable, reset_action: Callable | None = None, attempt=3):
         result = None
         count = 0
+
+        sig = inspect.signature(action)
+        params = sig.parameters
+        has_count_param = "count" in params or any(
+            p.kind == inspect.Parameter.VAR_KEYWORD for p in params.values()
+        )
+        
         while not result and count <= attempt:
             count += 1
-            result = action()
+            if has_count_param:
+                result = action(count=count)  # 建议用关键字传参更安全
+            else:
+                result = action()
             if not result and reset_action is not None:
                 reset_action()
         return result
