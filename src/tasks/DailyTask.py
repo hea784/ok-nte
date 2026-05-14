@@ -20,6 +20,7 @@ class DailyTask(NTEOneTimeTask, BaseNTETask):
     CONF_COMPLETE_DAILY = "完成每日活跃度"
     CONF_CLAIM_ACTIVITY = "领取活跃度奖励"
     CONF_CLAIM_BP = "领取环期任务奖励"
+    CONF_CLAIM_COFFEE = "领取/补货一咖舍"
 
     CONF_AUTO_CYCLE_SUB_TASK = "自动循环项目"
     DAILY_STAMINA_TARGET = "目标消耗体力"
@@ -34,6 +35,7 @@ class DailyTask(NTEOneTimeTask, BaseNTETask):
         AnomalyTask.setup_config(self)
         self.default_config.update(
             {
+                self.CONF_CLAIM_COFFEE: False,
                 self.CONF_AUTO_CYCLE_SUB_TASK: False,
                 self.DAILY_STAMINA_TARGET: 180,
             }
@@ -63,6 +65,7 @@ class DailyTask(NTEOneTimeTask, BaseNTETask):
 
         tasks: List[Tuple[str, Callable]] = [
             (self.CONF_CLAIM_MAIL, self.claim_mail),
+            (self.CONF_CLAIM_COFFEE, self.claim_coffee),
             (self.CONF_COMPLETE_DAILY, self.complete_daily_activities),
             (self.CONF_CLAIM_ACTIVITY, self.claim_activity_rewards),
             (self.CONF_CLAIM_BP, self.claim_battle_pass_rewards),
@@ -259,4 +262,52 @@ class DailyTask(NTEOneTimeTask, BaseNTETask):
         self.sleep(1)
         self.operate_click(0.6934, 0.8229)
         self.sleep(1)
+        return True
+
+    def claim_coffee(self):
+        """领取一咖舍奖励"""
+
+        def action():
+            self.openF5panel()
+            self.sleep(1)
+            self.operate_click(0.415, 0.753)
+            self.sleep(0.5)
+            return self.wait_panel(Labels.f5_coffee_panel)
+
+        self.log_info("正在领取一咖舍奖励")
+        result = self.retry_on_action(action, self.ensure_main)
+        if not result:
+            self.log_error("无法找到一咖舍面板")
+            return False
+        self.sleep(1)
+
+        # 提取收益
+        self.operate_click(0.188, 0.877)
+        self.sleep(1)
+        self.wait_until(
+            lambda: self.find_one(Labels.f5_coffee_panel),
+            pre_action=lambda: self.operate_click(0.072, 0.886, interval=1),
+            time_out=10,
+            settle_time=0.5,
+        )
+        self.sleep(1)
+
+        # 进入补货
+        
+        self.wait_until(
+            lambda: not self.find_one(Labels.f5_coffee_panel),
+            pre_action=lambda: self.operate_click(0.115, 0.530, interval=1),
+            time_out=10,
+            settle_time=0.5,
+        )
+        self.sleep(1)
+
+        # 补货
+        self.operate_click(0.340, 0.785)  # 24hr
+        self.sleep(1)
+        self.operate_click(0.717, 0.787)  # 补货
+        self.sleep(1)
+        self.operate_click(0.595, 0.776)  # 送货上门
+        self.sleep(1)
+        self.operate_click(0.600, 0.656)  # 确认
         return True

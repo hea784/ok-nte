@@ -148,10 +148,12 @@ class BaseChar:
             time_out = self.INTRO_MOTION_FREEZE_DURATION
 
         if self.has_intro:
+            self.logger.info(f"wait intro {time_out}s")
             if click:
                 self.continues_normal_attack(time_out)
             else:
                 self.sleep(time_out)
+            self.logger.info("wait intro end")
 
     def click_with_interval(self, interval=0.1):
         """以指定间隔执行点击操作。
@@ -324,7 +326,7 @@ class BaseChar:
             return "released" if result["clicked"] else "unavailable"
         return "continue"
 
-    def click_ultimate(self, send_click=False, wait_if_cd_ready=0.1):
+    def click_ultimate(self, send_click=True, wait_if_cd_ready=0.1):
         """尝试释放终结技。
 
         Args:

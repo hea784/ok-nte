@@ -116,9 +116,27 @@
         },
         {
             "id": 20,
-            "file_name": "images/3.png",
+            "file_name": "images/5.png",
             "width": 1920,
             "height": 1080
+        },
+        {
+            "id": 21,
+            "file_name": "images/3.png",
+            "width": 2560,
+            "height": 1440
+        },
+        {
+            "id": 22,
+            "file_name": "images/4.png",
+            "width": 2560,
+            "height": 1440
+        },
+        {
+            "id": 23,
+            "file_name": "images/2.png",
+            "width": 2560,
+            "height": 1440
         }
     ],
     "annotations": [
@@ -680,6 +698,45 @@
             ],
             "area": 2160,
             "iscrowd": 0
+        },
+        {
+            "id": 44,
+            "image_id": 22,
+            "category_id": 44,
+            "bbox": [
+                30,
+                35,
+                69,
+                61
+            ],
+            "area": 4209,
+            "iscrowd": 0
+        },
+        {
+            "id": 45,
+            "image_id": 21,
+            "category_id": 45,
+            "bbox": [
+                45,
+                50,
+                66,
+                64
+            ],
+            "area": 4224,
+            "iscrowd": 0
+        },
+        {
+            "id": 46,
+            "image_id": 23,
+            "category_id": 47,
+            "bbox": [
+                2467,
+                36,
+                48,
+                49
+            ],
+            "area": 2352,
+            "iscrowd": 0
         }
     ],
     "categories": [
@@ -896,6 +953,21 @@
         {
             "id": 43,
             "name": "launcher_start_game",
+            "supercategory": ""
+        },
+        {
+            "id": 44,
+            "name": "f5_coffee_panel",
+            "supercategory": ""
+        },
+        {
+            "id": 45,
+            "name": "f5_panel",
+            "supercategory": ""
+        },
+        {
+            "id": 47,
+            "name": "login_setting",
             "supercategory": ""
         }
     ]

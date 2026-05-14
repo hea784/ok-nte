@@ -129,11 +129,15 @@ class Hotori(BaseChar):
 
     def _wait_ultimate_unfreeze(self, start):
         self.logger.debug("waiting for time unfrozen")
-        self.task.wait_until(
-            lambda: not self.available("ultimate"),
-            time_out=13,
-            post_action=self.click_with_interval,
-        )
-        duration = time.time() - start - 0.1
-        self.add_freeze_duration(start, duration)
+        self.task.in_animation = False
+        try:
+            self.task.wait_until(
+                lambda: not self.available("ultimate"),
+                time_out=13,
+                post_action=self.click_with_interval,
+                pre_action=self.check_combat
+            )
+        finally:
+            duration = time.time() - start - 0.1
+            self.add_freeze_duration(start, duration)
         return duration

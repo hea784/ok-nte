@@ -583,7 +583,10 @@ class CombatCheck(BaseNTETask):
             ):
                 iou = self._match_contour_iou(self._lv_norm_L, cnt, x, y, w, h)
                 if (self._lv_aspect_L * 0.6 < aspect_ratio < self._lv_aspect_L * 1.5) and iou > 0.5:
-                    L_candidates.append({"x": x, "y": y, "w": w, "h": h, "score": iou})
+                    area = cv2.countNonZero(binary[y : y + h, x : x + w])
+                    L_candidates.append(
+                        {"x": x, "y": y, "w": w, "h": h, "score": iou, "area": area}
+                    )
 
             # 匹配 v
             elif (
@@ -593,7 +596,10 @@ class CombatCheck(BaseNTETask):
             ):
                 iou = self._match_contour_iou(self._lv_norm_v, cnt, x, y, w, h)
                 if (self._lv_aspect_v * 0.6 < aspect_ratio < self._lv_aspect_v * 1.5) and iou > 0.5:
-                    v_candidates.append({"x": x, "y": y, "w": w, "h": h, "score": iou})
+                    area = cv2.countNonZero(binary[y : y + h, x : x + w])
+                    v_candidates.append(
+                        {"x": x, "y": y, "w": w, "h": h, "score": iou, "area": area}
+                    )
 
         results: list[Box] = []
         for L in L_candidates:
@@ -619,6 +625,11 @@ class CombatCheck(BaseNTETask):
                 box_w = (best_v["x"] + best_v["w"]) - L["x"]
                 box_h = max(L["y"] + L["h"], best_v["y"] + best_v["h"]) - box_y
 
+                pair_crop = binary[box_y : box_y + box_h, box_x : box_x + box_w]
+                pair_area = cv2.countNonZero(pair_crop)
+                if pair_area <= 0 or (L["area"] + best_v["area"]) / pair_area < 0.82:
+                    continue
+
                 results.append(
                     Box(
                         x=int(box.x + box_x),
@@ -631,6 +642,7 @@ class CombatCheck(BaseNTETask):
                 )
         if results:
             self.draw_boxes(Labels.lv, results, color="red")
+            # self.screenshot("lv", frame, True)
         return results
 
     def _extract_shape_fingerprint(self, cnt, x, y, w, h):

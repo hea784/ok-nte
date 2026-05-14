@@ -666,14 +666,19 @@ class BaseNTETask(BaseTask):
             raise CannotFindException("can't find panel, make sure f2 is the hotkey for panel")
         self.sleep(0.5)
         return result
+    
+    def openF5panel(self):
+        if hasattr(self, "reset_to_false"):
+            self.reset_to_false("opening f5 panel")
+        if self.in_team_and_world():
+            self.send_key("f5", after_sleep=1)
+            self.log_info("send f5 key to open the panel")
 
-    def wait_panel(self, feature, box=None, threshold=0.8, time_out=4.5):
-        result = self.wait_until(
-            lambda: self.find_one(feature, box=box, threshold=threshold),
-            time_out=time_out,
-            settle_time=0.5,
-        )
-        logger.info(f"found {feature} {result}")
+        result = self.wait_panel(Labels.f5_panel)
+        if not result:
+            self.log_error("can't find panel, make sure f5 is the hotkey for panel", notify=True)
+            raise CannotFindException("can't find panel, make sure f5 is the hotkey for panel")
+        self.sleep(0.5)
         return result
 
     def openESCpanel(self):
@@ -688,6 +693,15 @@ class BaseNTETask(BaseTask):
             self.log_error("can't find panel, make sure esc is the hotkey for panel", notify=True)
             raise CannotFindException("can't find panel, make sure esc is the hotkey for panel")
         self.sleep(0.5)
+        return result
+
+    def wait_panel(self, feature, box=None, threshold=0.8, time_out=4.5):
+        result = self.wait_until(
+            lambda: self.find_one(feature, box=box, threshold=threshold),
+            time_out=time_out,
+            settle_time=0.5,
+        )
+        logger.info(f"found {feature} {result}")
         return result
 
     def ensure_main(self, esc=True, time_out=30):
@@ -801,10 +815,8 @@ class BaseNTETask(BaseTask):
             #         self.log_info(f"点击开始游戏! {start}")
             #         return False
 
-            if app_version := self.find_boxes(
-                texts, match=re.compile(r"pp:[\d\.-]+", re.IGNORECASE)
-            ):
-                self.log_info(f"wait_login {app_version}")
+            if self.find_one(Labels.login_setting):
+                self.log_info("found login_setting, bring_to_front and click")
                 if not self.hwnd.is_foreground():
                     self.bring_to_front()
                     self.sleep(3)
