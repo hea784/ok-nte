@@ -14,7 +14,8 @@ from typing import Optional, cast
 import librosa
 import numpy as np
 import soundcard as sc
-from ok import Logger
+from ok import Logger, og
+from ok.gui.Communicate import communicate
 from scipy.signal import butter, correlate, filtfilt
 from sklearn.preprocessing import scale
 
@@ -63,6 +64,7 @@ class SoundListener:
 
         self.on_dodge_triggered = None
         self.on_counter_triggered = None
+        self._fallback_notification_started = False
 
         self._load_samples()
 
@@ -157,7 +159,24 @@ class SoundListener:
                     logger.info(f"Default speaker: {default_speaker_name}")
                     current_speaker_name = default_speaker_name
 
-                loopback = sc.get_microphone(id=default_speaker_name, include_loopback=True)
+                loopback = self._get_loopback_microphone(default_speaker)
+                if loopback is None:
+                    logger.warning(
+                        "No strict loopback device found for default speaker, "
+                        "falling back to soundcard fuzzy matching: "
+                        f"{default_speaker_name}"
+                    )
+                    try:
+                        loopback = sc.get_microphone(
+                            id=default_speaker_name,
+                            include_loopback=True,
+                        )
+                    except Exception as e:
+                        logger.warning(f"Fallback audio device lookup failed: {e}")
+                        time.sleep(1.0)
+                        continue
+                    self._notify_loopback_fallback(default_speaker_name, str(loopback.name))
+
                 logger.info(f"Using loopback device: {loopback.name}")
 
                 audio_instance = loopback.recorder(
@@ -251,6 +270,115 @@ class SoundListener:
         finally:
             self._running = False
             logger.info("Audio listener stopped")
+
+    @staticmethod
+    def _get_loopback_microphone(speaker):
+        speaker_id = getattr(speaker, "id", None)
+        speaker_name = str(getattr(speaker, "name", ""))
+
+        loopbacks = [
+            microphone
+            for microphone in sc.all_microphones(include_loopback=True)
+            if getattr(microphone, "isloopback", False)
+        ]
+
+        for microphone in loopbacks:
+            if getattr(microphone, "id", None) == speaker_id:
+                return microphone
+
+        for microphone in loopbacks:
+            if str(getattr(microphone, "name", "")) == speaker_name:
+                return microphone
+
+        normalized_speaker_name = SoundListener._normalize_device_name(speaker_name)
+        for microphone in loopbacks:
+            normalized_microphone_name = SoundListener._normalize_device_name(
+                str(getattr(microphone, "name", ""))
+            )
+            if (
+                normalized_speaker_name
+                and (
+                    normalized_speaker_name in normalized_microphone_name
+                    or normalized_microphone_name in normalized_speaker_name
+                )
+            ):
+                return microphone
+
+        return None
+
+    @staticmethod
+    def _normalize_device_name(device_name: str) -> str:
+        normalized_name = device_name.casefold().strip()
+        for prefix in ("monitor of ",):
+            if normalized_name.startswith(prefix):
+                normalized_name = normalized_name[len(prefix) :]
+        return normalized_name
+
+    def _notify_loopback_fallback(self, speaker_name: str, fallback_name: str):
+        if self._fallback_notification_started:
+            return
+
+        self._fallback_notification_started = True
+        logger.warning(
+            "Sound listener fallback notification queued. speaker={}, fallback={}".format(
+                speaker_name,
+                fallback_name,
+            )
+        )
+
+        def notify_when_ready():
+            while self._running:
+                if self._is_notification_connected():
+                    try:
+                        message = self._loopback_fallback_notification_message()
+                        logger.warning(message)
+                        communicate.notification.emit(message, None, False, True, None, None)
+                    except Exception as e:
+                        logger.warning(f"Failed to show sound listener fallback notification: {e}")
+                    return
+                time.sleep(0.5)
+
+        threading.Thread(target=notify_when_ready, daemon=True).start()
+
+    @staticmethod
+    def _is_notification_connected() -> bool:
+        try:
+            return (
+                communicate.receivers(
+                    "2notification(QString,QString,bool,bool,QString,PyObject)"
+                )
+                > 0
+            )
+        except Exception as e:
+            logger.warning(f"Failed to check notification receivers: {e}")
+            return False
+
+    @staticmethod
+    def _loopback_fallback_notification_message() -> str:
+        locale_name = SoundListener._locale_name()
+        if locale_name.startswith("zh_"):
+            return (
+                "声音监听未找到严格匹配的系统声音回环设备，已使用兼容模式监听。"
+                "如果你使用蓝牙耳机并发现音质变差，请在 Windows 声音设置中选择 "
+                "Stereo/Headphones 输出，避免使用 Hands-Free/AG Audio。"
+            )
+        return (
+            "Sound listening could not find a strictly matched system audio loopback device, "
+            "so compatibility mode is being used. If Bluetooth headset audio quality drops, "
+            "select the Stereo/Headphones output in Windows sound settings and avoid "
+            "Hands-Free/AG Audio."
+        )
+
+    @staticmethod
+    def _locale_name() -> str:
+        app = getattr(og, "app", None)
+        locale = getattr(app, "locale", None) if app is not None else None
+        if locale is not None:
+            try:
+                return locale.name()
+            except Exception as e:
+                logger.warning(f"Failed to get app locale: {e}")
+        return "en_US"
 
     def _check_triggers(self, dodge_score, counter_score):
         now = time.time()

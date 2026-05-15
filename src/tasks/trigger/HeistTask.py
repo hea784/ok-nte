@@ -163,7 +163,7 @@ class HeistTask(BaseNTETask, TriggerTask):
                 self._quick_run_index = 0
                 self._quick_run_time = 0
                 self._quick_run_step = 0
-                self.send_key_up("shift")
+                self.send_key_up("lshift")
             else:
                 return
 
@@ -194,11 +194,11 @@ class HeistTask(BaseNTETask, TriggerTask):
             self._quick_run_step = 1
             self._quick_run_time = now
         elif self._quick_run_step == 1:
-            self.send_key("shift")
+            self.send_key("lshift")
             self._quick_run_step = 2
             self._quick_run_time = now + self.QUICK_RUN_SHIFT_INTERVAL
         else:
-            self.send_key("shift")
+            self.send_key("lshift")
             self._quick_run_step = 0
             self._quick_run_time = now + self.QUICK_RUN_SHIFT_AFTER_SLEEP
 

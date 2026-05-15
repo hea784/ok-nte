@@ -398,6 +398,8 @@ class BaseChar:
                 )
             self.task.next_frame()
 
+        self.task.next_frame()
+
         duration = self._wait_ultimate_unfreeze(start)
         self.task.in_animation = False
         self._ultimate_available = False
@@ -420,16 +422,23 @@ class BaseChar:
         box_ultimate = self.task.get_box_by_name(Labels.box_ultimate)
         snapshot = box_ultimate.crop_frame(self.task.frame)
         processed_snapshot = gf.isolate_cd_to_black(snapshot)
+
+        def condition():
+            if not self.task.find_one(
+                Labels.box_ultimate,
+                template=processed_snapshot,
+                box=box_ultimate,
+                frame_processor=gf.isolate_cd_to_black,
+                threshold=0.7,
+            ):
+                self.logger.info("ultimate unfreeze cause cd changed")
+                return True
+            elif not self.available("ultimate", check_cd=False):
+                self.logger.info("ultimate unfreeze cause ultimate not available")
+                return True
+
         self.task.wait_until(
-            lambda: (
-                not self.task.find_one(
-                    template=processed_snapshot,
-                    box=box_ultimate,
-                    frame_processor=gf.isolate_cd_to_black,
-                    threshold=0.7,
-                )
-                or not self.available("ultimate", check_cd=False)
-            ),
+            condition,
             time_out=10,
             post_action=self.click_with_interval,
         )
@@ -474,7 +483,9 @@ class BaseChar:
         if result["timed_out"] and time_out == 0:
             self.alert_skill_failed()
         clicked, duration, animated = self._finish_skill_action(result, post_sleep, has_animation)
-        self.logger.debug(f"click_skill end clicked {clicked} duration {duration} animated {animated}")
+        self.logger.debug(
+            f"click_skill end clicked {clicked} duration {duration} animated {animated}"
+        )
         return clicked, duration, animated
 
     def _finish_skill_action(self, result, post_sleep=0, has_animation=False):

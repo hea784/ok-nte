@@ -1,3 +1,4 @@
+import re
 from datetime import datetime
 from typing import Callable, List, Tuple
 
@@ -177,6 +178,10 @@ class DailyTask(NTEOneTimeTask, BaseNTETask):
     def complete_daily_activities(self):
         """执行操作完成每日活跃度"""
         self.log_info("正在执行每日活跃度任务")
+        if self.check_activity():
+            self.log_info("当前体力消耗或每日活跃度已达标，跳过每日活跃度任务")
+            return True
+
         task: AnomalyTask = self.get_task_by_class(AnomalyTask)
         ret = task.do_run(
             self.config, stamina_target=self.config.get(self.DAILY_STAMINA_TARGET, 180)
@@ -203,19 +208,53 @@ class DailyTask(NTEOneTimeTask, BaseNTETask):
                         self.config[conf_key] = int(next_idx + 1)  # type: ignore
             self.sync_config()
 
-    def claim_activity_rewards(self):
-        """领取活跃度奖励"""
-
+    def _open_activity(self):
         def action():
             self.openF1panel()
             self.operate_click(0.0551, 0.3833)
             self.sleep(0.5)
             return self.wait_panel(Labels.f1_activity_panel)
 
-        self.log_info("正在领取活跃度奖励")
+        self.log_info("开启活跃度面板")
         result = self.retry_on_action(action, self.ensure_main)
         if not result:
             self.log_error("无法找到活跃度面板")
+            return False
+        return True
+    
+    def check_activity(self):
+        if not self._open_activity():
+            return False
+        activity_re = re.compile(r"(\d+)")
+        mission_re = re.compile(r'^(\d+)/180$')
+        used_stamina = 0
+        daily_activity = 0
+
+        mission_box = self.box_of_screen(0.197, 0.657, 0.779, 0.707, name="mission", hcenter=True)
+        activity_box = self.box_of_screen(0.184, 0.188, 0.256, 0.255, name="activity", hcenter=True)
+
+        activity = self.ocr(box=activity_box, match=activity_re)
+        mission = self.ocr(box=mission_box, match=mission_re)
+        
+        if mission:
+            match = mission_re.search(mission[0].name)
+            if match:
+                used_stamina = int(match.group(1))
+
+        if activity:
+            match = activity_re.search(activity[0].name)
+            if match:
+                daily_activity = int(match.group(1))
+
+        self.info_set('used stamina', used_stamina)
+        self.info_set('daily activity', daily_activity)
+
+        return used_stamina >= 180 or daily_activity >= 100
+
+    def claim_activity_rewards(self, in_panel=False):
+        """领取活跃度奖励"""
+        self.log_info("正在领取活跃度奖励")
+        if not in_panel and not self._open_activity():
             return False
         if self.find_one(Labels.f1_activity_mission):
             self.operate_click(0.2348, 0.7653)
