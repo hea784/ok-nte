@@ -153,15 +153,23 @@ class BaseNTETask(BaseTask):
     # fmt: off
     @overload
     def operate_click(self, x: int | Box | List[Box] = -1, y=-1, move_back=False, name=None,
-                       interval=-1, down_time=0.02, key='left',
+                       interval=-1, down_time=0.02, after_sleep=0, key='left',
                        hcenter=False, vcenter=False, action_name=None) -> Any:
         ...
     # fmt: on
 
     def operate_click(self, *args, **kwargs):
+        action_name = kwargs.get("action_name", args[10] if len(args) > 10 else "operate_click")
+        interval = kwargs.get("interval", args[4] if len(args) > 4 else 0.1)
+        after_sleep = kwargs.get("after_sleep", args[6] if len(args) > 6 else 0)
+        if not self.check_action_interval(action_name, interval):
+            return False
+        kwargs["interval"] = -1
         kwargs["move"] = True
         kwargs["after_sleep"] = 0
-        return self.operate(lambda: self.click(*args, **kwargs), block=True)
+        result = self.operate(lambda: self.click(*args, **kwargs), block=True)
+        self.sleep(after_sleep)
+        return result
 
     # fmt: off
     @overload
@@ -287,67 +295,75 @@ class BaseNTETask(BaseTask):
         return box.copy(y_offset=index * self.char_vertical_spacing, name=f"{box.name}_{index}")
 
     def _get_char_template_data(self):
-        """延迟加载并缓存模板掩码和覆盖面积"""
+        """延迟加载并缓存当前角色模板特征"""
         if (
             not hasattr(self, "_char_template_cache")
             or self._char_template_cache.get("width") != self.width
             or self._char_template_cache.get("height") != self.height
         ):
             feature = self.get_feature_by_name(Labels.is_current_char)
-            mat = feature.mat  # 原始二值化模板
-            white_pixels = cv2.countNonZero(mat)
-
-            # 仍然保留膨胀掩码用于过滤
-            kernel = np.ones((5, 5), np.uint8)
-            mask = cv2.dilate(feature.mat, kernel, iterations=1)
-
+            mat = feature.mat
+            if len(mat.shape) == 3 and mat.shape[2] != 2:
+                mat = gf.current_char_filter(mat)
             self._char_template_cache = {
                 "width": self.width,
                 "height": self.height,
                 "mat": mat,
-                "mask": mask,
-                "white_pixels": white_pixels,
             }
 
-        cache = self._char_template_cache
-        return cache["mat"], cache["mask"], cache["white_pixels"]
+        return self._char_template_cache["mat"]
 
-    def get_char_match_score(self, index, frame=None):
-        """获取指定位置的匹配得分（基于模板匹配），分值越小越匹配"""
-        template_mat, _, template_white_count = self._get_char_template_data()
-        if template_white_count == 0:
+    def _match_current_char_feature(self, current_mat, template_mat):
+        th, tw = template_mat.shape[:2]
+        ch, cw = current_mat.shape[:2]
+        if ch < th or cw < tw:
             return 1.0
+
+        result = cv2.matchTemplate(current_mat, template_mat, cv2.TM_CCOEFF_NORMED)
+        _, max_val, _, _ = cv2.minMaxLoc(result)
+        if np.isnan(max_val):
+            return 1.0
+        return 1.0 - max_val
+
+    def _get_char_match_scores(self, frame=None):
+        """一次计算四个槽位的当前角色匹配分数，分值越小越匹配"""
         if frame is None:
             frame = self.frame
 
+        template_mat = self._get_char_template_data()
         base_box = self.get_box_by_name(Labels.is_current_char)
         base_box = self.shift_char_ui_box(base_box, expend=True)
-        box = self.get_box_by_char_spacing(base_box, index)
-        # self.draw_boxes(boxes=box, color="blue")
+        raw_scores = []
+        boxes = []
 
-        current_mat = gf.current_char_filter(box.crop_frame(frame))
+        for i in range(4):
+            box = self.get_box_by_char_spacing(base_box, i)
+            boxes.append(box)
+            current_mat = gf.current_char_filter(box.crop_frame(frame))
+            raw_scores.append(self._match_current_char_feature(current_mat, template_mat))
 
-        # 全白检测：过滤后近乎全白说明不是有效弧形，直接排除
-        total_pixels = current_mat.shape[0] * current_mat.shape[1]
-        if total_pixels > 0 and cv2.countNonZero(current_mat) / total_pixels > 0.5:
-            return 1.0
-        # iu.show_images([template_mat, current_mat], ["template", f"index_{index}"])
+        scores = raw_scores[:]
+        best_idx = int(np.argmin(raw_scores))
+        ordered_scores = sorted(raw_scores)
+        best_score = ordered_scores[0]
+        second_score = ordered_scores[1] if len(ordered_scores) > 1 else 1.0
+        margin = second_score - best_score
 
-        # 滑动覆盖率匹配（允许 current_mat 尺寸 >= template_mat）
-        # TM_CCORR 在二值图上 = 255*255 * 重叠白像素数，等价于原 bitwise_and 覆盖率但支持滑动
-        th, tw = template_mat.shape[:2]
-        ch, cw = current_mat.shape[:2]
-        if ch >= th and cw >= tw:
-            result = cv2.matchTemplate(current_mat, template_mat, cv2.TM_CCORR)
-            _, max_val, _, _ = cv2.minMaxLoc(result)
-            coverage = max_val / (template_white_count * 255 * 255)
-            return 1.0 - coverage
+        # 当前角色在队伍 UI 中只会有一个。绝对分数会随光照/背景浮动，所以当第一名
+        # 明显优于第二名时使用相对证据：压低第一名，抬高其余槽位，避免单槽误判。
+        if best_score <= 0.85 and margin >= 0.06:
+            for i, score in enumerate(scores):
+                if i == best_idx:
+                    scores[i] = min(score, 0.45)
+                else:
+                    scores[i] = max(score, 0.75)
 
-        return 1.0
+        self.draw_boxes(boxes=boxes[best_idx], color="red")
+        return scores
 
     def is_char_at_index(self, index, threshold=0.5, frame=None):
         """判断指定索引是否为当前角色"""
-        score = self.get_char_match_score(index, frame=frame)
+        score = self._get_char_match_scores(frame=frame)[index]
         new = f"idx {index} conf {score:.3f}"
         if self.info_get("current char") != new:
             self.info_set("current char", new)
@@ -356,14 +372,9 @@ class BaseNTETask(BaseTask):
 
     def get_current_char_index(self):
         """扫描所有槽位，返回匹配度最高的索引"""
-        best_score = 999
-        best_idx = -1
-
-        for i in range(4):
-            score = self.get_char_match_score(i)
-            if score < best_score:
-                best_score = score
-                best_idx = i
+        scores = self._get_char_match_scores()
+        best_idx = int(np.argmin(scores))
+        best_score = scores[best_idx]
 
         if best_idx != -1:
             self.log_debug(f"current_char found at {best_idx} with score {best_score:.4f}")

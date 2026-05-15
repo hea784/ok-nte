@@ -40,5 +40,8 @@ def isolate_dialog_to_white(cv_image):
 
 
 def current_char_filter(cv_image):
-    hsv = iu.HSVRange((150, 180, 120), (179, 225, 255))
-    return iu.filter_by_hsv(cv_image, hsv, return_mask=True)
+    lab = cv2.cvtColor(cv_image, cv2.COLOR_BGR2Lab)
+    # Use Lab opponent-color channels instead of HSV thresholds.  The current
+    # character arc can become pale under lighting, while its a/b relationship
+    # stays closer to the template than similar bright backgrounds do.
+    return lab[:, :, 1:3]

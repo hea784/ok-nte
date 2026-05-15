@@ -145,6 +145,12 @@ class LauncherTask(BaseNTETask):
         start_click_pending = False
         while time.time() < deadline:
             loop_start = time.time()
+            if self._find_process(GAME_EXE):
+                self.log_info(
+                    "Game process appeared while checking launcher; treating launch as successful"
+                )
+                return True
+            
             if self._is_launcher_minimized():
                 self.log_info("Launcher window is minimized; Start Game click succeeded")
                 return True
@@ -268,8 +274,17 @@ class LauncherTask(BaseNTETask):
         launcher_proc = self._find_process(LAUNCHER_EXE)
         if not launcher_proc:
             return False
-        launcher_hwnd = self._find_window_for_process(launcher_proc)
-        return bool(launcher_hwnd and win32gui.IsIconic(launcher_hwnd))
+        launcher_hwnd = self._find_window_for_process(
+            launcher_proc,
+            hwnd_class=LAUNCHER_CAPTURE_CONFIG["windows"]["hwnd_class"],
+            require_title=True,
+        )
+        if not launcher_hwnd:
+            return False
+        return bool(
+            win32gui.IsIconic(launcher_hwnd)
+            or not win32gui.IsWindowVisible(launcher_hwnd)
+        )
 
     def _wait_for_game_and_capture(self, time_out=600):
         self.log_info(f"Waiting for game process for up to {time_out}s")
@@ -374,7 +389,7 @@ class LauncherTask(BaseNTETask):
                 continue
         return None
 
-    def _find_window_for_process(self, proc_info):
+    def _find_window_for_process(self, proc_info, hwnd_class=None, require_title=False):
         pid = proc_info.get("pid")
         if not pid:
             return 0
@@ -388,8 +403,14 @@ class LauncherTask(BaseNTETask):
                 _, window_pid = win32process.GetWindowThreadProcessId(hwnd)
             except Exception:
                 return True
-            if window_pid == pid:
-                matches.append(hwnd)
+            if window_pid != pid:
+                return True
+            if hwnd_class and win32gui.GetClassName(hwnd) != hwnd_class:
+                return True
+            if require_title and not win32gui.GetWindowText(hwnd):
+                return True
+
+            matches.append(hwnd)
             return True
 
         win32gui.EnumWindows(callback, None)

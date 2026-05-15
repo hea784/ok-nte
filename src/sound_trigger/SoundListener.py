@@ -9,7 +9,7 @@
 import threading
 import time
 import warnings
-from typing import Optional
+from typing import Optional, cast
 
 import librosa
 import numpy as np
@@ -68,8 +68,15 @@ class SoundListener:
 
     def _load_samples(self):
         try:
-            self._b, self._a = butter(
-                self.degree, self.cut_off, btype="highpass", output="ba", fs=self.used_sr
+            self._b, self._a = cast(
+                tuple[np.ndarray, np.ndarray],
+                butter(
+                    self.degree,
+                    self.cut_off,
+                    btype="highpass",
+                    output="ba",
+                    fs=self.used_sr,
+                ),
             )
 
             self._sample_waveform = self._load_and_cache(self.sample_path)
@@ -140,80 +147,105 @@ class SoundListener:
         try:
             logger.info("Initializing audio loopback device...")
 
-            default_speaker = sc.default_speaker()
-            logger.info(f"Default speaker: {default_speaker.name}")
-
-            loopback = sc.get_microphone(id=str(default_speaker.name), include_loopback=True)
-            logger.info(f"Using loopback device: {loopback.name}")
-
-            audio_instance = loopback.recorder(samplerate=self.used_sr, channels=self.used_channel)
-
             check_count = 0
-            with audio_instance as audio_recorder:
-                logger.info("Audio recording started, monitoring for triggers...")
+            current_speaker_name = None
 
-                max_samples = int(self.used_sr * self.sample_len)
-                chunks_per_interval = int(self.used_sr * self.detection_interval / self.chunk_size)
-                new_samples_per_interval = chunks_per_interval * self.chunk_size
+            while self._running:
+                default_speaker = sc.default_speaker()
+                default_speaker_name = str(default_speaker.name)
+                if default_speaker_name != current_speaker_name:
+                    logger.info(f"Default speaker: {default_speaker_name}")
+                    current_speaker_name = default_speaker_name
 
-                ring_buffer = np.zeros(max_samples * 2, dtype=np.float64)
-                buffer_pos = 0
-                total_written = 0
+                loopback = sc.get_microphone(id=default_speaker_name, include_loopback=True)
+                logger.info(f"Using loopback device: {loopback.name}")
 
-                while self._running:
-                    current_frame = np.empty(new_samples_per_interval, dtype=np.float64)
-                    idx = 0
-                    for _ in range(chunks_per_interval):
-                        stream_data = audio_recorder.record(numframes=self.chunk_size)
-                        read_chunks = librosa.to_mono(stream_data.T)
-                        current_frame[idx : idx + self.chunk_size] = read_chunks
-                        idx += self.chunk_size
+                audio_instance = loopback.recorder(
+                    samplerate=self.used_sr,
+                    channels=self.used_channel,
+                )
 
-                    end_pos = buffer_pos + new_samples_per_interval
-                    if end_pos <= max_samples * 2:
-                        ring_buffer[buffer_pos:end_pos] = current_frame
-                    else:
-                        first_part = max_samples * 2 - buffer_pos
-                        ring_buffer[buffer_pos:] = current_frame[:first_part]
-                        ring_buffer[: end_pos - max_samples * 2] = current_frame[first_part:]
+                with audio_instance as audio_recorder:
+                    logger.info("Audio recording started, monitoring for triggers...")
 
-                    buffer_pos = end_pos % (max_samples * 2)
-                    total_written += new_samples_per_interval
+                    max_samples = int(self.used_sr * self.sample_len)
+                    chunks_per_interval = int(
+                        self.used_sr * self.detection_interval / self.chunk_size
+                    )
+                    new_samples_per_interval = chunks_per_interval * self.chunk_size
 
-                    if total_written >= max_samples:
-                        if buffer_pos >= max_samples:
-                            window = ring_buffer[buffer_pos - max_samples : buffer_pos]
-                        else:
-                            window = np.concatenate(
-                                [
-                                    ring_buffer[-(max_samples - buffer_pos) :],
-                                    ring_buffer[:buffer_pos],
-                                ]
-                            )
+                    ring_buffer = np.zeros(max_samples * 2, dtype=np.float64)
+                    buffer_pos = 0
+                    total_written = 0
 
-                        if self.is_computation_required and not self.is_computation_required():
-                            continue
-
-                        dodge_score = self.matching(window, self._sample_waveform)
-                        counter_score = 0.0
-                        if self._counter_sample_waveform is not None:
-                            counter_score = self.matching(window, self._counter_sample_waveform)
-
-                        self._check_triggers(dodge_score, counter_score)
-
-                        # self._draw_debug_visual(dodge_score, counter_score)
-
-                        check_count += 1
-                        if check_count % self.log_interval == 0:
+                    while self._running:
+                        next_speaker_name = str(sc.default_speaker().name)
+                        if next_speaker_name != current_speaker_name:
                             logger.info(
-                                "Audio monitoring - dodge_score: {:.4f} (threshold: {}), "
-                                "counter_score: {:.4f} (threshold: {})".format(
-                                    dodge_score,
-                                    self.threshold,
-                                    counter_score,
-                                    self.counter_attack_threshold,
+                                "Default speaker changed: {} -> {}, switching loopback device"
+                                .format(
+                                    current_speaker_name,
+                                    next_speaker_name,
                                 )
                             )
+                            break
+
+                        current_frame = np.empty(new_samples_per_interval, dtype=np.float64)
+                        idx = 0
+                        for _ in range(chunks_per_interval):
+                            stream_data = audio_recorder.record(numframes=self.chunk_size)
+                            read_chunks = librosa.to_mono(stream_data.T)
+                            current_frame[idx : idx + self.chunk_size] = read_chunks
+                            idx += self.chunk_size
+
+                        end_pos = buffer_pos + new_samples_per_interval
+                        if end_pos <= max_samples * 2:
+                            ring_buffer[buffer_pos:end_pos] = current_frame
+                        else:
+                            first_part = max_samples * 2 - buffer_pos
+                            ring_buffer[buffer_pos:] = current_frame[:first_part]
+                            ring_buffer[: end_pos - max_samples * 2] = current_frame[first_part:]
+
+                        buffer_pos = end_pos % (max_samples * 2)
+                        total_written += new_samples_per_interval
+
+                        if total_written >= max_samples:
+                            if buffer_pos >= max_samples:
+                                window = ring_buffer[buffer_pos - max_samples : buffer_pos]
+                            else:
+                                window = np.concatenate(
+                                    [
+                                        ring_buffer[-(max_samples - buffer_pos) :],
+                                        ring_buffer[:buffer_pos],
+                                    ]
+                                )
+
+                            if self.is_computation_required and not self.is_computation_required():
+                                continue
+
+                            dodge_score = self.matching(window, self._sample_waveform)
+                            counter_score = 0.0
+                            if self._counter_sample_waveform is not None:
+                                counter_score = self.matching(
+                                    window,
+                                    self._counter_sample_waveform,
+                                )
+
+                            self._check_triggers(dodge_score, counter_score)
+
+                            # self._draw_debug_visual(dodge_score, counter_score)
+
+                            check_count += 1
+                            if check_count % self.log_interval == 0:
+                                logger.info(
+                                    "Audio monitoring - dodge_score: {:.4f} (threshold: {}), "
+                                    "counter_score: {:.4f} (threshold: {})".format(
+                                        dodge_score,
+                                        self.threshold,
+                                        counter_score,
+                                        self.counter_attack_threshold,
+                                    )
+                                )
         except Exception as e:
             logger.error("Listener error", e)
         finally:

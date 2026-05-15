@@ -2,7 +2,7 @@ import time
 
 import cv2
 import numpy as np
-from ok import Box, TaskDisabledException
+from ok import TaskDisabledException, WaitFailedException
 from qfluentwidgets import FluentIcon
 
 from src import text_white_color
@@ -23,6 +23,17 @@ class FishingTask(NTEOneTimeTask, BaseNTETask):
     # --- 配置选项值 ---
     MODE_HOLD = "长按"
     MODE_TAP = "点按"
+
+    # --- 流程超时 ---
+    ENTER_SCENE_TIMEOUT = 5
+    CLOSE_OVERLAY_TIMEOUT = 20
+    READY_AFTER_OVERLAY_TIMEOUT = 5
+    FIRST_CAST_TIMEOUT = 7.5
+    RETRY_CAST_TIMEOUT = 10
+    BITE_TIMEOUT = 20
+    ENTER_CONTROL_TIMEOUT = 10
+    CONTROL_TIMEOUT = 30
+    STALLED_BAIT_SECONDS = 5
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -61,6 +72,7 @@ class FishingTask(NTEOneTimeTask, BaseNTETask):
         self._bar_active_key = None
         self._last_direction = None
         self._monthly_card_pause_time = 0.0
+        self._pending_stop_screenshot_reason = None
         self.sleep_check_interval = 1
         self.add_exit_after_config()
 
@@ -71,8 +83,39 @@ class FishingTask(NTEOneTimeTask, BaseNTETask):
         except TaskDisabledException:
             pass
         except Exception as e:
+            self.screenshot("fishing_unexpected_exception")
             self.log_error("FishingTask error", e)
             raise
+
+    def do_run(self):
+        self.reset_runtime_state()
+        self._publish_config_info()
+
+        if not self.ensure_fishing_ready():
+            self._stop_task("fishing_enter_scene_failed", "进入失败或未在钓鱼场景")
+
+        rounds = self._configured_rounds()
+        success_count = 0
+        failed_count = 0
+        self.log_info(f"开始自动钓鱼，共 {rounds} 轮")
+
+        for round_index in range(1, rounds + 1):
+            self._set_round_info(round_index, rounds, success_count, failed_count)
+            self.log_info(f"开始第 {round_index}/{rounds} 轮钓鱼")
+
+            if self.run_round(round_index):
+                success_count += 1
+                self.info_set("成功次数", f"{success_count}/{rounds}")
+            else:
+                failed_count += 1
+                self.info_set("失败次数", failed_count)
+                self.log_error(f"第 {round_index} 轮钓鱼失败")
+                self.reset_runtime_state()
+
+        self.info_set("当前阶段", "任务结束")
+        self.info_set("成功次数", f"{success_count}/{rounds}")
+        self.info_set("失败次数", failed_count)
+        self.log_info(f"自动钓鱼结束，成功 {success_count}/{rounds}", notify=True)
 
     def sleep_check(self):
         if self.should_check_monthly_card():
@@ -80,72 +123,54 @@ class FishingTask(NTEOneTimeTask, BaseNTETask):
             if self.handle_monthly_card():
                 self._monthly_card_pause_time += time.time() - start
 
-    def do_run(self):
-        self.reset_runtime_state()
-        if not self.enter_fishing_scene():
-            raise TaskDisabledException("进入失败或未在钓鱼场景")
-        rounds = max(1, int(self.config.get(self.CONF_ROUNDS, 1)))
-        self.log_info(f"开始自动钓鱼，共 {rounds} 轮")
-        success_count = 0
-        for index in range(rounds):
-            self.log_info(f"开始第 {index + 1}/{rounds} 轮钓鱼")
-            self.info_set("轮次", f"{index + 1}/{rounds}")
-            if self.run_once(index + 1):
-                success_count += 1
-            else:
-                self.log_error(f"第 {index + 1} 轮钓鱼失败")
-                # 失败后重置状态继续下一轮，避免“设置2轮只跑1轮”
-                self.reset_runtime_state()
-        self.info_set("Fishing Success Count", success_count)
-        self.log_info(f"自动钓鱼结束，成功 {success_count}/{rounds}", notify=True)
-
-    def run_once(self, round_index: int) -> bool:
+    def run_round(self, round_index: int) -> bool:
+        self._set_stage("准备抛竿")
         if not self.close_success_overlay():
-            self.screenshot("close_success_overlay_timeout")
-            raise TaskDisabledException("关闭成功界面失败")
+            self._stop_task("fishing_close_success_overlay_timeout", "关闭成功界面失败")
 
         if not self.cast_rod():
-            raise TaskDisabledException("未检测到进入抛竿状态")
+            self._stop_task("fishing_cast_timeout", "未检测到进入抛竿状态")
 
+        self._set_stage("等待咬钩")
         if not self.wait_bite():
-            self.screenshot(f"fishing_bite_timeout_{round_index}")
-            return False
+            return self._fail_round(round_index, "fishing_bite_timeout", "等待鱼儿咬钩超时")
 
-        return self.control_until_finish()
+        self._set_stage("自动控条")
+        if not self.control_until_finish():
+            return self._fail_round(
+                round_index, "fishing_control_failed", "控条阶段失败/超时或结算画面延迟"
+            )
 
-    def enter_fishing_scene(self) -> bool:
-        """检测并进入钓鱼准备界面"""
-        ENTER_SCENE_TIMEOUT = 5
+        self._set_stage("本轮完成")
+        return True
+
+    def ensure_fishing_ready(self) -> bool:
+        """确保任务已处于钓鱼准备界面。"""
         if self.is_fish_start_exist() or self.is_success_overlay():
             self.log_info("已在钓鱼准备界面")
             return True
 
-        if self.wait_until_pause_aware(
-            self.find_interac,
-            time_out=ENTER_SCENE_TIMEOUT,
-        ):
-            box = self.box_of_screen(0.9094, 0.8278, 0.9746, 0.9104)
-
-            # 尝试通过 F 交互打开面板
-            if not self.wait_until_pause_aware(
-                lambda: self.find_one(Labels.skip_quest_confirm, box=box) is not None,
+        self._set_stage("寻找钓鱼交互点")
+        if self._wait_for(self.find_interac, time_out=self.ENTER_SCENE_TIMEOUT):
+            entry_box = self.box_of_screen(0.9094, 0.8278, 0.9746, 0.9104)
+            opened = self._wait_for(
+                lambda: self.find_one(Labels.skip_quest_confirm, box=entry_box) is not None,
                 pre_action=lambda: self.send_key(
                     "f",
                     interval=1.5,
-                    action_name="enter_panel_f",
+                    action_name="enter_fishing_panel",
                 ),
-                time_out=ENTER_SCENE_TIMEOUT,
-            ):
+                time_out=self.ENTER_SCENE_TIMEOUT,
+            )
+            if not opened:
                 self.log_error("未检测到钓鱼面板入口")
                 return False
 
-            self.operate_click(box)
+            self.operate_click(entry_box)
             self.sleep(1.5)
 
-        if not self.wait_until_pause_aware(
-            self.is_fish_start_exist,
-            time_out=ENTER_SCENE_TIMEOUT,
-        ):
+        self._set_stage("等待钓鱼准备界面")
+        if not self._wait_for(self.is_fish_start_exist, time_out=self.ENTER_SCENE_TIMEOUT):
             self.log_error("进入钓鱼场景后未检测到可抛竿状态")
             return False
 
@@ -153,37 +178,29 @@ class FishingTask(NTEOneTimeTask, BaseNTETask):
         return True
 
     def cast_rod(self) -> bool:
-        """执行抛竿操作并等待进入等待状态"""
+        """执行抛竿；首次失败时按配置补饵卖鱼后重试。"""
         self.log_info("执行抛竿操作")
-        if self.wait_cast_rod(7.5):
+        if self.wait_cast_rod(self.FIRST_CAST_TIMEOUT):
             return True
 
         if not self.config.get(self.CONF_AUTO_BUY_BAIT, True):
             self.log_warning("首次抛竿超时，已关闭自动补饵卖鱼，结束任务")
             return self.cast_rod_failed()
 
-        self.log_warning("首次抛竿超时，切换默认鱼饵后重试")
-        if not self.change_to_default_bait():
+        self.log_warning("首次抛竿超时，开始补充默认鱼饵并出售鱼获")
+        if not self.ensure_default_bait_available():
             return self.cast_rod_failed()
-        self.sell_fish()
-        if self.wait_cast_rod(10):
+        if not self.sell_fish():
+            return self.cast_rod_failed("fishing_sell_fish_failed")
+
+        self._set_stage("补给后重新抛竿")
+        if self.wait_cast_rod(self.RETRY_CAST_TIMEOUT):
             return True
-
         return self.cast_rod_failed()
-
-    def cast_rod_failed(self) -> bool:
-        self.send_key("f")
-        frame = self.frame
-        self.screenshot("fishing_cast_timeout", frame=frame)
-        text = self.ocr(0.4090, 0.4778, 0.5914, 0.5188, frame=frame)
-        self.log_error("未检测到进入抛竿状态", notify=True)
-        if text:
-            self.log_warning(f"检测到文字: {text}")
-        return False
 
     def wait_cast_rod(self, time_out: float) -> bool:
         return bool(
-            self.wait_until_pause_aware(
+            self._wait_for(
                 self.is_cast_rod_done,
                 pre_action=lambda: self.send_key(
                     "f",
@@ -191,11 +208,21 @@ class FishingTask(NTEOneTimeTask, BaseNTETask):
                     action_name="cast_rod_f",
                 ),
                 post_action=lambda: self.close_success_overlay_once(
-                    "抛竿时检测到成功面板, 尝试关闭"
+                    "抛竿时检测到成功面板，尝试关闭"
                 ),
                 time_out=time_out,
             )
         )
+
+    def cast_rod_failed(self, reason="fishing_cast_timeout") -> bool:
+        self._pending_stop_screenshot_reason = reason
+        self.send_key("f")
+        frame = self.frame
+        text = self.ocr(0.4090, 0.4778, 0.5914, 0.5188, frame=frame)
+        self.log_error("未检测到进入抛竿状态", notify=True)
+        if text:
+            self.log_warning(f"检测到文字: {text}")
+        return False
 
     def is_cast_rod_done(self) -> bool:
         return (
@@ -205,38 +232,42 @@ class FishingTask(NTEOneTimeTask, BaseNTETask):
         )
 
     def wait_bite(self) -> bool:
-        """等待鱼儿咬钩"""
+        """等待鱼儿咬钩，并确认已进入溜鱼状态。"""
         self.log_info("等待鱼儿咬钩")
-        if self.wait_until_pause_aware(
+        bite_found = self._wait_for(
             self.is_fishing_bite,
             post_action=lambda: self.close_success_overlay_once(
-                "抛竿时检测到成功面板, 尝试关闭"
+                "等待咬钩时检测到成功面板，尝试关闭"
             ),
-            time_out=20,
-        ):
-            self.log_info("鱼儿咬钩")
-            if not self.wait_until_pause_aware(
-                lambda: not self.is_fish_start_exist(),
-                pre_action=lambda: self.send_key(
-                    "f",
-                    interval=2,
-                    action_name="bite_f",
-                ),
-                time_out=10,
-            ):
-                self.log_error("未检测到进入溜鱼状态")
-                return False
-            self.log_info("进入溜鱼状态")
-            return True
-        else:
+            time_out=self.BITE_TIMEOUT,
+        )
+        if not bite_found:
             self.log_error("等待鱼儿咬钩超时")
             return False
 
+        self.log_info("鱼儿咬钩")
+        self._set_stage("进入溜鱼状态")
+        entered_control = self._wait_for(
+            lambda: not self.is_fish_start_exist(),
+            pre_action=lambda: self.send_key(
+                "f",
+                interval=2,
+                action_name="bite_f",
+            ),
+            time_out=self.ENTER_CONTROL_TIMEOUT,
+        )
+        if not entered_control:
+            self.log_error("未检测到进入溜鱼状态")
+            return False
+
+        self.log_info("进入溜鱼状态")
+        return True
+
     def control_until_finish(self) -> bool:
-        """实时检测拉力条状态并自动控条直到钓鱼结束"""
+        """实时检测拉力条状态并自动控条直到钓鱼结束。"""
         start_check_time = time.time() + 1
-        deadline = time.time() + 30
-        failed_time = 0
+        deadline = time.time() + self.CONTROL_TIMEOUT
+        bait_visible_since = 0
         try:
             while time.time() < deadline:
                 state = self.detect_fishing_bar_state()
@@ -246,26 +277,32 @@ class FishingTask(NTEOneTimeTask, BaseNTETask):
                     self._clear_bar_key_if_hold_mode()
 
                 if time.time() > start_check_time:
-                    if self.is_fish_bait_exist():
-                        if failed_time == 0:
-                            failed_time = time.time()
-                    else:
-                        failed_time = 0
-
-                    if failed_time != 0 and time.time() - failed_time > 5:
-                        self.log_error("疑似脱钩或失败")
-                        return False
-
                     if self.is_success_overlay():
                         return True
+                    if self.is_fish_start_exist() and not self.is_fish_bait_exist():
+                        return True
+
+                    if self.is_fish_bait_exist():
+                        if bait_visible_since == 0:
+                            bait_visible_since = time.time()
+                    else:
+                        bait_visible_since = 0
+
+                    if (
+                        bait_visible_since
+                        and time.time() - bait_visible_since > self.STALLED_BAIT_SECONDS
+                    ):
+                        self.log_error("疑似脱钩/失败或结算画面延迟")
+                        return False
 
                 self.sleep(0.01)
                 pause_time = self.consume_monthly_card_pause_time()
                 if pause_time > 0:
                     deadline += pause_time
                     start_check_time += pause_time
-                    if failed_time != 0:
-                        failed_time += pause_time
+                    if bait_visible_since:
+                        bait_visible_since += pause_time
+
             self.log_error("控条阶段超时")
             return False
         finally:
@@ -279,12 +316,11 @@ class FishingTask(NTEOneTimeTask, BaseNTETask):
             self.apply_bar_control_hold(state)
 
     def apply_bar_control_hold(self, state: dict):
-        """长按模式 (默认)"""
+        """长按模式。"""
         now = time.time()
         pointer, zone_center, zone_width = self._bar_metrics(state)
         error = pointer - zone_center
         abs_error = abs(error)
-
         deadzone = max(2, int(zone_width * 0.08))
 
         if abs_error <= deadzone:
@@ -298,7 +334,7 @@ class FishingTask(NTEOneTimeTask, BaseNTETask):
         self._set_bar_key(key)
 
     def apply_bar_control_discrete(self, state: dict):
-        """点按模式"""
+        """点按模式。"""
         now = time.time()
         pointer, zone_center, zone_width = self._bar_metrics(state)
         dist_from_center = pointer - zone_center
@@ -315,19 +351,12 @@ class FishingTask(NTEOneTimeTask, BaseNTETask):
         curve = ratio * ratio * (3 - 2 * ratio)
         hold = 0.01 + curve * 0.18
 
-        # 方向变化削弱
         if key != self._last_direction:
             hold *= 0.6
-
         self._last_direction = key
 
-        # 倍率
         multiplier = float(self.config.get(self.CONF_TAP_MULTIPLIER, 1.0))
-        hold *= multiplier
-
-        # 限制
-        hold = min(0.2, max(0.01, hold))
-
+        hold = min(0.2, max(0.01, hold * multiplier))
         self.send_key(key, down_time=hold)
 
     def _set_bar_key(self, key):
@@ -366,7 +395,7 @@ class FishingTask(NTEOneTimeTask, BaseNTETask):
             return False
         if not (0 <= pointer_center < image_width):
             return False
-        # 过滤明显误检：绿区贴边且指针又远离，通常不是有效拉力条
+
         edge_zone = zone_left <= 1 or zone_right >= image_width - 2
         if edge_zone and abs(pointer_center - int((zone_left + zone_right) / 2)) > int(
             image_width * 0.38
@@ -377,42 +406,45 @@ class FishingTask(NTEOneTimeTask, BaseNTETask):
     def is_success_overlay(self) -> bool:
         return self.find_one(Labels.fising_sucess)
 
-    def close_success_overlay(self):
+    def close_success_overlay(self) -> bool:
         if self.is_success_overlay():
             self.log_info("检测到成功面板，尝试关闭")
         elif self.is_fish_start_exist():
             self.log_info("已在可抛竿状态")
             return True
 
-        if self.wait_until_pause_aware(
+        closed = self._wait_for(
             lambda: not self.is_success_overlay(),
             pre_action=self.close_success_overlay_once,
-            time_out=20,
-        ):
-            self.log_info("关闭成功面板")
-        else:
+            time_out=self.CLOSE_OVERLAY_TIMEOUT,
+        )
+        if not closed:
             self.log_error("关闭成功面板超时")
             return False
-        if self.wait_until_pause_aware(self.is_fish_start_exist, time_out=5):
-            self.log_info("进入可抛竿状态")
-            self.sleep(0.5)
-        else:
+
+        ready = self._wait_for(
+            self.is_fish_start_exist,
+            time_out=self.READY_AFTER_OVERLAY_TIMEOUT,
+        )
+        if not ready:
             self.log_error("未进入可抛竿状态")
             return False
+
+        self.log_info("进入可抛竿状态")
+        self.sleep(0.5)
         return True
 
     def close_success_overlay_once(self, log_message=None):
         if not self.is_success_overlay():
             return False
-        closed = self.do_close_success_overlay()
-        if not closed:
+        if not self.do_close_success_overlay():
             return False
         if log_message:
             self.log_info(log_message)
         return True
 
     def do_close_success_overlay(self):
-        """执行关闭成功面板的具体操作"""
+        """执行关闭成功面板的具体操作。"""
         if self.config.get(self.CONF_USE_ESC):
             return self.send_key(
                 "esc",
@@ -426,29 +458,241 @@ class FishingTask(NTEOneTimeTask, BaseNTETask):
             action_name="close_success_overlay",
         )
 
+    def ensure_default_bait_available(self) -> bool:
+        """打开鱼饵选择，必要时购买默认鱼饵。"""
+        self._set_stage("切换默认鱼饵")
+        if not self.wait_click_confirm(lambda: self.send_key("e", interval=2), "打开鱼饵选择"):
+            return False
+
+        interface = self._wait_for(
+            self.current_bait_interface,
+            time_out=10,
+            settle_time=0.5,
+        )
+        if interface == "fish_start":
+            self.log_info("默认鱼饵可用")
+            return True
+        if interface != "fish_shop":
+            self.log_error("未检测到鱼饵选择或购买界面")
+            return False
+
+        if not self.buy_default_bait():
+            return False
+
+        if not self.wait_click_confirm(
+            lambda: self.send_key("e", interval=2), "购买后确认默认鱼饵"
+        ):
+            return False
+
+        if not self._wait_for(self.is_fish_start_exist, time_out=5):
+            self.log_error("购买后未回到可抛竿状态")
+            return False
+        return True
+
+    def current_bait_interface(self):
+        if self.is_fish_start_exist():
+            return "fish_start"
+        if self.find_one(Labels.fish_shop):
+            return "fish_shop"
+        return None
+
+    def find_default_bait(self):
+        box = self.box_of_screen(0.025, 0.118, 0.344, 0.516)
+        return self.find_one(Labels.default_fish_bait, box=box, threshold=0.8)
+
+    def click_default_bait(self):
+        box = self.find_default_bait()
+        if box:
+            self.operate_click(box, interval=1)
+            return True
+        return False
+
+    def buy_default_bait(self) -> bool:
+        self._set_stage("购买默认鱼饵")
+
+        bait_selected = self._wait_for(
+            lambda: self.find_one(Labels.default_fish_bait_big),
+            pre_action=self.click_default_bait,
+            time_out=10,
+        )
+        if not bait_selected:
+            self.log_error("未找到默认鱼饵")
+            return False
+
+        self.sleep(0.25)
+
+        def buy_action():
+            self.operate_click(0.9520, 0.8812)  # 拉满数量
+            self.sleep(1)
+            self.operate_click(0.8715, 0.9542)  # 购买
+            self.sleep(1)
+
+        if not self.wait_click_confirm(buy_action, "购买默认鱼饵"):
+            return False
+
+        self.sleep(2)
+        if not self.back_to_fishing_scene():
+            self.log_error("购买默认鱼饵后返回钓鱼界面失败")
+            return False
+        return True
+
+    def sell_fish(self) -> bool:
+        self._set_stage("出售鱼获")
+        if not self._wait_for(
+            lambda: self.find_one(Labels.fish_sell),
+            pre_action=lambda: self.send_key("q", interval=2, action_name="open_fish_bag"),
+            settle_time=0.5,
+            time_out=10,
+        ):
+            self.log_error("未打开鱼获背包")
+            return False
+
+        self.sleep(1)
+        if not self._wait_for(
+            lambda: self.find_one(Labels.fish_hold),
+            pre_action=lambda: self.operate_click(
+                0.076,
+                0.386,
+                interval=2,
+                action_name="open_fish_storage",
+            ),
+            settle_time=0.5,
+            time_out=10,
+        ):
+            self.log_error("未进入鱼舱")
+            return False
+
+        self.sleep(1)
+        if not self.find_one(Labels.fish_one_click_sell):
+            self.log_info("鱼舱内没有可出售鱼获，跳过出售")
+            return self.back_to_fishing_scene()
+
+        if not self.wait_click_confirm(
+            lambda: self.operate_click(0.556, 0.898, interval=2),
+            "一键出售鱼获",
+            raise_if_failed=False,
+        ):
+            self.log_info("一键出售未完成，可能当前鱼获不可出售，跳过出售")
+            return self.back_to_fishing_scene()
+
+        self.sleep(2)
+        return self.back_to_fishing_scene()
+
+    def back_to_fishing_scene(self) -> bool:
+        self._set_stage("返回钓鱼界面")
+        if not self._wait_for(
+            self.is_fish_start_exist,
+            post_action=lambda: self.send_key(
+                "esc",
+                action_name="back_to_fishing_scene",
+                interval=2,
+            ),
+            time_out=10,
+        ):
+            self.log_error("返回钓鱼界面超时")
+            return False
+        return True
+
+    def wait_click_confirm(self, action, action_name="确认操作", raise_if_failed=True) -> bool:
+        try:
+            confirm_box = self.box_of_screen(
+                0.644,
+                0.615,
+                0.709,
+                0.694,
+                name="confirm_btn",
+                hcenter=True,
+            )
+            button = self.wait_until_pause_aware(
+                lambda: self.find_one(Labels.skip_quest_confirm, box=confirm_box),
+                pre_action=action,
+                settle_time=1,
+                time_out=10,
+                raise_if_not_found=raise_if_failed,
+            )
+            if not button:
+                self.log_info(f"{action_name}：未找到确认按钮")
+                return False
+
+            dismissed = self.wait_until_pause_aware(
+                lambda: not self.find_one(Labels.skip_quest_confirm, box=confirm_box),
+                pre_action=lambda: self.operate_click(button, interval=2),
+                settle_time=1,
+                time_out=10,
+                raise_if_not_found=raise_if_failed,
+            )
+            if not dismissed:
+                self.log_info(f"{action_name}：确认按钮未消失")
+                return False
+        except WaitFailedException:
+            if raise_if_failed:
+                raise
+            self.log_info(f"{action_name}：确认流程超时")
+            return False
+        return True
+
     def sleep_briefly(self):
         self.sleep(0.1)
 
     def wait_until_pause_aware(
         self,
         condition,
-        time_out=5,
+        time_out=0,
         pre_action=None,
         post_action=None,
+        settle_time=-1,
+        raise_if_not_found=True,
     ):
-        deadline = time.time() + time_out
-        while True:
+        self.executor.reset_scene()
+        start = time.time()
+        if time_out == 0:
+            time_out = self.executor.wait_scene_timeout
+        deadline = start + time_out
+        settled = 0
+        result = None
+        while not self.executor.exit_event.is_set():
             if pre_action is not None:
                 pre_action()
+            self.next_frame()
             result = condition()
             if result:
+                self.log_debug(
+                    f"found result {self.result_to_str(result)} {(time.time() - start):.3f}"
+                )
+                if settle_time == -1:
+                    settle_time = self.executor.wait_until_settle_time
+                if settle_time > 0:
+                    if settled > 0 and time.time() - settled > settle_time:
+                        return result
+                    if settled == 0:
+                        settled = time.time()
+                    deadline += self.consume_monthly_card_pause_time()
+                    continue
                 return result
+            else:
+                settled = 0
             if post_action is not None:
                 post_action()
             self.sleep_briefly()
             deadline += self.consume_monthly_card_pause_time()
             if time.time() > deadline:
-                return None
+                self.log_info(f"wait_until timeout {condition} {time_out} seconds")
+                break
+        if raise_if_not_found:
+            raise WaitFailedException()
+        return None
+
+    def _wait_for(self, condition, **kwargs):
+        kwargs["raise_if_not_found"] = False
+        return self.wait_until_pause_aware(condition, **kwargs)
+
+    @staticmethod
+    def result_to_str(value):
+        if value is None:
+            return None
+        if isinstance(value, list):
+            return ", ".join(str(obj) for obj in value)
+        return str(value)
 
     def consume_monthly_card_pause_time(self) -> float:
         pause_time = self._monthly_card_pause_time
@@ -461,9 +705,10 @@ class FishingTask(NTEOneTimeTask, BaseNTETask):
         self._last_direction = None
         self._bar_active_key = None
         self._monthly_card_pause_time = 0.0
+        self._pending_stop_screenshot_reason = None
 
     def detect_fishing_bar_state(self):
-        """通过色值检测当前拉力条和指针的位置状态"""
+        """通过色值检测当前拉力条和指针的位置状态。"""
         box = self.box_of_screen(0.3164, 0.0646, 0.6875, 0.0743, name="fishing_bar")
         image = box.crop_frame(self.frame)
         if image is None or image.size == 0:
@@ -481,84 +726,77 @@ class FishingTask(NTEOneTimeTask, BaseNTETask):
         yellow_mask = cv2.morphologyEx(yellow_mask, cv2.MORPH_OPEN, self._morph_kernel)
         yellow_mask = cv2.morphologyEx(yellow_mask, cv2.MORPH_CLOSE, self._morph_kernel)
 
-        yellow_contours, _ = cv2.findContours(
-            yellow_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
-        )
-
-        if yellow_contours:
-            yellow_max_contour = max(yellow_contours, key=cv2.contourArea)
-            px, _, pw, _ = cv2.boundingRect(yellow_max_contour)
-            pointer_center = px + pw // 2
-        else:
-            pointer_center = -1
-
-        green_contours, _ = cv2.findContours(green_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        green_candidates = []
-        for contour in green_contours:
-            x, y, w, h = cv2.boundingRect(contour)
-            if w >= 5 and h >= 5:
-                area = w * h
-                green_candidates.append((x, y, w, h, area))
-
-        if not green_candidates:
+        pointer_center = self._detect_pointer_center(yellow_mask)
+        zone = self._detect_control_zone(green_mask)
+        if zone is None:
             return None
 
-        green_candidates.sort(key=lambda item: item[4], reverse=True)
-
-        top_2_candidates = green_candidates[:2]
-
-        top_2_candidates.sort(key=lambda item: item[0])
-
-        if len(top_2_candidates) == 1:
-            zone_left = top_2_candidates[0][0]
-            zone_right = top_2_candidates[0][0] + top_2_candidates[0][2]
-        else:
-            zone_left = top_2_candidates[0][0]
-            zone_right = max(
-                top_2_candidates[0][0] + top_2_candidates[0][2],
-                top_2_candidates[1][0] + top_2_candidates[1][2],
-            )
-        zone_w = zone_right - zone_left
-
+        zone_left, zone_right = zone
+        zone_width = zone_right - zone_left
         return {
             "zone_left": zone_left,
             "zone_right": zone_right,
-            "zone_center": zone_left + zone_w // 2,
-            "zone_width": zone_w,
+            "zone_center": zone_left + zone_width // 2,
+            "zone_width": zone_width,
             "image_width": int(image.shape[1]),
             "pointer_center": pointer_center,
             "in_zone": zone_left <= pointer_center <= zone_right,
         }
 
+    def _detect_pointer_center(self, yellow_mask):
+        yellow_contours, _ = cv2.findContours(
+            yellow_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
+        )
+        if not yellow_contours:
+            return -1
+        yellow_max_contour = max(yellow_contours, key=cv2.contourArea)
+        px, _, pw, _ = cv2.boundingRect(yellow_max_contour)
+        return px + pw // 2
+
+    @staticmethod
+    def _detect_control_zone(green_mask):
+        green_contours, _ = cv2.findContours(green_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        candidates = []
+        for contour in green_contours:
+            x, y, w, h = cv2.boundingRect(contour)
+            if w >= 5 and h >= 5:
+                candidates.append((x, y, w, h, w * h))
+        if not candidates:
+            return None
+
+        candidates.sort(key=lambda item: item[4], reverse=True)
+        top_candidates = sorted(candidates[:2], key=lambda item: item[0])
+
+        zone_left = top_candidates[0][0]
+        if len(top_candidates) == 1:
+            zone_right = top_candidates[0][0] + top_candidates[0][2]
+        else:
+            zone_right = max(
+                top_candidates[0][0] + top_candidates[0][2],
+                top_candidates[1][0] + top_candidates[1][2],
+            )
+        return zone_left, zone_right
+
     def is_fish_start_exist(self):
-        """
-        检测开始钓鱼按钮是否存在
-        """
+        """检测开始钓鱼按钮是否存在。"""
+
         def frame_process(img):
             return iu.create_color_mask(img, text_white_color)
+
         return self.find_one(Labels.fish_start, frame_processor=frame_process)
 
-    # def is_success_text_exist(self):
-    #     """检测界面是否出现“成功”字样（通过黑白像素占比判断）"""
-    #     box = self.box_of_screen(0.4434, 0.8938, 0.5566, 0.9181, name="success_text")
-    #     white_text = self.calculate_color_percentage(text_white_color, box)
-    #     black_border = self.calculate_color_percentage(text_black_color, box)
-    #     # self.log_debug(f"white_text: {white_text}, black_border: {black_border}")
-    #     return white_text > 0.2 and black_border > 0.2
-
     def is_fish_bait_exist(self):
-        """
-        检测鱼饵是否存在
-        """
+        """检测鱼饵状态标识是否存在。"""
         return self.find_one(Labels.fish_bait)
 
     def is_fishing_bite(self):
-        """检测右下角鱼儿咬钩指示器中心圆外区域（蓝色像素占比判断）"""
+        """检测右下角鱼儿咬钩指示器中心圆外区域。"""
         box = self.box_of_screen(0.9023, 0.8562, 0.9488, 0.9403, name="fishing_bite_indicator")
         image = box.crop_frame(self.frame)
+        if image is None or image.size == 0:
+            return False
 
         blue_mask = iu.create_color_mask(image, fishing_bite_blue_color, to_bgr=False)
-
         h, w = blue_mask.shape[:2]
         center = (w // 2, h // 2)
         max_radius = min(h, w) // 2
@@ -568,165 +806,68 @@ class FishingTask(NTEOneTimeTask, BaseNTETask):
         cv2.circle(circle_mask, center, target_radius, 0, -1)
 
         masked_blue = cv2.bitwise_and(blue_mask, circle_mask)
-
         blue_pixels = int(cv2.countNonZero(masked_blue))
-
         total_circle_pixels = int(cv2.countNonZero(circle_mask))
-
         if total_circle_pixels == 0:
-            return 0.0
+            return False
 
         blue_pixels_ratio = blue_pixels / total_circle_pixels
-
         return blue_pixels_ratio > 0.07
-
-    def find_default_bait(self):
-        box_1 = self.box_of_screen(0.0602, 0.2306, 0.313, 0.2597)
-        box_2 = self.box_of_screen(0.0602, 0.4516, 0.313, 0.4807)
-
-        candidates = []
-        for box in (box_1, box_2):
-            image = box.crop_frame(self.frame)
-            mask = iu.create_color_mask(image, default_bait_color, to_bgr=False)
-            mask = iu.morphology_mask(mask, closing=True, to_bgr=False)
-            # iu.show_images(mask)
-            num_labels, _, stats, _ = cv2.connectedComponentsWithStats(
-                mask, connectivity=8
-            )
-            for i in range(1, num_labels):
-                candidates.append(
-                    {
-                        "area": stats[i, cv2.CC_STAT_AREA],
-                        "x": box.x + stats[i, cv2.CC_STAT_LEFT],
-                        "y": box.y + stats[i, cv2.CC_STAT_TOP],
-                        "w": stats[i, cv2.CC_STAT_WIDTH],
-                        "h": stats[i, cv2.CC_STAT_HEIGHT],
-                    }
-                )
-
-        if not candidates:
-            return None
-
-        max_area = max(candidate["area"] for candidate in candidates)
-        similar_area_threshold = max_area * 0.9
-        similar_area_candidates = [
-            candidate
-            for candidate in candidates
-            if candidate["area"] >= similar_area_threshold
-        ]
-        candidate = min(similar_area_candidates, key=lambda item: (item["x"], item["y"]))
-        return Box(
-            candidate["x"],
-            candidate["y"],
-            candidate["w"],
-            candidate["h"],
-            name="default_bait",
-        )
-
-    def click_default_bait(self):
-        box = self.find_default_bait()
-        if box:
-            self.operate_click(box)
-            return
-        self.operate_click(0.185, 0.243)
-
-    def sell_fish(self):
-        self.send_key("q")  # 背包
-        self.sleep(1)
-        self.operate_click(0.076, 0.386)  # 点击鱼仓
-        self.sleep(1)
-        self.operate_click(0.556, 0.898)  # 一键出售
-        self.sleep(1)
-        self.operate_click(0.609, 0.656)  # 确认出售
-        self.sleep(2)
-        self.back_to_fishing_scene()
-        self.sleep(1)
-
-    def buy_bait(self):
-        self.click_default_bait()
-        self.sleep(0.25)
-        self.operate_click(0.9520, 0.8812)  # 拉满数量
-        self.sleep(0.25)
-        self.operate_click(0.8715, 0.9542)  # 购买
-        self.sleep(1)
-        self.operate_click(0.609, 0.661)  # 确认购买
-        self.sleep(2)
-        self.back_to_fishing_scene()
-        self.sleep(1)
-
-    def back_to_fishing_scene(self):
-        self.wait_until_pause_aware(
-            self.is_fish_start_exist,
-            post_action=lambda: self.send_key(
-                "esc", action_name="back_to_fishing_scene", interval=2
-            ),
-            time_out=10,
-        )
-
-    def change_to_default_bait(self):
-        def choose_bait():
-            self.send_key("e")
-            self.sleep(2)
-            self.operate_click(0.613, 0.655)
-            self.sleep(1)
-            self.operate_click(0.613, 0.655)
-
-        choose_bait()
-        if self.wait_until_pause_aware(
-            self.is_fish_start_exist,
-            time_out=2,
-        ):
-            return True
-        self.buy_bait()
-        choose_bait()
-        return bool(
-            self.wait_until_pause_aware(
-                self.is_fish_start_exist,
-                time_out=2,
-            )
-        )
 
     def handle_monthly_card(self):
         monthly_card = self.find_monthly_card()
-        # self.screenshot('monthly_card1')
         if monthly_card is not None:
             self._clear_bar_key_if_hold_mode()
-            # self.screenshot('monthly_card1')
             self.log_info("monthly_card found click")
             self.click(0.50, 0.89)
             self.sleep(2)
-            # self.screenshot('monthly_card2')
             self.click(0.50, 0.89)
             self.sleep(2)
-            # self.screenshot('monthly_card3')
             if self.find_monthly_card() is None:
                 self.set_check_monthly_card(next_day=True)
             else:
                 self.log_warning("monthly_card close failed")
-        # logger.debug(f'check_monthly_card {monthly_card}')
         return monthly_card is not None
+
+    def _configured_rounds(self) -> int:
+        return max(1, int(self.config.get(self.CONF_ROUNDS, 1)))
+
+    def _publish_config_info(self):
+        self.info_set("控条模式", self.config.get(self.CONF_CONTROL_MODE, self.MODE_HOLD))
+        self.info_set(
+            "自动补饵卖鱼",
+            "开启" if self.config.get(self.CONF_AUTO_BUY_BAIT, True) else "关闭",
+        )
+        self.info_set("成功次数", "0")
+        self.info_set("失败次数", 0)
+        self.info_set("失败原因", None)
+
+    def _set_round_info(self, round_index, rounds, success_count, failed_count):
+        self.info_set("轮次", f"{round_index}/{rounds}")
+        self.info_set("成功次数", f"{success_count}/{rounds}")
+        self.info_set("失败次数", failed_count)
+
+    def _set_stage(self, stage: str):
+        self.info_set("当前阶段", stage)
+
+    def _fail_round(self, round_index: int, reason: str, message: str) -> bool:
+        screenshot_reason = f"{reason}_{round_index}"
+        self.info_set("失败原因", message)
+        self.screenshot(screenshot_reason)
+        self.log_error(message)
+        return False
+
+    def _stop_task(self, reason: str, message: str):
+        screenshot_reason = self._pending_stop_screenshot_reason or reason
+        self._pending_stop_screenshot_reason = None
+        self.info_set("失败原因", message)
+        self.screenshot(screenshot_reason)
+        self.log_error(message, notify=True)
+        raise TaskDisabledException(message)
 
 
 fishing_bite_blue_color = {
     "r": (30, 35),
     "g": (120, 130),
     "b": (250, 255),
-}
-
-# text_white_color = {
-#     "r": (210, 255),
-#     "g": (210, 255),
-#     "b": (210, 255),
-# }
-
-text_black_color = {
-    "r": (0, 10),
-    "g": (0, 10),
-    "b": (0, 10),
-}
-
-default_bait_color = {
-    "r": (140, 255),
-    "g": (40, 140),
-    "b": (100, 190),
 }
