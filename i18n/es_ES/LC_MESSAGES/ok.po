@@ -548,3 +548,36 @@ msgstr ""
 
 msgid "Use QWERTY Physical Keys"
 msgstr "Usar teclas físicas QWERTY"
+
+msgid "店长特供"
+msgstr "Selección del dueño"
+
+msgid "抢钱流"
+msgstr "Build de robo"
+
+msgid "游戏启动后自动登录游戏"
+msgstr "Iniciar sesión automáticamente después de iniciar el juego"
+
+msgid "自动循环进出关卡（需配合游戏内挂机流派使用）"
+msgstr "Entrar y salir de fases en bucle automáticamente (requiere una build AFK dentro del juego)"
+
+msgid "自动登录游戏"
+msgstr "Inicio de sesión automático"
+
+msgid "领取/补货一咖舍"
+msgstr "Reclamar/reabastecer café"
+
+msgid ""
+"功能说明：本功能仅负责『自动退出关卡』与『重新开启关卡』的点击循环，不包含任何局内的制作食物或招待客人操作。\n"
+"\n"
+"使用方法：\n"
+"1. 确保您已配置好游戏内的挂机流派。\n"
+"2. 站在咖啡店可进行 F 交互的位置。\n"
+"3. （可选）若想指定特定关卡，请先手动进入该关卡一次后退出，再启动本脚本即可。"
+msgstr ""
+"Notas de la función: esta función solo se encarga del bucle de clics para \"salir automáticamente de la fase\" y \"reiniciar la fase\". No realiza ninguna acción dentro de la fase, como preparar comida o atender clientes.\n"
+"\n"
+"Cómo usar:\n"
+"1. Asegúrate de haber configurado tu build AFK dentro del juego.\n"
+"2. Colócate en una posición del café donde puedas interactuar con F.\n"
+"3. (Opcional) Si quieres elegir una fase concreta, entra manualmente en esa fase una vez, sal de ella y luego inicia este script."

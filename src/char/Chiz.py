@@ -11,7 +11,6 @@ class Chiz(BaseChar):
 
     def do_perform(self):
         self.wait_intro()
-        self.continues_normal_attack(1)
         self.raw_click_skill()
         if self.click_ultimate():
             self.perform_in_ult()
@@ -29,8 +28,12 @@ class Chiz(BaseChar):
             self.sleep(0.1)
 
     def raw_click_skill(self):
+        self.continues_normal_attack(0.5)
         self.send_skill_key()
         self.continues_normal_attack(0.5)
+        self.send_skill_key()
+        self.continues_normal_attack(0.5)
+        self.send_skill_key()
 
 
 

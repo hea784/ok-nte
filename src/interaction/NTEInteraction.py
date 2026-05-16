@@ -70,18 +70,17 @@ class NTEInteraction(PostMessageInteraction):
         return args, mapped_kwargs
 
     def click(
-        self, x=-1, y=-1, move_back=False, name=None, down_time=0.001, move=False, key="left"
+        self, x=-1, y=-1, move_back=False, name=None, down_time=0.01, move=True, key="left"
     ):
         with self._input_lock:
             self.try_activate()
             if x < 0:
                 x, y = round(self.capture.width * 0.5), round(self.capture.height * 0.5)
 
-            should_restore = False
+            should_restore = move and move_back and not self._operating
             if move:
-                if not self._operating:
+                if should_restore:
                     self.cursor_position = GetCursorPos()
-                    should_restore = True
                 abs_x, abs_y = self.capture.get_abs_cords(x, y)
                 SetCursorPos((abs_x, abs_y))
                 time.sleep(0.025)
@@ -105,7 +104,7 @@ class NTEInteraction(PostMessageInteraction):
                 time.sleep(0.025)
                 SetCursorPos(self.cursor_position)
 
-    def operate(self, fun, block=False):
+    def operate(self, fun, block=False, restore_cursor=True):
         with self._input_lock:
             result = None
 
@@ -124,8 +123,9 @@ class NTEInteraction(PostMessageInteraction):
             finally:
                 if is_outer_operate:
                     self._operating = False
-                    time.sleep(0.025)
-                    SetCursorPos(self.cursor_position)
+                    if restore_cursor:
+                        time.sleep(0.025)
+                        SetCursorPos(self.cursor_position)
                 if block:
                     self.unblock_input()
             return result

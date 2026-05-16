@@ -181,10 +181,14 @@ class DailyTask(NTEOneTimeTask, BaseNTETask):
         if self.check_activity():
             self.log_info("当前体力消耗或每日活跃度已达标，跳过每日活跃度任务")
             return True
+        
+        used_stamina = self.info_get('used stamina')
+        must_use = self.config.get(self.DAILY_STAMINA_TARGET, 180) - used_stamina
+        self.info_set("must use stamina", must_use)
 
         task: AnomalyTask = self.get_task_by_class(AnomalyTask)
         ret = task.do_run(
-            self.config, stamina_target=self.config.get(self.DAILY_STAMINA_TARGET, 180)
+            self.config, stamina_target=must_use
         )
         if ret:
             self.shift_idx(task)
@@ -230,7 +234,7 @@ class DailyTask(NTEOneTimeTask, BaseNTETask):
         used_stamina = 0
         daily_activity = 0
 
-        mission_box = self.box_of_screen(0.197, 0.657, 0.779, 0.707, name="mission", hcenter=True)
+        mission_box = self.box_of_screen(0.184, 0.652, 0.781, 0.710, name="mission", hcenter=True)
         activity_box = self.box_of_screen(0.184, 0.188, 0.256, 0.255, name="activity", hcenter=True)
 
         activity = self.ocr(box=activity_box, match=activity_re)
@@ -240,11 +244,13 @@ class DailyTask(NTEOneTimeTask, BaseNTETask):
             match = mission_re.search(mission[0].name)
             if match:
                 used_stamina = int(match.group(1))
+                self.log_info(f"ocr found used stamina {used_stamina}")
 
         if activity:
             match = activity_re.search(activity[0].name)
             if match:
                 daily_activity = int(match.group(1))
+                self.log_info(f"ocr found daily activity {daily_activity}")
 
         self.info_set('used stamina', used_stamina)
         self.info_set('daily activity', daily_activity)

@@ -293,39 +293,18 @@ class LauncherTask(BaseNTETask):
             raise TaskDisabledException("Timed out waiting for game process")
         self.log_info("Game process found; switching capture to game")
         self._capture_game()
-        if not self._wait_for_foreground_to_settle(time_out=10):
-            self.log_warning("Game window did not stay in foreground after launch")
-
-    def _wait_for_foreground_to_settle(self, time_out=8, settle_time=1):
-        self.log_info(
-            f"Waiting for game window to stay foreground for {settle_time}s (timeout={time_out}s)"
-        )
+        time_out = 10
         deadline = time.time() + time_out
-        foreground_since = 0
-        last_log_time = 0
-
         while time.time() < deadline:
-            if self.bring_to_front() and self.is_foreground():
-                if not foreground_since:
-                    foreground_since = time.time()
-                if time.time() - foreground_since >= settle_time:
-                    self.log_info("Game window foreground settled")
-                    return True
+            if not self.executor.connected():
+                self.log_info("executor not connected try refresh")
+                self.executor.device_manager.refresh()
+                time.sleep(1.5)
             else:
-                foreground_since = 0
-
-            now = time.time()
-            if now - last_log_time >= 2:
-                stable_for = max(0, now - foreground_since) if foreground_since else 0
-                self.log_info(
-                    f"Waiting for game foreground settle; "
-                    f"stable_for={stable_for:.1f}s/{settle_time}s, "
-                    f"timeout_remain={deadline - now:.1f}s"
-                )
-                last_log_time = now
-            time.sleep(1)
-
-        return False
+                break
+        else:
+            self.log_warning(f"try refresh timeout {time_out}s, "
+                             f"executor connect {self.executor.connected()}")
 
     def _wait_for_process(self, exe_name, time_out=120, settle_window=False):
         self.log_info(

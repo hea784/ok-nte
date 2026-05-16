@@ -113,6 +113,7 @@ class CombatCheck(BaseNTETask):
                 if self.is_in_team():
                     self.middle_click()
                     self.sleep(0.25)
+                    self.next_frame()
                     if self.combat_detect(lv=lv):
                         return True
                 self.next_frame()
@@ -353,6 +354,8 @@ class CombatCheck(BaseNTETask):
                 return self.reset_to_false(reason="end condition reached")
 
             if self._combat_settle.time is not None:
+                if self._combat_settle.force:
+                    self.next_frame()
                 combat_detect = self.async_combat_detect(
                     exhaustive=True, force=self._combat_settle.force
                 )

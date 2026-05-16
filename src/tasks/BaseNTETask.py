@@ -5,7 +5,7 @@ import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta
-from typing import Any, Callable, List, overload
+from typing import Any, Callable, List
 
 import cv2
 import numpy as np
@@ -22,7 +22,7 @@ from src.utils import game_filters as gf
 from src.utils import image_utils as iu
 
 logger = Logger.get_logger(__name__)
-stamina_re = re.compile(r"(\d+)[\s/\\|!Il／-]+\d+")
+stamina_re = re.compile(r"(\d+)/(\d+)")
 
 
 class BaseNTETask(BaseTask):
@@ -87,7 +87,7 @@ class BaseNTETask(BaseTask):
         if og.my_app is None:
             return []
         if box is None:
-            box = self.box_of_screen(0.0840, 0.1326, 0.9176, 0.8694, name="openvino_box")
+            box = self.box_of_screen(0.0840, 0.1326, 0.9030, 0.8694, name="openvino_box")
         self.draw_boxes(boxes=box, color="blue")
         if frame is None:
             frame = self.frame
@@ -108,7 +108,7 @@ class BaseNTETask(BaseTask):
         return results
 
     def openvino_detect_async(
-        self, frame=None, box: Box = None, threshold=0.6, force=False, mask_regions=None
+        self, frame=None, box: Box = None, threshold=0.7, force=False, mask_regions=None
     ) -> List[Box]:
         """异步检测，返回结果可能为缓存值"""
         return self._openvino_detect(
@@ -116,7 +116,7 @@ class BaseNTETask(BaseTask):
         )
 
     def openvino_detect_sync(
-        self, frame=None, box: Box = None, threshold=0.5, mask_regions=None
+        self, frame=None, box: Box = None, threshold=0.7, mask_regions=None
     ) -> List[Box]:
         """同步检测，会等待结果返回"""
         return self._openvino_detect(frame, True, box, threshold, mask_regions=mask_regions)
@@ -132,49 +132,46 @@ class BaseNTETask(BaseTask):
         return self.box_of_screen(0.0984, 0.1042, 0.8961, 0.8944, name="main_viewport")
 
     # fmt: off
-    @overload
-    def click(self, x: int | Box | List[Box] = -1, y=-1, move_back=False, name=None, interval=-1,
-              move=False, down_time=0.02, after_sleep=0, key='left', hcenter=False,
-              vcenter=False, action_name=None) -> Any:
-        ...
-    # fmt: on
+    def click(self, x: int | Box | List[Box] = -1, y=-1, move_back=None, name=None,
+              interval=None, move=None, down_time=0.02, after_sleep=0, key='left',
+              hcenter=False, vcenter=False, action_name=None) -> Any:
+        if interval is None:
+            action_interval = 0.1
+            interval = -1
+        else:
+            action_interval = interval
 
-    def click(self, *args, action_name=None, **kwargs):
         if action_name is not None:
-            interval = kwargs.get("interval", args[4] if len(args) > 4 else 0.1)
-            if not self.check_action_interval(action_name, interval):
+            if not self.check_action_interval(action_name, action_interval):
                 return False
-            kwargs["interval"] = -1
+            interval = -1
 
-        if len(args) <= 5:
-            kwargs.setdefault("move", self.DEFAULT_MOVE)
-        return super().click(*args, **kwargs)
+        if move is None:
+            move = self.DEFAULT_MOVE
+        if move_back is None:
+            move_back = move
+        return super().click(
+            x, y, move_back=move_back, name=name, interval=interval, move=move,
+            down_time=down_time, after_sleep=after_sleep, key=key,
+            hcenter=hcenter, vcenter=vcenter
+        )
 
-    # fmt: off
-    @overload
-    def operate_click(self, x: int | Box | List[Box] = -1, y=-1, move_back=False, name=None,
-                       interval=-1, down_time=0.02, after_sleep=0, key='left',
-                       hcenter=False, vcenter=False, action_name=None) -> Any:
-        ...
-    # fmt: on
-
-    def operate_click(self, *args, **kwargs):
-        action_name = kwargs.get("action_name", args[10] if len(args) > 10 else "operate_click")
-        interval = kwargs.get("interval", args[4] if len(args) > 4 else 0.1)
-        after_sleep = kwargs.get("after_sleep", args[6] if len(args) > 6 else 0)
+    def operate_click(self, x: int | Box | List[Box] = -1, y=-1, restore_cursor=True, name=None,
+                      interval=0.1, down_time=0.02, after_sleep=0, key='left',
+                      hcenter=False, vcenter=False, action_name=None) -> Any:
+        action_name = action_name or "operate_click"
         if not self.check_action_interval(action_name, interval):
             return False
-        kwargs["interval"] = -1
-        kwargs["move"] = True
-        kwargs["after_sleep"] = 0
-        result = self.operate(lambda: self.click(*args, **kwargs), block=True)
+        result = self.operate(
+            lambda: self.click(
+                x, y, name=name, interval=-1, move=True, down_time=down_time,
+                after_sleep=0, key=key, hcenter=hcenter, vcenter=vcenter
+            ),
+            block=True,
+            restore_cursor=restore_cursor,
+        )
         self.sleep(after_sleep)
         return result
-
-    # fmt: off
-    @overload
-    def send_key(self, key, down_time=0.02, interval=-1, after_sleep=0, action_name=None) -> Any:
-        ...
     # fmt: on
 
     def send_key(self, *args, action_name=None, **kwargs):
@@ -197,11 +194,11 @@ class BaseNTETask(BaseTask):
             self._last_interval_action_time[action_name] = now
             return True
 
-    def operate(self, func: Callable, block=False):
+    def operate(self, func: Callable, block=False, restore_cursor=True):
         from src.interaction.NTEInteraction import NTEInteraction
 
         if isinstance(self.executor.interaction, NTEInteraction):
-            return self.executor.interaction.operate(func, block)
+            return self.executor.interaction.operate(func, block, restore_cursor=restore_cursor)
         else:
             return func()
 
@@ -677,7 +674,7 @@ class BaseNTETask(BaseTask):
             raise CannotFindException("can't find panel, make sure f2 is the hotkey for panel")
         self.sleep(0.5)
         return result
-    
+
     def openF5panel(self):
         if hasattr(self, "reset_to_false"):
             self.reset_to_false("opening f5 panel")
@@ -828,7 +825,7 @@ class BaseNTETask(BaseTask):
 
             if self.find_one(Labels.login_setting):
                 self.log_info("found login_setting, bring_to_front and click")
-                if not self.hwnd.is_foreground():
+                if not self.is_foreground():
                     self.bring_to_front()
                     self.sleep(3)
                 self.click(0.499, 0.865, after_sleep=3)
@@ -996,7 +993,7 @@ class BaseNTETask(BaseTask):
         has_count_param = "count" in params or any(
             p.kind == inspect.Parameter.VAR_KEYWORD for p in params.values()
         )
-        
+
         while not result and count <= attempt:
             count += 1
             if has_count_param:

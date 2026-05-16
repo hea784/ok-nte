@@ -547,3 +547,30 @@ msgstr ""
 
 msgid "Use QWERTY Physical Keys"
 msgstr "使用 QWERTY 物理按键"
+
+msgid "店长特供"
+msgstr ""
+
+msgid "抢钱流"
+msgstr ""
+
+msgid "游戏启动后自动登录游戏"
+msgstr ""
+
+msgid "自动循环进出关卡（需配合游戏内挂机流派使用）"
+msgstr ""
+
+msgid "自动登录游戏"
+msgstr ""
+
+msgid "领取/补货一咖舍"
+msgstr ""
+
+msgid ""
+"功能说明：本功能仅负责『自动退出关卡』与『重新开启关卡』的点击循环，不包含任何局内的制作食物或招待客人操作。\n"
+"\n"
+"使用方法：\n"
+"1. 确保您已配置好游戏内的挂机流派。\n"
+"2. 站在咖啡店可进行 F 交互的位置。\n"
+"3. （可选）若想指定特定关卡，请先手动进入该关卡一次后退出，再启动本脚本即可。"
+msgstr ""
