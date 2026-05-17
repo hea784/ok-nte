@@ -28,14 +28,14 @@ from ok.util.clazz import init_class_by_name
 from ok.util.config import Config, ConfigOption
 from ok.util.handler import Handler, ExitEvent
 from ok.util.logger import config_logger, Logger
-from ok.util.process import check_mutex, get_first_gpu_free_memory_mib
+from ok.util.process import check_mutex, get_first_gpu_free_memory_mib, parse_arguments_to_map
 from ok.util.file import get_path_relative_to_exe, install_path_isascii
 from ok.util.window import windows_graphics_available
-from ok.device.intercation import DoNothingInteraction, BaseInteraction, BrowserInteraction, PostMessageInteraction, \
+from ok.device.interaction import DoNothingInteraction, BaseInteraction, BrowserInteraction, PostMessageInteraction, \
     GenshinInteraction, ForegroundPostMessageInteraction, PyDirectInteraction
 from ok.device.capture import ImageCaptureMethod, BaseCaptureMethod, BrowserCaptureMethod, ADBCaptureMethod, \
     WindowsGraphicsCaptureMethod, BitBltCaptureMethod, NemuIpcCaptureMethod, DesktopDuplicationCaptureMethod, \
-    ImageCaptureMethod
+    ForegroundBitBltCaptureMethod, ImageCaptureMethod
 from ok.task.DiagnosisTask import DiagnosisTask
 from ok.task.task import BaseTask, TriggerTask, FindFeature, OCR
 from ok.feature.Feature import Feature
@@ -217,8 +217,7 @@ class App:
                 og.my_app.on_show_main_window(self.main_window)
 
         self.main_window.show()
-        self.main_window.raise_()
-        self.main_window.activateWindow()
+        self.main_window.bring_to_front()
 
         logger.debug(f'show_main_window end')
 
@@ -238,6 +237,57 @@ class App:
         self.timer.timeout.connect(lambda: None)
 
         sys.exit(self.app.exec())
+
+
+class HeadlessApp:
+    """Small app facade for running tasks without creating any UI windows."""
+
+    def __init__(self, config, exit_event=None):
+        og.exit_event = exit_event
+        og.handler = Handler(exit_event, 'global')
+        self.config = config
+        self.debug = config.get('debug', False)
+        self.headless = True
+        self.global_config = og.global_config
+        self.icon = None
+        self.exit_event = exit_event
+        self.po_translation = None
+        self.to_translate = None
+
+        from ok.gui.common.config import cfg
+        self.locale = cfg.get(cfg.language).value
+        from ok.gui.StartController import StartController
+        self.start_controller = StartController(self.config, exit_event)
+
+        og.app = self
+        if my_app := self.config.get('my_app'):
+            og.my_app = init_class_by_name(my_app[0], my_app[1], exit_event)
+        logger.debug('init headless app end')
+
+    def tr(self, key):
+        if not key:
+            return key
+        if ok_tr := QCoreApplication.translate("app", key):
+            if ok_tr != key:
+                return ok_tr
+        if self.po_translation is None:
+            locale_name = self.locale.name()
+            try:
+                from ok.gui.i18n.GettextTranslator import get_translations
+                self.po_translation = get_translations(locale_name)
+                self.po_translation.install()
+                logger.info(f'headless translation installed for {locale_name}')
+            except:
+                logger.error(f'install headless translations error for {locale_name}')
+                self.po_translation = "Failed"
+        if self.po_translation != 'Failed':
+            return self.po_translation.gettext(key)
+        return key
+
+    def quit(self):
+        if self.exit_event:
+            self.exit_event.set()
+
 
 def get_my_id():
     mac = uuid.getnode()
@@ -295,8 +345,10 @@ class OK:
         logger.info(
             f"pyappify  app_version:{pyappify.app_version}, app_profile:{pyappify.app_profile}, pyappify_version:{pyappify.pyappify_version} pyappify_upgradeable:{pyappify.pyappify_upgradeable}, pyappify_executable:{pyappify.pyappify_executable}")
         config['debug'] = config.get("debug", False)
+        self.args = parse_arguments_to_map()
         self.task_executor = None
         self._app = None
+        self._headless_app = None
         self.debug = config['debug']
         self.global_config = GlobalConfig(config.get('global_configs'))
         windows_config = config.get('windows')
@@ -338,9 +390,21 @@ class OK:
             self._app = App(self.config, self.task_executor, self.exit_event)
         return self._app
 
+    @property
+    def headless_app(self):
+        if self._headless_app is None:
+            self._headless_app = HeadlessApp(self.config, self.exit_event)
+        return self._headless_app
+
+    def should_init_task_manager_headless(self):
+        return not self.config.get("use_gui") or self.args.get('task', 0) > 0
+
     def start(self):
         logger.info(f'OK start id:{id(self)} pid:{os.getpid()}')
         try:
+            if self.args.get('task', 0) > 0:
+                self.run_task(self.args.get('task'))
+                return
             if self.config.get("use_gui"):
                 if not self.init_error:
                     self.app.show_main_window()
@@ -375,8 +439,153 @@ class OK:
         except Exception as e:
             logger.error("start error", e)
             self.exit_event.set()
-            if self.app:
+            if self._app or self._headless_app:
                 self.quit()
+
+    def run_task(self, task=1):
+        """
+        Run a task without showing the main UI.
+
+        Args:
+            task: 1-based one-time task index, task name, task class, or task instance.
+        """
+        task, is_trigger_task = self.get_task(task)
+        if is_trigger_task:
+            return self.run_trigger_task(task)
+        return self.run_onetime_task(task)
+
+    def run_onetime_task(self, task):
+        logger.info(f'run one-time task without ui: {task.name}')
+        started = self.headless_app.start_controller.do_start(task, exit_after=True)
+        if not started:
+            raise RuntimeError(f'Start task failed: {task.name}')
+        self.wait_task(task)
+        return True
+
+    def run_trigger_task(self, task):
+        logger.info(f'run trigger task without ui: {task.name}')
+        self.config['trigger_tasks'] = [[task.__class__.__module__, task.__class__.__name__]]
+        for trigger_task in self.task_executor.trigger_tasks:
+            if trigger_task is not task:
+                trigger_task.disable()
+        self.task_executor.trigger_tasks = [task]
+
+        started = self.headless_app.start_controller.do_start(task, exit_after=False)
+        if not started:
+            raise RuntimeError(f'Start trigger task failed: {task.name}')
+        self.wait_task()
+        return True
+
+    def get_task(self, task):
+        if isinstance(task, int):
+            return self.get_onetime_task(task), False
+        if isinstance(task, TriggerTask):
+            return self.get_trigger_task(task), True
+        if isinstance(task, BaseTask):
+            return self.get_onetime_task(task), False
+        if isinstance(task, type):
+            if not issubclass(task, BaseTask):
+                raise ValueError(f'Task class must inherit BaseTask: {task}')
+            if issubclass(task, TriggerTask):
+                return self.get_trigger_task(task), True
+            return self.get_onetime_task(task), False
+        if isinstance(task, str):
+            onetime_task = self.find_task_by_name(self.task_executor.onetime_tasks, task)
+            if onetime_task:
+                return onetime_task, False
+            trigger_task = self.find_task_by_name(self.task_executor.trigger_tasks, task)
+            if trigger_task:
+                return trigger_task, True
+            raise ValueError(f'Task not found: {task}')
+        if task in self.task_executor.trigger_tasks:
+            return self.get_trigger_task(task), True
+        return self.get_onetime_task(task), False
+
+    def find_task_by_name(self, tasks, task):
+        normalized_task = task.lower()
+        exact_matches = [
+            candidate for candidate in tasks
+            if candidate.name.lower() == normalized_task or candidate.__class__.__name__.lower() == normalized_task
+        ]
+        if len(exact_matches) == 1:
+            return exact_matches[0]
+        if len(exact_matches) > 1:
+            names = ', '.join(candidate.__class__.__name__ for candidate in exact_matches)
+            raise ValueError(f'Multiple tasks matched "{task}": {names}')
+
+        partial_matches = [
+            candidate for candidate in tasks
+            if normalized_task in candidate.name.lower()
+            or normalized_task in candidate.__class__.__name__.lower()
+        ]
+        if len(partial_matches) == 1:
+            return partial_matches[0]
+        if len(partial_matches) > 1:
+            names = ', '.join(candidate.__class__.__name__ for candidate in partial_matches)
+            raise ValueError(f'Multiple tasks matched "{task}": {names}')
+
+        for candidate in tasks:
+            if candidate.name == task or candidate.__class__.__name__ == task:
+                return candidate
+        return None
+
+    def get_onetime_task(self, task):
+        if isinstance(task, int):
+            task_index = task - 1
+            if task_index < 0 or task_index >= len(self.task_executor.onetime_tasks):
+                raise IndexError(
+                    f'Task index {task} is out of range. Available range is 1-{len(self.task_executor.onetime_tasks)}')
+            return self.task_executor.onetime_tasks[task_index]
+        if isinstance(task, str):
+            matched_task = self.find_task_by_name(self.task_executor.onetime_tasks, task)
+            if matched_task:
+                return matched_task
+            raise ValueError(f'Task not found: {task}')
+        if isinstance(task, type):
+            for candidate in self.task_executor.onetime_tasks:
+                if isinstance(candidate, task):
+                    return candidate
+            if not issubclass(task, BaseTask):
+                raise ValueError(f'Task class must inherit BaseTask: {task}')
+            if issubclass(task, TriggerTask):
+                raise ValueError(f'run_task only supports one-time BaseTask classes, got TriggerTask: {task}')
+            task_instance = task(executor=self.task_executor, app=self.headless_app)
+            task_instance.after_init(executor=self.task_executor, scene=self.task_executor.scene)
+            task_instance.post_init()
+            self.task_executor.onetime_tasks.append(task_instance)
+            logger.info(f'created headless task from class: {task_instance}')
+            return task_instance
+        if task in self.task_executor.onetime_tasks:
+            return task
+        raise ValueError(f'Unsupported one-time task selector: {task}')
+
+    def get_trigger_task(self, task):
+        if isinstance(task, str):
+            matched_task = self.find_task_by_name(self.task_executor.trigger_tasks, task)
+            if matched_task:
+                return matched_task
+            raise ValueError(f'Trigger task not found: {task}')
+        if isinstance(task, type):
+            for candidate in self.task_executor.trigger_tasks:
+                if isinstance(candidate, task):
+                    return candidate
+            if not issubclass(task, TriggerTask):
+                raise ValueError(f'Trigger task class must inherit TriggerTask: {task}')
+            task_instance = task(executor=self.task_executor, app=self.headless_app)
+            task_instance.after_init(executor=self.task_executor, scene=self.task_executor.scene)
+            task_instance.post_init()
+            self.task_executor.trigger_tasks.append(task_instance)
+            logger.info(f'created headless trigger task from class: {task_instance}')
+            return task_instance
+        if isinstance(task, TriggerTask):
+            if task not in self.task_executor.trigger_tasks:
+                task._executor = self.task_executor
+                task._app = self.headless_app
+                task.after_init(executor=self.task_executor, scene=self.task_executor.scene)
+                task.post_init()
+                self.task_executor.trigger_tasks.append(task)
+            return task
+        raise ValueError(f'Unsupported trigger task selector: {task}')
 
     def do_init(self):
         logger.info(f"do_init, config: {self.config}")
@@ -402,9 +611,12 @@ class OK:
             ocr_target_height = ocr.get('target_height', 0)
             if not isascii:
                 logger.info(f'show_path_ascii_error')
-                self.app.show_path_ascii_error(path)
                 self.init_error = True
-                self.app.exec()
+                if self.should_init_task_manager_headless():
+                    raise RuntimeError(f'Install dir {path} must be an English path, move to another path.')
+                else:
+                    self.app.show_path_ascii_error(path)
+                    self.app.exec()
                 return False
 
         self.task_executor = TaskExecutor(self.device_manager, exit_event=self.exit_event,
@@ -414,7 +626,8 @@ class OK:
                                           global_config=self.global_config, ocr_target_height=ocr_target_height,
                                           config=self.config)
         from ok.gui.tasks.TaskManger import TaskManager
-        og.task_manager = TaskManager(task_executor=self.task_executor, app=self.app,
+        task_app = self.headless_app if self.should_init_task_manager_headless() else self.app
+        og.task_manager = TaskManager(task_executor=self.task_executor, app=task_app,
                                       onetime_tasks=self.config.get('onetime_tasks', []),
                                       trigger_tasks=self.config.get('trigger_tasks', []),
                                       scene=self.config.get('scene'))
@@ -422,9 +635,22 @@ class OK:
         logger.info(f"do_init, end")
         return True
 
-    def wait_task(self):
-        while not self.exit_event.is_set():
-            time.sleep(1)
+    def wait_task(self, task=None):
+        try:
+            while not self.exit_event.is_set():
+                if task is not None and not task.enabled and self.task_executor.current_task is not task:
+                    logger.info(f'task finished without ui: {task.name}')
+                    break
+                time.sleep(1)
+        except KeyboardInterrupt:
+            logger.info("Keyboard interrupt received, exiting script.")
+            self.exit_event.set()
+        finally:
+            if task is not None:
+                self.exit_event.set()
+            if (self.exit_event.is_set() and self.task_executor.thread
+                    and self.task_executor.thread != threading.current_thread()):
+                self.task_executor.thread.join(timeout=10)
 
     def console_handler(self, event):
         import win32con
@@ -451,12 +677,35 @@ class OK:
         self.exit_event.set()
         if self._app:
             self._app.quit()
+        if self._headless_app:
+            self._headless_app.quit()
 
     def init_device_manager(self):
         if self.device_manager is None:
             self.device_manager = DeviceManager(self.config,
                                                 self.exit_event, self.global_config)
             og.device_manager = self.device_manager
+
+
+def run_task(config, task=1, debug=False):
+    """
+    Convenience entrypoint for scripts that only need to run one task.
+
+    Example:
+        from ok import run_task
+        from src.config import config
+
+        if __name__ == "__main__":
+            run_task(config, task=1)
+    """
+    headless_config = dict(config)
+    headless_config["use_gui"] = False
+    headless_config["debug"] = debug
+    if isinstance(task, type) and issubclass(task, TriggerTask):
+        headless_config["trigger_tasks"] = [[task.__module__, task.__name__]]
+    elif isinstance(task, TriggerTask):
+        headless_config["trigger_tasks"] = [[task.__class__.__module__, task.__class__.__name__]]
+    return OK(headless_config).run_task(task)
 
 
 class BaseScene:

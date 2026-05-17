@@ -1,6 +1,6 @@
 import cv2
 
-from src import text_white_color
+from src import text_black_color, text_white_color
 from src.utils import image_utils as iu
 
 dialog_white_color = {
@@ -45,3 +45,6 @@ def current_char_filter(cv_image):
     # character arc can become pale under lighting, while its a/b relationship
     # stays closer to the template than similar bright backgrounds do.
     return lab[:, :, 1:3]
+
+def isolate_text_to_black(cv_image):
+    return iu.create_color_mask(cv_image, text_black_color, invert=True)

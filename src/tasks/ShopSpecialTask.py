@@ -50,16 +50,17 @@ class ShopSpecialTask(NTEOneTimeTask, BaseNTETask):
             raise
 
     def do_run(self):
-        rounds = max(1, int(self.config.get(self.CONF_ROUNDS, 1)))
         success_count = 0
         failed_count = 0
+        round_index = 1
+        rounds = self._configured_rounds()
 
         self.info_set("成功次数", "0")
         self.info_set("失败次数", 0)
         self.info_set("失败原因", None)
         self.log_info(f"开始店长特供，共 {rounds} 轮")
 
-        for round_index in range(1, rounds + 1):
+        while round_index <= rounds:
             self.info_set("轮次", f"{round_index}/{rounds}")
             self.info_set("成功次数", f"{success_count}/{rounds}")
             self.info_set("失败次数", failed_count)
@@ -72,6 +73,9 @@ class ShopSpecialTask(NTEOneTimeTask, BaseNTETask):
                 failed_count += 1
                 self.info_set("失败次数", failed_count)
                 self.log_error(f"第 {round_index} 轮失败")
+
+            rounds = self._configured_rounds()
+            round_index += 1
 
         self.info_set("当前阶段", "任务结束")
         self.info_set("成功次数", f"{success_count}/{rounds}")
@@ -159,6 +163,9 @@ class ShopSpecialTask(NTEOneTimeTask, BaseNTETask):
 
         self.log_error("营业额检测超时")
         return False
+
+    def _configured_rounds(self) -> int:
+        return max(1, int(self.config.get(self.CONF_ROUNDS, 1)))
 
     def _check_revenue_reached(self) -> bool:
         box = self.box_of_screen(0.9484, 0.1660, 0.9555, 0.1771, name="star")

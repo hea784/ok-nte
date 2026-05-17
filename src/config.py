@@ -6,7 +6,7 @@ from ok import ConfigOption
 from src.interaction.NTEInteraction import NTEInteraction
 from src.process_feature import process_feature
 
-version = "v0.0.34"
+version = "v0.0.35"
 # 不需要修改version, Github Action打包会自动修改
 
 key_config_option = ConfigOption(
@@ -197,10 +197,12 @@ config = {
     "onetime_tasks": [  # 用户点击触发的任务
         ["src.tasks.LauncherTask", "LauncherTask"],
         ["src.tasks.DailyTask", "DailyTask"],
+        ["src.tasks.CoffeeTask", "CoffeeTask"],
         ["src.tasks.FishingTask", "FishingTask"],
         ["src.tasks.AnomalyTask", "AnomalyTask"],
         ["src.tasks.RhythmTask", "RhythmTask"], 
         ["src.tasks.ShopSpecialTask", "ShopSpecialTask"],
+        # ["src.tasks.AutoHeistTask", "AutoHeistTask"],
         # ["src.tasks.MyOneTimeWithAGroup", "MyOneTimeWithAGroup"],
         # ["src.tasks.MyOneTimeWithAGroup2", "MyOneTimeWithAGroup2"],
         # ["src.tasks.MyOneTimeWithBGroup", "MyOneTimeWithBGroup"],

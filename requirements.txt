@@ -55,7 +55,7 @@ numpy==2.3.5
     #   soxr
     #   tifffile
     # via ok-nte (pyproject.toml)
-onnxocr-ppocrv5==0.0.17
+onnxocr-ppocrv5==0.0.18
     # via ok-nte (pyproject.toml)
 opencc==1.2.0
     # via ok-nte (pyproject.toml)

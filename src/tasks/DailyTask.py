@@ -1,14 +1,15 @@
 import re
 from datetime import datetime
-from typing import Callable, List, Tuple
+from typing import Callable, List, Optional, Tuple, Union
 
-from ok import CannotFindException, TaskDisabledException, find_color_rectangles
+from ok import CannotFindException, TaskDisabledException, find_color_rectangles, og
 from qfluentwidgets import FluentIcon
 
 from src import text_white_color
 from src.Labels import Labels
 from src.tasks.AnomalyTask import AnomalyTask
 from src.tasks.BaseNTETask import BaseNTETask
+from src.tasks.CoffeeTask import CoffeeTask
 from src.tasks.NTEOneTimeTask import NTEOneTimeTask
 from src.utils import image_utils as iu
 
@@ -22,6 +23,7 @@ class DailyTask(NTEOneTimeTask, BaseNTETask):
     CONF_CLAIM_ACTIVITY = "领取活跃度奖励"
     CONF_CLAIM_BP = "领取环期任务奖励"
     CONF_CLAIM_COFFEE = "领取/补货一咖舍"
+    CONF_RESTOCK_COFFEE = "运行一咖舍自动化"
 
     CONF_AUTO_CYCLE_SUB_TASK = "自动循环项目"
     DAILY_STAMINA_TARGET = "目标消耗体力"
@@ -36,9 +38,9 @@ class DailyTask(NTEOneTimeTask, BaseNTETask):
         AnomalyTask.setup_config(self)
         self.default_config.update(
             {
-                self.CONF_CLAIM_COFFEE: False,
-                self.CONF_AUTO_CYCLE_SUB_TASK: False,
                 self.DAILY_STAMINA_TARGET: 180,
+                self.CONF_AUTO_CYCLE_SUB_TASK: False,
+                self.CONF_CLAIM_COFFEE: False,
             }
         )
         self.config_description.update(
@@ -46,8 +48,30 @@ class DailyTask(NTEOneTimeTask, BaseNTETask):
                 self.CONF_AUTO_CYCLE_SUB_TASK: "任务完成后自动切换至下一个项目",
             }
         )
+        # 一咖舍页面 OCR 仅匹配简体中文; 在非 zh_CN 下不向用户暴露补货开关,
+        # 但保留键的运行时缺省为开启 (与 upstream 行为一致).
+        if self._is_zh_cn_locale():
+            self.default_config[self.CONF_RESTOCK_COFFEE] = False
+            self.config_description[self.CONF_RESTOCK_COFFEE] = (
+                f"开启后将跳过 [{self.CONF_CLAIM_COFFEE}]"
+            )
         self.current_task_key = None
         self.add_exit_after_config()
+
+    @staticmethod
+    def _is_zh_cn_locale() -> bool:
+        """Return True iff the running app reports zh_CN as its locale.
+
+        Defensive against early init / test contexts where ``og.app`` may be
+        missing or ``locale.name()`` may raise.
+        """
+        app = getattr(og, "app", None)
+        if app is None or not hasattr(app, "locale"):
+            return False
+        try:
+            return app.locale.name() == "zh_CN"
+        except Exception:
+            return False
 
     def run(self):
         super().run()
@@ -64,37 +88,50 @@ class DailyTask(NTEOneTimeTask, BaseNTETask):
         self.ensure_main()
         self.log_info("开始执行日常任务")
 
-        tasks: List[Tuple[str, Callable]] = [
-            (self.CONF_CLAIM_MAIL, self.claim_mail),
-            (self.CONF_CLAIM_COFFEE, self.claim_coffee),
-            (self.CONF_COMPLETE_DAILY, self.complete_daily_activities),
-            (self.CONF_CLAIM_ACTIVITY, self.claim_activity_rewards),
-            (self.CONF_CLAIM_BP, self.claim_battle_pass_rewards),
+        force_claim_coffee = None
+        if self.config.get(self.CONF_RESTOCK_COFFEE, False):
+            force_claim_coffee = False
+
+        tasks: List[
+            Union[
+                Tuple[str, bool, Callable],
+                Tuple[str, bool, Callable, Optional[bool]],
+            ]
+        ] = [
+            (self.CONF_CLAIM_MAIL, True, self.claim_mail),
+            (self.CONF_CLAIM_COFFEE, True, self.claim_coffee, force_claim_coffee),
+            (self.CONF_RESTOCK_COFFEE, False, self.run_coffee_task),
+            (self.CONF_COMPLETE_DAILY, True, self.complete_daily_activities),
+            (self.CONF_CLAIM_ACTIVITY, True, self.claim_activity_rewards),
+            (self.CONF_CLAIM_BP, True, self.claim_battle_pass_rewards),
         ]
 
         self._reset_task_status(tasks)
 
-        for key, func in tasks:
-            self.execute_task(key, func)
+        for task in tasks:
+            self.execute_task(*task)
 
         self.ensure_main()
         self._print_result()
         self.log_info("结束执行日常任务", notify=True)
 
-    def execute_task(self, key, func):
+    def execute_task(self, key, default, func, force=None):
         """执行单个子任务。
 
         Args:
             key (str): 任务名称
+            default (bool): 配置缺省值
             func (Callable): 任务执行函数
+            force (Optional[bool]): None 表示按配置决定；True 强制执行；
+                False 强制跳过
 
         根据配置决定是否跳过，并记录执行结果。
         """
 
         self.task_status["pending"].remove(key)
 
-        # 开关控制
-        if not self.config.get(key, True):
+        enabled = self.config.get(key, default) if force is None else force
+        if not enabled:
             self.task_status["skipped"].append(key)
             return
 
@@ -181,15 +218,13 @@ class DailyTask(NTEOneTimeTask, BaseNTETask):
         if self.check_activity():
             self.log_info("当前体力消耗或每日活跃度已达标，跳过每日活跃度任务")
             return True
-        
-        used_stamina = self.info_get('used stamina')
+
+        used_stamina = self.info_get("used stamina")
         must_use = self.config.get(self.DAILY_STAMINA_TARGET, 180) - used_stamina
         self.info_set("must use stamina", must_use)
 
         task: AnomalyTask = self.get_task_by_class(AnomalyTask)
-        ret = task.do_run(
-            self.config, stamina_target=must_use
-        )
+        ret = task.do_run(self.config, stamina_target=must_use)
         if ret:
             self.shift_idx(task)
         return ret
@@ -225,12 +260,12 @@ class DailyTask(NTEOneTimeTask, BaseNTETask):
             self.log_error("无法找到活跃度面板")
             return False
         return True
-    
+
     def check_activity(self):
         if not self._open_activity():
             return False
         activity_re = re.compile(r"(\d+)")
-        mission_re = re.compile(r'^(\d+)/180$')
+        mission_re = re.compile(r"^(\d+)/180$")
         used_stamina = 0
         daily_activity = 0
 
@@ -239,7 +274,7 @@ class DailyTask(NTEOneTimeTask, BaseNTETask):
 
         activity = self.ocr(box=activity_box, match=activity_re)
         mission = self.ocr(box=mission_box, match=mission_re)
-        
+
         if mission:
             match = mission_re.search(mission[0].name)
             if match:
@@ -252,8 +287,8 @@ class DailyTask(NTEOneTimeTask, BaseNTETask):
                 daily_activity = int(match.group(1))
                 self.log_info(f"ocr found daily activity {daily_activity}")
 
-        self.info_set('used stamina', used_stamina)
-        self.info_set('daily activity', daily_activity)
+        self.info_set("used stamina", used_stamina)
+        self.info_set("daily activity", daily_activity)
 
         return used_stamina >= 180 or daily_activity >= 100
 
@@ -338,7 +373,6 @@ class DailyTask(NTEOneTimeTask, BaseNTETask):
         self.sleep(1)
 
         # 进入补货
-        
         self.wait_until(
             lambda: not self.find_one(Labels.f5_coffee_panel),
             pre_action=lambda: self.operate_click(0.115, 0.530, interval=1),
@@ -356,3 +390,7 @@ class DailyTask(NTEOneTimeTask, BaseNTETask):
         self.sleep(1)
         self.operate_click(0.600, 0.656)  # 确认
         return True
+
+    def run_coffee_task(self):
+        task: CoffeeTask = self.get_task_by_class(CoffeeTask)
+        return task.do_run()
