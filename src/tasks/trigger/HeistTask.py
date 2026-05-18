@@ -18,9 +18,9 @@ class HeistTask(BaseNTETask, TriggerTask):
     CHECK_INTERVAL = 0.01
     PICK_KEY_HOLD_INTERVAL = 0.35
     QUICK_RUN_HOLD_INTERVAL = 0.5
-    QUICK_RUN_KEY_AFTER_SLEEP = 0.6
+    QUICK_RUN_KEY_AFTER_SLEEP = 0.2
     QUICK_RUN_SHIFT_INTERVAL = 0.3
-    QUICK_RUN_SHIFT_AFTER_SLEEP = 0.6
+    QUICK_RUN_SHIFT_AFTER_SLEEP = 0.4
     KEY_MAP = {
         "space": win32con.VK_SPACE,
         "shift": win32con.VK_SHIFT,
