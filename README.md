@@ -43,14 +43,21 @@ All issues and consequences arising from the use of this software are not relate
 ## ✨ 主要功能
 
 <p align="center">
-  <img width="950" alt="demo_cn" src="https://github.com/user-attachments/assets/6d14e11d-c7c6-42bd-8ce9-f974fd0950df" />
+  <img width="950" alt="ok-nte-gif-cn" src="https://github.com/user-attachments/assets/5f7eb88c-cc5d-42cc-b27c-9059628c49b3" />
 </p>
 
 - **后台运行**：支持 PC 游戏在后台运行时进行自动化操作。
+- **一键日常**：自动完成日常流程。
 - **自动钓鱼**：全自动钓鱼。
 - **自动战斗**：基于计算机视觉的战斗算法。
+- **异象界域**：自动化挑战异象界域。
+- **自动鼓组音游**：自动完成鼓组音游。
+- **店长特供**：自动循环进出关卡（需配合游戏内挂机流派使用）。
 - **跳过对话**：跳过冗长的剧情对话。
 - **快速传送**：自动点击地图传送。
+- **粉爪大劫案便利性功能**
+  - **快速拾取**：快速拾取关卡内道具。
+  - **自动切换角色快速奔跑**：自动切换角色以保持快速奔跑。
 - **角色中心**
   - **角色管理**：支持自定义出招表，灵活配置战斗逻辑。
   - **特征管理**：适配不同角色皮肤，支持自动识别并切换对应的战斗逻辑。
