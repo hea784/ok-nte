@@ -19,6 +19,11 @@ class SoundTriggerTask(BaseNTETask, TriggerTask):
     def run(self):
         context = SoundCombatContext()
         self._apply_sound_config(context)
+        if self._is_onetime_task_running():
+            self._sound_trigger_allowed = False
+            context.clear_task_if(self)
+            return
+
         if not self._sound_config_enabled:
             self._sound_trigger_allowed = False
             context.clear_task_if(self)
@@ -42,7 +47,17 @@ class SoundTriggerTask(BaseNTETask, TriggerTask):
             context.wait_for_resume()
 
     def can_sound_trigger(self):
-        return self.enabled and self._sound_config_enabled and self._sound_trigger_allowed
+        return (
+            self.enabled
+            and self._sound_config_enabled
+            and self._sound_trigger_allowed
+            and not self._is_onetime_task_running()
+        )
+
+    def _is_onetime_task_running(self):
+        if self.executor.current_task in self.executor.onetime_tasks:
+            return self.executor.current_task.running
+        return False
 
     def _apply_sound_config(self, context):
         if not self.sound_config:

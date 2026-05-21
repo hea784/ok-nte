@@ -16,7 +16,7 @@ darkdetect==0.8.0
     # via pyside6-fluent-widgets
 decorator==5.2.1
     # via librosa
-idna==3.11
+idna==3.15
     # via requests
 imageio==2.37.3
     # via scikit-image

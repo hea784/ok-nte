@@ -302,7 +302,10 @@ class DailyTask(NTEOneTimeTask, BaseNTETask):
             self.sleep(2)
 
         if target := self._get_activity_reward_box():
-            self.operate_click(target)
+            self.wait_until(
+                lambda: not self._get_activity_reward_box(),
+                pre_action=lambda: self.operate_click(target, interval=1),
+            )
             self.sleep(1)
         else:
             self.log_error("无法找到活跃度奖励领取框")

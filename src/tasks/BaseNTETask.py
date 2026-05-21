@@ -35,7 +35,7 @@ class BaseNTETask(BaseTask):
         self.monthly_card_config = self.get_global_config("Monthly Card Config")
         self.sound_config = self.get_global_config("Sound Trigger Config")
         self._logged_in = False
-        self.arrow_contour = {"contours": None, "shape": None}
+        self._rotated_template_cache = {}
         self.default_box = ScreenPosition(self)
         self.char_ui_offset = False
         self.next_monthly_card_start = 0
@@ -196,7 +196,7 @@ class BaseNTETask(BaseTask):
             return self.executor.interaction.operate(func, block, restore_cursor=restore_cursor)
         else:
             return func()
-        
+
     def move_mouse_relative(self, dx, dy):
         from src.interaction.NTEInteraction import NTEInteraction
 
@@ -417,28 +417,131 @@ class BaseNTETask(BaseTask):
 
     def in_world(self) -> bool:
         frame = self.frame
-        if self.arrow_contour["shape"] != frame.shape[:2]:
-            template_bgr = self.get_feature_by_name(Labels.mini_map_arrow).mat
-            t_bin = template_bgr[:, :, 0]
-            contours, _ = cv2.findContours(t_bin, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-            if not contours:
-                raise ValueError("contours is None")
-            self.arrow_contour["contours"] = max(contours, key=cv2.contourArea)
-            self.arrow_contour["shape"] = frame.shape[:2]
-
+        template_bgr = self.get_feature_by_name(Labels.mini_map_arrow).mat
         mat = self.box_of_screen(0.0691, 0.1083, 0.0949, 0.1493, name="in_world").crop_frame(frame)
         mat = iu.binarize_bgr_by_brightness(mat, threshold=200)
-        res, cost = self._find_rotated_shape(mat)
+        res, _ = self._find_rotated_template(
+            template_bgr,
+            mat,
+            threshold=0.75,
+            cache_key=Labels.mini_map_arrow,
+        )
         # self.log_debug(f"in_world {res}, cost {cost} ms")
         return len(res) == 1
 
-    def _find_rotated_shape(self, scene_bgr, score_threshold=0.1):
+    def _find_rotated_template(
+        self,
+        template,
+        scene,
+        threshold=0.75,
+        angle_range=range(-180, 180, 5),
+        min_non_zero=20,
+        cache_key=None,
+    ):
+        start_time = time.time()
+        scene_mask = self._first_channel_mask(scene)
+        if cv2.countNonZero(scene_mask) < min_non_zero:
+            return [], (time.time() - start_time) * 1000
+
+        best = None
+        for angle, rotated_template in self._get_rotated_templates(
+            template,
+            angle_range=angle_range,
+            min_non_zero=min_non_zero,
+            cache_key=cache_key,
+        ):
+            th, tw = rotated_template.shape[:2]
+            if th > scene_mask.shape[0] or tw > scene_mask.shape[1]:
+                continue
+
+            result = cv2.matchTemplate(scene_mask, rotated_template, cv2.TM_CCOEFF_NORMED)
+            _, score, _, top_left = cv2.minMaxLoc(result)
+            if best is None or score > best["score"]:
+                best = {
+                    "center": (top_left[0] + tw // 2, top_left[1] + th // 2),
+                    "angle": angle,
+                    "score": score,
+                }
+
+        if best is None or best["score"] < threshold:
+            return [], (time.time() - start_time) * 1000
+
+        best["score"] = round(best["score"], 3)
+        return [best], (time.time() - start_time) * 1000
+
+    def _get_rotated_templates(
+        self,
+        template,
+        angle_range=range(-180, 180, 5),
+        min_non_zero=20,
+        cache_key=None,
+    ):
+        template_mask = self._trim_mask(self._first_channel_mask(template))
+        angles = tuple(angle_range)
+        template_key = (
+            cache_key or id(template),
+            template_mask.shape,
+            cv2.countNonZero(template_mask),
+            hash(template_mask.tobytes()),
+            angles,
+            min_non_zero,
+        )
+        cached = self._rotated_template_cache.get(template_key)
+        if cached is not None:
+            return cached
+
+        templates = []
+        for angle in angles:
+            rotated = self._rotate_mask(template_mask, angle)
+            rotated = self._trim_mask(rotated)
+            if cv2.countNonZero(rotated) >= min_non_zero:
+                templates.append((angle, rotated))
+
+        self._rotated_template_cache[template_key] = templates
+        return templates
+
+    def _first_channel_mask(self, mat):
+        if mat.ndim == 2:
+            return mat
+        return mat[:, :, 0]
+
+    def _rotate_mask(self, mask, angle):
+        h, w = mask.shape[:2]
+        center = (w / 2, h / 2)
+        rotate_matrix = cv2.getRotationMatrix2D(center, angle, 1.0)
+        cos = abs(rotate_matrix[0, 0])
+        sin = abs(rotate_matrix[0, 1])
+        new_w = int(round(h * sin + w * cos))
+        new_h = int(round(h * cos + w * sin))
+        rotate_matrix[0, 2] += new_w / 2 - center[0]
+        rotate_matrix[1, 2] += new_h / 2 - center[1]
+        return cv2.warpAffine(
+            mask,
+            rotate_matrix,
+            (new_w, new_h),
+            flags=cv2.INTER_NEAREST,
+            borderValue=0,
+        )
+
+    def _trim_mask(self, mask):
+        points = cv2.findNonZero(mask)
+        if points is None:
+            return mask
+        x, y, w, h = cv2.boundingRect(points)
+        return mask[y : y + h, x : x + w]
+
+    def _find_contours_from_first_channel(self, bgr):
+        bin_mat = bgr[:, :, 0]
+        contours, _ = cv2.findContours(bin_mat, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        return contours
+
+    def _find_rotated_shape(self, target_contour, scene_contours, score_threshold=0.1):
         """
+        target_contour: 要匹配的目标轮廓。
+        scene_contours: 在场景中找到的候选轮廓。
         score_threshold: 越小越严格。通常 0.05-0.2 之间。
         """
         start_time = time.time()
-        s_bin = scene_bgr[:, :, 0]
-        scene_contours, _ = cv2.findContours(s_bin, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
         results = []
         for cnt in scene_contours:
@@ -447,7 +550,7 @@ class BaseNTETask(BaseTask):
 
             # 核心算法：比较两个形状的胡氏矩 (I1 模式最常用)
             # 返回值越小，匹配度越高（0 为完美匹配）
-            score = cv2.matchShapes(self.arrow_contour["contours"], cnt, cv2.CONTOURS_MATCH_I1, 0.0)
+            score = cv2.matchShapes(target_contour, cnt, cv2.CONTOURS_MATCH_I1, 0.0)
 
             if score < score_threshold:
                 # 计算重心和角度
@@ -460,7 +563,9 @@ class BaseNTETask(BaseTask):
                     rect = cv2.minAreaRect(cnt)
                     angle = rect[2]  # 得到角度
 
-                    results.append({"center": (cx, cy), "angle": angle, "score": score})
+                    results.append(
+                        {"center": (cx, cy), "angle": angle, "score": round(score, 3)}
+                    )
 
         # 按分数升序排列（得分越低越好）
         results = sorted(results, key=lambda x: x["score"])
@@ -974,18 +1079,32 @@ class BaseNTETask(BaseTask):
         return self.find_feature(Labels.claim_icon, box=box)
 
     def get_stamina(self):
-        boxes = self.wait_ocr(
-            0.814, 0.029, 0.898, 0.083, raise_if_not_found=False, match=stamina_re
-        )
+        boxes = self.wait_ocr(0.814, 0.029, 0.898, 0.083, raise_if_not_found=False)
         if not boxes:
             self.screenshot("stamina_error")
             return -1
         current = 0
         for box in boxes:
+            box.name = self._fix_stamina_ocr_slash(box.name)
             if match := stamina_re.search(box.name):
                 current = int(match.group(1))
         self.info_set("当前体力", current)
         return current
+
+    def _fix_stamina_ocr_slash(self, text):
+        # 如果長度小於 4，說明數據本身不完整，直接返回原文字
+        if len(text) < 4:
+            return text
+
+        numerator = text[:-4]
+        maybe_slash = text[-4]
+        denominator = text[-3:]
+
+        # 如果倒數第 4 位被誤識成了 1、l 或 |
+        if maybe_slash in ["1", "l", "|"]:
+            return f"{numerator}/{denominator}"
+
+        return text
 
     def retry_on_action(self, action: Callable, reset_action: Callable | None = None, attempt=3):
         result = None
