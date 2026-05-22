@@ -155,6 +155,12 @@
             "file_name": "images/1.png",
             "width": 2560,
             "height": 1440
+        },
+        {
+            "id": 27,
+            "file_name": "images/2.png",
+            "width": 2560,
+            "height": 1440
         }
     ],
     "annotations": [
@@ -859,6 +865,19 @@
             ],
             "area": 2303,
             "iscrowd": 0
+        },
+        {
+            "id": 55,
+            "image_id": 27,
+            "category_id": 56,
+            "bbox": [
+                1554,
+                768,
+                36,
+                37
+            ],
+            "area": 1332,
+            "iscrowd": 0
         }
     ],
     "categories": [
@@ -1130,6 +1149,11 @@
         {
             "id": 54,
             "name": "heist_timer",
+            "supercategory": ""
+        },
+        {
+            "id": 56,
+            "name": "heist_interac_lock_pick",
             "supercategory": ""
         }
     ]

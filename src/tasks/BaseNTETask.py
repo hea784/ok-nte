@@ -576,12 +576,13 @@ class BaseNTETask(BaseTask):
         in_world = self.in_world()
         return in_team and in_world
 
-    def wait_in_team(self, time_out=30, raise_if_not_found=True, esc=False):
+    def wait_in_team(self, time_out=30, raise_if_not_found=True, esc=False, settle_time=0):
         success = self.wait_until(
             self.is_in_team,
             time_out=time_out,
             raise_if_not_found=raise_if_not_found,
             post_action=lambda: self.back(after_sleep=2) if esc else None,
+            settle_time=settle_time,
         )
         if success:
             self.sleep(0.1)
