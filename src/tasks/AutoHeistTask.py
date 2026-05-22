@@ -37,14 +37,17 @@ class CharacterSwitchState:
 
 
 INST = r"""
-        <span style="color:red;">
-            <strong>站在可互动小吱的位置开始</strong>
-        </span>
-        <div style="color:white;">
+        <div style="color:#FF5555;">
+            <strong>📍 步骤起点：站在可互动小吱的位置开始</strong>
+        </div>
+        <div style="color:yellow; margin-top:4px;">
+            <strong>⚙️ 镜头设置：控制 ➔ 移动镜头修正 ➔ 禁用</strong>
+        </div>
+        <div style="color:white; margin-top:12px;">
             <strong>路径1推荐设置</strong>
-            <div style="margin-left:2em;">战斗角色: 主角 / 娜娜莉</div>
-            <div style="margin-left:2em;">跑图角色: 薄荷</div>
-            <div style="margin-left:2em;">避战角色(可选): 翳 / 浔</div>
+            <div style="margin-left:2em; margin-top:2px;">战斗角色: 主角 / 娜娜莉</div>
+            <div style="margin-left:2em; margin-top:2px;">跑图角色: 薄荷</div>
+            <div style="margin-left:2em; margin-top:2px;">避战角色(可选): 翳 / 浔</div>
         </div>
     """
 
@@ -211,6 +214,11 @@ class AutoHeistTask(NTEOneTimeTask, BaseCombatTask):
                 raise AbortException("found monthly_card")
 
     def start_interaction_watch(self):
+        """开始后台交互点监视。
+
+        路径里用于长距离移动或过机关时提前开监视；后续必须调用
+        `stop_interaction_watch()` 校验期间是否出现过交互点。
+        """
         self.sleep_check_interval = self.SLEEP_CHECK_INTERVAL
         self._interaction_watch_active = True
         self._interaction_watch_found = False
@@ -218,6 +226,7 @@ class AutoHeistTask(NTEOneTimeTask, BaseCombatTask):
         self.log_info("start interaction watch")
 
     def stop_interaction_watch(self):
+        """结束后台交互点监视，并在未发现交互点时中断本轮路径。"""
         if not self._interaction_watch_active and not self._interaction_watch_found:
             self.log_warning("stop interaction watch ignored: not started")
             return True
@@ -310,6 +319,7 @@ class AutoHeistTask(NTEOneTimeTask, BaseCombatTask):
         return monthly_card is not None
 
     def log_round_info(self, message):
+        """输出带当前轮次前缀的路线日志。"""
         self.log_info(f"{self._round_label}: {message}")
 
     def get_heist_rewards(self):
@@ -395,9 +405,11 @@ class AutoHeistTask(NTEOneTimeTask, BaseCombatTask):
         self.sleep(0.5)
 
     def has_extract_panel(self):
+        """检查当前画面是否出现“安全撤离”面板。"""
         return self.ocr(0.2602, 0.2639, 0.3520, 0.3257, match=re.compile("安全撤离"))
 
     def is_in_team_outside_heist(self):
+        """判断角色已回到队伍界面，但已经不在粉爪副本内。"""
         return self.is_in_team() and not self.in_heist()
 
     # 离开粉爪副本
@@ -435,6 +447,11 @@ class AutoHeistTask(NTEOneTimeTask, BaseCombatTask):
         return earnfcash, earnpcoin
 
     def send_key_down(self, key, after_sleep=0):
+        """按住按键。
+
+        在路径脚本中按住 `f` 会启动快速拾取循环：周期性发送 `f` 并轻微滚轮，
+        直到 `send_key_up("f")` 或路径结束清理。
+        """
         if key == "f":
             self._start_quick_pick()
             self._scroll_switch = False
@@ -443,6 +460,7 @@ class AutoHeistTask(NTEOneTimeTask, BaseCombatTask):
         return super().send_key_down(key, after_sleep)
 
     def send_key_up(self, key, after_sleep=0):
+        """松开按键；松开 `f` 会停止快速拾取循环。"""
         if key == "f":
             self._reset_quick_pick()
             return
@@ -520,10 +538,11 @@ class AutoHeistTask(NTEOneTimeTask, BaseCombatTask):
                 self.stop_interaction_watch()
 
     def ensure_in_team(self):
+        """等待回到队伍界面；等待期间会周期性按 `esc` 关闭可能的面板。"""
         self.wait_until(self.is_in_team, pre_action=lambda: self.send_key("esc", interval=2))
 
     def check_current_floor(self, floor=1):
-        """检查是否在指定楼层"""
+        """检查左上角楼层是否为指定 LG 楼层，不匹配则中断路径。"""
         floor_str = "LG" + str(floor)
         ret = self.wait_ocr(0.04, 0.235, 0.11, 0.275, match=re.compile("LG.*"), time_out=10)
         if ret and floor_str in ret[0].name:
@@ -531,19 +550,31 @@ class AutoHeistTask(NTEOneTimeTask, BaseCombatTask):
         raise AbortException(f"not in floor {floor}")
 
     def in_heist(self):
+        """判断当前是否在粉爪副本内：需要队伍 UI 和副本计时器同时存在。"""
         return self.is_in_team() and self.find_one(Labels.heist_timer)
 
     def switch_to_fighter(self):
+        """切换到可用战斗角色。
+
+        会按配置中的战斗角色顺序尝试，并跳过本轮已判定死亡的角色。
+        返回当前发送的角色键位。
+        """
         keys = list(self.config.get(self.CONF_FIGHTER, []))
         dead_keys = set(self._dead_fighter_keys)
-        keys = [item for item in reversed(keys) if item not in dead_keys]
+        keys = [item for item in keys if item not in dead_keys]
         return self._begin_character_switch(self.ROLE_FIGHTER, keys)
 
     def switch_to_runner(self):
+        """切换到跑图角色；若角色死亡或配置为空会中断路径。"""
         keys = self.config.get(self.CONF_RUNNER, [])
         self._begin_character_switch(self.ROLE_RUNNER, keys)
 
     def avoider_strategy_index(self):
+        """返回避战策略索引。
+
+        `-1` 表示未配置避战角色，路径应走无避战角色的路线；
+        `0` 表示长按 shift，`1` 表示长按攻击。
+        """
         keys = self.config.get(self.CONF_AVOIDER, [])
         if not keys:
             return -1
@@ -554,6 +585,7 @@ class AutoHeistTask(NTEOneTimeTask, BaseCombatTask):
         return self.avoid_methods.index(method_name)
 
     def switch_to_avoider(self):
+        """切换到避战角色；未配置时只记录日志并返回。"""
         keys = self.config.get(self.CONF_AVOIDER, [])
         if not keys:
             self.log_info("no avoider")
@@ -561,6 +593,10 @@ class AutoHeistTask(NTEOneTimeTask, BaseCombatTask):
         self._begin_character_switch(self.ROLE_AVOIDER, keys)
 
     def perform_avoidance_action(self):
+        """按当前配置执行一次避战动作。
+
+        长按 shift 会短暂按住 `w + lshift`；长按攻击会长按鼠标左键。
+        """
         method_name = self.config.get(self.CONF_AVOID_MTH)
         if method_name == self.AVOID_METHOD_DASH:
             self.send_key_down("w")
@@ -574,6 +610,11 @@ class AutoHeistTask(NTEOneTimeTask, BaseCombatTask):
             self.click(down_time=0.6)
 
     def clear_current_combat(self):
+        """处理并等待当前小战斗结束。
+
+        会切到战斗角色、攻击直到红色血条消失，再切回跑图角色。
+        若战斗超时或所有战斗角色不可用会中断路径。
+        """
         _key = self.switch_to_fighter()
         self.wait_until(self.has_health_bar)
         deadline = time.time() + 60
@@ -609,6 +650,12 @@ class AutoHeistTask(NTEOneTimeTask, BaseCombatTask):
     def wait_and_interact(
         self, direction=None, interact=True, key_up_sleep=0.7, is_lock=False, time_out=10
     ):
+        """等待交互点并可选择按 `f` 交互。
+
+        `direction` 不为空时会先松开该方向键再交互，避免移动导致错过交互。
+        `interact=False` 只等待交互点出现。
+        `is_lock=True` 会额外等待撬锁 UI 出现并结束。
+        """
         ret = self.wait_until(self.find_interac, time_out=time_out)
         if interact and direction is not None:
             self.send_key_up(direction)
@@ -627,6 +674,11 @@ class AutoHeistTask(NTEOneTimeTask, BaseCombatTask):
         return True
 
     def loot_safes_while_walking(self, direction=None, time_out=10, hold=False):
+        """边移动边处理沿途保险箱。
+
+        发现撬锁交互提示时会暂停移动，等待撬锁完成后继续走。
+        `hold=True` 表示结束时保留方向键按下状态，交给后续路径处理。
+        """
         deadline = time.time() + time_out
         if direction is not None:
             self.send_key_down(direction)
@@ -646,6 +698,10 @@ class AutoHeistTask(NTEOneTimeTask, BaseCombatTask):
             self.send_key_up(direction)
 
     def wait_for_safe_loot(self, time_out=10, raise_timeout=False):
+        """等待当前保险箱撬锁/拾取完成。
+
+        `raise_timeout=True` 时超时会中断路径；否则超时只安静返回。
+        """
         deadline = time.time() + time_out
         while time.time() < deadline:
             if self.find_one(Labels.heist_interac_lock_pick, vertical_variance=0.05):
@@ -660,6 +716,7 @@ class AutoHeistTask(NTEOneTimeTask, BaseCombatTask):
                 raise AbortException("timeout for wait_for_safe_loot")
 
     def is_lock_pick_active(self):
+        """检查撬锁转盘 UI 是否正在显示。"""
         feature = self.get_feature_by_name(Labels.heist_lock_pick).mat
         box = self.get_box_by_name(Labels.heist_lock_pick).scale(1.5)
         self.draw_boxes(boxes=box, color="blue")
@@ -675,6 +732,11 @@ class AutoHeistTask(NTEOneTimeTask, BaseCombatTask):
         return len(res) >= 1
 
     def try_open_exit(self, direction=None):
+        """尝试打开当前出口并返回是否可撤离。
+
+        会等待出口交互点、按 `f` 打开面板；如果出现撤离面板，说明该出口可用，
+        随后会按 `esc` 回到队伍界面。
+        """
         if self.wait_until(self.find_interac):
             if direction is not None:
                 self.send_key_up(direction)
@@ -691,6 +753,7 @@ class AutoHeistTask(NTEOneTimeTask, BaseCombatTask):
             raise AbortException("not found exit interaction")
 
     def walk_until_extract_panel(self, direction=None, time_out=10):
+        """沿指定方向移动并持续按 `f`，直到出现安全撤离面板。"""
         if direction is not None:
             self.send_key_down(direction)
         self.wait_until(

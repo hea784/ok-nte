@@ -746,6 +746,46 @@ class BaseNTETask(BaseTask):
         box = box.copy(y_offset=y, width_offset=w, height_offset=-y)
         return self.find_one(Labels.teleport, box=box)
 
+    def click_nearest_map_teleport(self, threshold=0.7, time_out=5):
+        self.ensure_main()
+        self.wait_until(
+            lambda: self.find_one(Labels.map_city_tycoon_activities),
+            time_out=10,
+            pre_action=lambda: self.send_key("m", interval=2),
+            raise_if_not_found=True,
+        )
+        to_find = [Labels.map_big_teleport, Labels.map_small_teleport]
+        template_boxes = [self.get_box_by_name(label) for label in to_find]
+        max_template_size = max(
+            max(template_box.width, template_box.height) for template_box in template_boxes
+        )
+        step = max(max_template_size, self.width_of_screen(0.02), 1)
+        center_x = self.width_of_screen(0.5)
+        center_y = self.height_of_screen(0.5)
+        max_radius = max(self.width, self.height)
+
+        def find_teleport():
+            radius = step
+            while radius <= max_radius:
+                x = max(0, center_x - radius)
+                y = max(0, center_y - radius)
+                to_x = min(self.width, center_x + radius)
+                to_y = min(self.height, center_y + radius)
+                box = Box(x=x, y=y, to_x=to_x, to_y=to_y, name="nearest_map_teleport")
+                teleport = self.find_best_match_in_box(box, to_find, threshold=threshold)
+                if teleport:
+                    return teleport
+                radius += step
+
+        teleport = self.wait_until(
+            find_teleport, time_out=time_out, raise_if_not_found=True
+        )
+        self.log_info(f"found nearest map teleport {teleport}")
+        self.operate_click(teleport, action_name="click_nearest_map_teleport", interval=1)
+        self.sleep(0.5)
+        self.click_traval_button()
+        return teleport
+
     def click_traval_button(self, travel_btn=None):
         if not isinstance(travel_btn, Box):
             travel_btn = self.wait_until(
