@@ -76,7 +76,7 @@ class AutoHeistTask(NTEOneTimeTask, BaseCombatTask):
         self.icon = FluentIcon.SHOPPING_CART
         self.instructions = INST
         self.paths = {
-            "路径1": HeistPathA,
+            "路径1(路线参考自B站UP: 早柚大魔王丶)": HeistPathA,
         }
         path_names = list(self.paths.keys())
         self.avoid_methods = [self.AVOID_METHOD_DASH, self.AVOID_METHOD_ATTACK]
