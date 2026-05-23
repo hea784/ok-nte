@@ -8,6 +8,7 @@ from qfluentwidgets import FluentIcon
 
 from src import text_white_color
 from src.combat.BaseCombatTask import BaseCombatTask
+from src.heist_path.HeistEntrancePath import HeistEntrancePath
 from src.heist_path.HeistPathA import HeistPathA
 from src.Labels import Labels
 from src.tasks.NTEOneTimeTask import NTEOneTimeTask
@@ -45,7 +46,7 @@ INST = r"""
         </div>
         <div style="color:white; margin-top:12px;">
             <strong>路径1推荐设置</strong>
-            <div style="margin-left:2em; margin-top:2px;">战斗角色: 主角 / 娜娜莉</div>
+            <div style="margin-left:2em; margin-top:2px;">战斗角色: 主角 / 哈尼娅</div>
             <div style="margin-left:2em; margin-top:2px;">跑图角色: 薄荷</div>
             <div style="margin-left:2em; margin-top:2px;">避战角色(可选): 翳 / 浔</div>
         </div>
@@ -65,8 +66,9 @@ class AutoHeistTask(NTEOneTimeTask, BaseCombatTask):
     AVOID_METHOD_DASH = "长按shift"
     AVOID_METHOD_ATTACK = "长按攻击"
     LOCK_PICK_MATCH_THRESHOLD = 0.75
+    DEFAULT_SLEEP_CHECK_INTERVAL = 1
     SLEEP_CHECK_INTERVAL = 0.1
-    SWITCH_CHECK_DURATION = 3
+    SWITCH_CHECK_DURATION = 1
     QUICK_PICK_START_DELAY = 0.3
     QUICK_PICK_INTERVAL = 0.2
 
@@ -75,6 +77,7 @@ class AutoHeistTask(NTEOneTimeTask, BaseCombatTask):
         self.name = "自动粉爪大劫案"
         self.icon = FluentIcon.SHOPPING_CART
         self.instructions = INST
+        self.supported_languages = ["zh_CN"]
         self.paths = {
             "路径1(路线参考自B站UP: 早柚大魔王丶)": HeistPathA,
         }
@@ -115,7 +118,7 @@ class AutoHeistTask(NTEOneTimeTask, BaseCombatTask):
                 self.CONF_AVOIDER: {"type": "multi_selection", "options": options},
             }
         )
-        self.sleep_check_interval = self.SLEEP_CHECK_INTERVAL
+        self.sleep_check_interval = self.DEFAULT_SLEEP_CHECK_INTERVAL
         self._scroll_switch = False
         self._scroll_count = 0
         self._scroll_time = 0
@@ -130,7 +133,6 @@ class AutoHeistTask(NTEOneTimeTask, BaseCombatTask):
         self._interaction_watch_found = False
 
         self._round_label = ""
-        self._error_count = 0
 
     def run(self):
         super().run()
@@ -145,7 +147,8 @@ class AutoHeistTask(NTEOneTimeTask, BaseCombatTask):
     def _run_loop(self):
         self._start_quick_pick_loop()
         self._round_label = ""
-        self._error_count = 0
+        self.info_set("成功次数", 0)
+        self.info_set("失败次数", 0)
         self.info_set("总方斯获取数", 0)
         self.info_set("总粉爪币获取数", 0)
 
@@ -153,16 +156,38 @@ class AutoHeistTask(NTEOneTimeTask, BaseCombatTask):
 
         total = int(self.config.get(self.CONF_LOOP_COUNT, 1))
         endless = total == 0
-        skip_task = self.get_task_by_class(SkipDialogTask)
         while endless or count < total:
+            if not self._ensure_heist_entrance():
+                self.next_frame()
+                continue
+
             count += 1
             self._prepare_round(count, total, endless)
 
-            rewards = self._run_heist_round(skip_task)
+            rewards = self._run_heist_round()
             if rewards is not None:
                 self._add_rewards_to_summary(*rewards)
 
             self.next_frame()
+
+    def _ensure_heist_entrance(self):
+        if self.wait_until(self.find_interac, time_out=10, raise_if_not_found=False):
+            return True
+
+        if self.is_in_team() and self.in_world():
+            self._return_to_heist_entrance()
+            return bool(self.wait_until(self.find_interac, time_out=20, raise_if_not_found=False))
+
+        return False
+
+    def _return_to_heist_entrance(self):
+        self.log_info("当前在大世界中，将传送到粉爪总部附近的塔")
+        self.click_nearest_map_teleport()
+        self.wait_in_team(settle_time=1)
+        try:
+            HeistEntrancePath(self).run_path()
+        except AbortException as e:
+            self.log_warning(e)
 
     def _start_quick_pick_loop(self):
         self.log_info("quick_pick_loop start")
@@ -172,38 +197,45 @@ class AutoHeistTask(NTEOneTimeTask, BaseCombatTask):
         self._dead_fighter_keys = []
         self._round_label = f"第 {count} 轮"
         round_text = "∞" if endless else f"{total}"
-
         self.info_set("轮次", f"{count} / {round_text}")
-        self.info_set("失败次数", self._error_count)
 
     def _add_rewards_to_summary(self, earnfcash, earnpcoin):
+        self.info_add("成功次数", 1)
         self.info_add("总方斯获取数", earnfcash)
         self.info_add("总粉爪币获取数", earnpcoin)
 
-    def _run_heist_round(self, skip_task):
+    def _run_heist_round(self):
         if not self.wait_until(self.find_interac, time_out=20, raise_if_not_found=True):
             return None
 
         self.enter_heist()
-        if not self._wait_until_heist_loaded(skip_task):
+        if not self._wait_until_heist_loaded():
             self.abort_heist()
             return None
 
         try:
             self.run_path()
         except AbortException as e:
-            self.log_warning(e)
+            self.log_warning(f"路线终止: {e}")
             self.abort_heist()
             return None
 
         return self.exit_heist()
 
-    def _wait_until_heist_loaded(self, skip_task):
-        return self.wait_until(
+    def _wait_until_heist_loaded(self):
+        skip_task = self.get_task_by_class(SkipDialogTask)
+        self.wait_until(
             self.in_heist,
             post_action=lambda: skip_task.check_skip(),
             time_out=600,
-            settle_time=1,
+        )
+        self.wait_until(
+            lambda: not self.in_heist(),
+            time_out=60,
+        )
+        return self.wait_until(
+            self.in_heist,
+            time_out=60,
         )
 
     def sleep_check(self):
@@ -213,15 +245,26 @@ class AutoHeistTask(NTEOneTimeTask, BaseCombatTask):
             if self.handle_monthly_card():
                 raise AbortException("found monthly_card")
 
+    def _update_sleep_check_interval(self):
+        needs_fast_poll = (
+            (self._interaction_watch_active and not self._interaction_watch_found)
+            or self._switch_state is not None
+        )
+        self.sleep_check_interval = (
+            self.SLEEP_CHECK_INTERVAL
+            if needs_fast_poll
+            else self.DEFAULT_SLEEP_CHECK_INTERVAL
+        )
+
     def start_interaction_watch(self):
         """开始后台交互点监视。
 
         路径里用于长距离移动或过机关时提前开监视；后续必须调用
         `stop_interaction_watch()` 校验期间是否出现过交互点。
         """
-        self.sleep_check_interval = self.SLEEP_CHECK_INTERVAL
         self._interaction_watch_active = True
         self._interaction_watch_found = False
+        self._update_sleep_check_interval()
         self.info_set("交互检查", "检查中")
         self.log_info("start interaction watch")
 
@@ -232,9 +275,9 @@ class AutoHeistTask(NTEOneTimeTask, BaseCombatTask):
             return True
 
         found = self._interaction_watch_found
-        self.sleep_check_interval = self.SLEEP_CHECK_INTERVAL
         self._interaction_watch_active = False
         self._interaction_watch_found = False
+        self._update_sleep_check_interval()
         self.info_set("交互检查", None)
 
         if not found:
@@ -247,16 +290,21 @@ class AutoHeistTask(NTEOneTimeTask, BaseCombatTask):
         if self.find_interac():
             self._interaction_watch_found = True
             self._interaction_watch_active = False
+            self._update_sleep_check_interval()
             self.info_set("交互检查", "已找到")
             self.log_info("interaction watch succeeded")
         return self._interaction_watch_found
 
-    def _begin_character_switch(self, role, keys):
+    def _begin_character_switch(self, role, keys, check_switched=False):
         if not keys:
             raise AbortException(f"{role} {keys} dead or empty")
 
         self._switch_state = CharacterSwitchState(role=role, keys=keys)
-        return self._send_current_switch_key()
+        self._update_sleep_check_interval()
+        key = self._send_current_switch_key()
+        if check_switched:
+            return self._wait_character_switch_success(role, key)
+        return key
 
     def _send_current_switch_key(self):
         state = self._switch_state
@@ -269,6 +317,35 @@ class AutoHeistTask(NTEOneTimeTask, BaseCombatTask):
         self.send_key(key)
         return key
 
+    def _wait_character_switch_success(self, role, key):
+        last_key = key
+
+        def get_switch_key():
+            state = self._switch_state
+            return state.current_key if state is not None else last_key
+
+        def is_switched():
+            nonlocal last_key
+            state = self._switch_state
+            if state is not None:
+                last_key = state.current_key
+            return self.is_char_at_index(int(last_key) - 1)
+
+        def switch_action():
+            self.send_key(get_switch_key(), action_name="switch_char", interval=0.5)
+
+        if not self.wait_until(is_switched, pre_action=switch_action, time_out=10):
+            self._switch_state = None
+            self._update_sleep_check_interval()
+            raise AbortException(f"{role} switch to {last_key} failed")
+
+        state = self._switch_state
+        if state is not None:
+            last_key = state.current_key
+        self._switch_state = None
+        self._update_sleep_check_interval()
+        return last_key
+
     def _poll_character_switch(self):
         if self._switch_state is None or self._handling_switch_state:
             return
@@ -276,6 +353,7 @@ class AutoHeistTask(NTEOneTimeTask, BaseCombatTask):
         state = self._switch_state
         if time.time() > state.deadline:
             self._switch_state = None
+            self._update_sleep_check_interval()
             return
 
         if self.is_in_team():
@@ -292,6 +370,7 @@ class AutoHeistTask(NTEOneTimeTask, BaseCombatTask):
 
             if not state.advance():
                 self._switch_state = None
+                self._update_sleep_check_interval()
                 raise AbortException(f"{role} {state.keys} dead or empty")
             self._send_current_switch_key()
         finally:
@@ -351,7 +430,7 @@ class AutoHeistTask(NTEOneTimeTask, BaseCombatTask):
 
     def abort_heist(self):
         self.log_round_info("出现异常，将退出粉爪副本")
-        self._error_count += 1
+        self.info_add("失败次数", 1)
 
         self.wait_until(
             lambda: (
@@ -410,7 +489,7 @@ class AutoHeistTask(NTEOneTimeTask, BaseCombatTask):
 
     def is_in_team_outside_heist(self):
         """判断角色已回到队伍界面，但已经不在粉爪副本内。"""
-        return self.is_in_team() and not self.in_heist()
+        return self.in_team_and_world() and not self.in_heist()
 
     # 离开粉爪副本
     def exit_heist(self):
@@ -553,21 +632,25 @@ class AutoHeistTask(NTEOneTimeTask, BaseCombatTask):
         """判断当前是否在粉爪副本内：需要队伍 UI 和副本计时器同时存在。"""
         return self.is_in_team() and self.find_one(Labels.heist_timer)
 
-    def switch_to_fighter(self):
+    def switch_to_fighter(self, check_switched=False):
         """切换到可用战斗角色。
 
         会按配置中的战斗角色顺序尝试，并跳过本轮已判定死亡的角色。
+        `check_switched=True` 时会校验当前角色头像已切换到目标位置。
         返回当前发送的角色键位。
         """
         keys = list(self.config.get(self.CONF_FIGHTER, []))
         dead_keys = set(self._dead_fighter_keys)
         keys = [item for item in keys if item not in dead_keys]
-        return self._begin_character_switch(self.ROLE_FIGHTER, keys)
+        return self._begin_character_switch(self.ROLE_FIGHTER, keys, check_switched)
 
-    def switch_to_runner(self):
-        """切换到跑图角色；若角色死亡或配置为空会中断路径。"""
+    def switch_to_runner(self, check_switched=False):
+        """切换到跑图角色；若角色死亡或配置为空会中断路径。
+
+        `check_switched=True` 时会校验当前角色头像已切换到目标位置。
+        """
         keys = self.config.get(self.CONF_RUNNER, [])
-        self._begin_character_switch(self.ROLE_RUNNER, keys)
+        return self._begin_character_switch(self.ROLE_RUNNER, keys, check_switched)
 
     def avoider_strategy_index(self):
         """返回避战策略索引。
@@ -584,13 +667,16 @@ class AutoHeistTask(NTEOneTimeTask, BaseCombatTask):
             return 0
         return self.avoid_methods.index(method_name)
 
-    def switch_to_avoider(self):
-        """切换到避战角色；未配置时只记录日志并返回。"""
+    def switch_to_avoider(self, check_switched=False):
+        """切换到避战角色；未配置时只记录日志并返回。
+
+        `check_switched=True` 时会校验当前角色头像已切换到目标位置。
+        """
         keys = self.config.get(self.CONF_AVOIDER, [])
         if not keys:
             self.log_info("no avoider")
             return
-        self._begin_character_switch(self.ROLE_AVOIDER, keys)
+        return self._begin_character_switch(self.ROLE_AVOIDER, keys, check_switched)
 
     def perform_avoidance_action(self):
         """按当前配置执行一次避战动作。
@@ -615,16 +701,16 @@ class AutoHeistTask(NTEOneTimeTask, BaseCombatTask):
         会切到战斗角色、攻击直到红色血条消失，再切回跑图角色。
         若战斗超时或所有战斗角色不可用会中断路径。
         """
-        _key = self.switch_to_fighter()
+        _key = self.switch_to_fighter(check_switched=True)
         self.wait_until(self.has_health_bar)
         deadline = time.time() + 60
         settle = -1
         while time.time() < deadline:
             if settle < 0:
                 self.send_key("space")
-                self.sleep(0.25)
+                self.sleep(0.1)
                 self.click()
-                self.sleep(0.4)
+                self.sleep(0.1)
                 if not self.is_in_team():
                     self.log_info(f"fighter {_key} dead, try next")
                     self._dead_fighter_keys.append(_key)
@@ -645,7 +731,7 @@ class AutoHeistTask(NTEOneTimeTask, BaseCombatTask):
                 settle = -1
         else:
             raise AbortException("timeout for clear_current_combat")
-        self.switch_to_runner()
+        self.switch_to_runner(check_switched=True)
 
     def wait_and_interact(
         self, direction=None, interact=True, key_up_sleep=0.7, is_lock=False, time_out=10
@@ -763,3 +849,7 @@ class AutoHeistTask(NTEOneTimeTask, BaseCombatTask):
         )
         if direction is not None:
             self.send_key_up(direction)
+
+    def wait_team_ui_settle(self):
+        self.wait_until(lambda: not self.is_in_team(), time_out=1)
+        self.wait_in_team(settle_time=0.25)
