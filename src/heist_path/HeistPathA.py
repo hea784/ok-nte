@@ -35,7 +35,6 @@ class HeistPathA(HeistPath):
         else:
             self.lg2_wp4_to_exit3()
 
-
     def goto_lg1(self):
         self.log_round_info("寻路到LG1")
         self.switch_to_runner(check_switched=True)
@@ -106,13 +105,13 @@ class HeistPathA(HeistPath):
         self.sleep(1.50)
         self.send_key_up("s")
         self.sleep(0.14)
-        self.send_key_down("f") # start pick
+        self.send_key_down("f")  # start pick
         self.sleep(0.04)
         self.send_key_down("w")
         self.sleep(2.5)
         self.send_key_up("w")
         self.sleep(0.10)
-        self.send_key_up("f") # end pick
+        self.send_key_up("f")  # end pick
         self.sleep(0.13)
         self.send_key_down("s")
         self.sleep(0.14)
@@ -499,17 +498,19 @@ class HeistPathA(HeistPath):
         self.wait_and_interact(direction="w")
 
     def lg2_wp1_to_exit1(self):
-        self.sleep(1.25)
+        self.sleep(2.65)  # 2.65
         self.send_key_down("w")
         self.sleep(5.04)
         self.send_key_up("w")
         self.sleep(0.13)
-        self.send_key_down("f") # start pick
+        self.send_key_down("f")  # start pick
         self.sleep(0.11)
         self.send_key_down("a")
-        self.sleep(8.07)
+        self.sleep(3.00)
+        self.send_key("lshift") # x0.6
+        self.sleep(3.10)
         self.send_key_up("a")
-        self.sleep(0.11)
+        self.sleep(0.21)
         self.send_key_down("s")
         self.sleep(0.11)
         self.send_key_down("d")
@@ -527,7 +528,7 @@ class HeistPathA(HeistPath):
         self.send_key_up("w")
         self.sleep(0.11)
         self.send_key_down("d")
-        self.sleep(0.72)
+        self.sleep(0.52)
         self.send_key_up("d")
         self.sleep(0.59)
         self.send_key_down("s")
@@ -538,19 +539,19 @@ class HeistPathA(HeistPath):
         self.sleep(0.89)
         self.send_key_up("d")
         self.sleep(0.41)
-        self.send_key_up("f") # end pick
+        self.send_key_up("f")  # end pick
         self.sleep(0.11)
         self.send_key_down("w")
         self.sleep(2.81)
         self.exit_state[1] = self.try_open_exit(direction="w")
-        self.sleep(0.40)
-    
+        # self.sleep(0.5)
+
     def lg2_wp1_remains(self):
         self.send_key_down("w")
         self.sleep(2.10)
         self.send_key_up("w")
         self.sleep(0.11)
-        self.send_key_down("f") # start pick
+        self.send_key_down("f")  # start pick
         self.sleep(0.11)
         self.send_key_down("a")
         self.sleep(0.90)
@@ -575,7 +576,9 @@ class HeistPathA(HeistPath):
         self.send_key_up("a")
         self.sleep(0.30)
         self.send_key_down("d")
-        self.sleep(2.73)
+        self.sleep(0.2)
+        self.send_key("lshift")
+        self.sleep(1.43)
         self.send_key_up("d")
         self.switch_to_runner()
         self.sleep(0.11)
@@ -598,15 +601,24 @@ class HeistPathA(HeistPath):
         self.switch_to_runner()
         self.sleep(0.11)
         self.send_key_down("d")
-        self.sleep(4.56)
+        self.sleep(5.05)
         self.send_key_up("d")
-        self.sleep(1.23)
-        self.loot_safes_while_walking(direction="w", time_out=3.06, hold=True)
+        self.sleep(0.23)
         self.switch_to_runner()
-        self.send_key_down("d")
-        self.sleep(0.73)
-        self.send_key_up("d")
-        self.sleep(6.16)
+        self.sleep(0.01)
+        self.send_key_up("f")  # end pick
+        self.loot_safes_while_walking(
+            direction="w", min_walk_time=0.8, time_out=1.3, hold=True, send_pick=True
+        )
+        self.sleep(0.10)
+        self.send_key_down("space")
+        self.sleep(0.13)
+        self.send_key_up("space")
+        self.sleep(0.17)
+        self.send_key_down("space")
+        self.sleep(0.13)
+        self.send_key_up("space")
+        self.sleep(7.46)
         self.send_key_down("d")
         self.sleep(1.31)
         self.send_key_up("d")
@@ -681,11 +693,11 @@ class HeistPathA(HeistPath):
         self.sleep(0.61)
         self.send_key_up("s")
         self.sleep(0.11)
-        self.send_key_up("f") # end pick
+        self.send_key_up("f")  # end pick
         self.sleep(0.11)
 
     def lg2_wp2_to_exit2(self):
-        self.send_key_down("f") # start pick
+        self.send_key_down("f")  # start pick
         self.sleep(0.11)
         self.send_key_down("d")
         self.sleep(1.21)
@@ -699,10 +711,12 @@ class HeistPathA(HeistPath):
         self.sleep(1.70)
         self.send_key_up("w")
         self.sleep(0.11)
-        self.send_key_up("f") # end pick
+        self.send_key_up("f")  # end pick
         self.sleep(0.11)
         self.send_key_down("d")
-        self.sleep(4.52)
+        self.sleep(0.20)
+        self.send_key("lshift")
+        self.sleep(2.64)
         self.send_key_up("d")
         self.sleep(0.11)
         self.send_key_down("s")
@@ -717,7 +731,7 @@ class HeistPathA(HeistPath):
         self.sleep(3.96)
         self.send_key_up("w")
         self.sleep(0.11)
-        self.send_key_down("f") # start pick
+        self.send_key_down("f")  # start pick
         self.sleep(0.15)
         self.send_key_down("a")
         self.sleep(0.71)
@@ -732,7 +746,7 @@ class HeistPathA(HeistPath):
         self.send_key_up("a")
         self.sleep(0.26)
         self.send_key_down("w")
-        self.sleep(2.47)
+        self.sleep(2.60)
         self.send_key_up("w")
         self.sleep(0.11)
         self.send_key_down("d")
@@ -751,27 +765,23 @@ class HeistPathA(HeistPath):
         self.sleep(1.51)
         self.send_key_up("d")
         self.sleep(0.11)
-        self.send_key_up("f") # end pick
+        self.send_key_up("f")  # end pick
         self.sleep(0.11)
-        self.send_key_down("s")
-        self.sleep(0.60)
-        self.send_key_up("s")
+        self.switch_to_runner()
         self.sleep(0.28)
         self.send_key_down("w")
         self.sleep(2.56)
         self.send_key_down("a")
-        self.sleep(0.40)
+        self.sleep(0.30)
         self.send_key_up("a")
         self.sleep(1.57)
         self.exit_state[2] = self.try_open_exit(direction="w")
         self.sleep(0.40)
-        self.switch_to_runner()
-        self.sleep(0.5)
 
     def lg2_wp3_to_layzer_room(self):
         self.send_key_down("a")
         self.sleep(3.03)
-        self.send_key_down("f") # start pick
+        self.send_key_down("f")  # start pick
         self.sleep(0.11)
         self.send_key_down("w")
         self.sleep(2.55)
@@ -807,7 +817,7 @@ class HeistPathA(HeistPath):
         self.sleep(0.61)
         self.send_key_up("a")
         self.sleep(0.11)
-        self.send_key_up("f") # end pick
+        self.send_key_up("f")  # end pick
         self.sleep(0.11)
         self.send_key_down("s")
         self.sleep(2.96)
@@ -818,7 +828,7 @@ class HeistPathA(HeistPath):
         self.sleep(0.36)
         self.send_key_up("d")
         self.sleep(0.11)
-        self.send_key_down("f") # start pick
+        self.send_key_down("f")  # start pick
         self.sleep(0.11)
         self.wait_for_safe_loot(time_out=0.8)
         self.sleep(0.11)
@@ -899,7 +909,7 @@ class HeistPathA(HeistPath):
         self.sleep(0.71)
         self.send_key_up("d")
         self.sleep(0.11)
-        self.send_key_up("f") # end pick
+        self.send_key_up("f")  # end pick
         self.sleep(0.11)
         self.send_key_down("s")
         self.sleep(0.31)
@@ -909,7 +919,7 @@ class HeistPathA(HeistPath):
         self.sleep(0.61)
         self.send_key_up("d")
         self.sleep(0.11)
-        self.send_key_down("f") # start pick
+        self.send_key_down("f")  # start pick
         self.wait_for_safe_loot(raise_timeout=True)
         self.sleep(0.11)
         self.send_key_down("w")
@@ -1021,13 +1031,13 @@ class HeistPathA(HeistPath):
         self.send_key_up("s")
         self.sleep(0.12)
         self.send_key_down("a")
-        self.sleep(1.31)
+        self.sleep(1.41)
         self.send_key_up("a")
         self.sleep(0.11)
 
     def lg2_wp4(self):
         self.send_key_down("w")
-        self.sleep(5.53)
+        self.sleep(5.00)
         self.send_key_up("w")
         self.sleep(0.11)
         self.send_key_down("s")
@@ -1038,51 +1048,44 @@ class HeistPathA(HeistPath):
         self.sleep(2.91)
         self.send_key_up("a")
         self.sleep(0.11)
-        self.send_key_up("f") # end pick
-        self.sleep(0.12)
+        self.send_key_up("f")  # end pick
+        self.sleep(0.01)
 
     def lg2_wp4_to_exit1(self):
+        self.send_key_down("f")  # start pick
+        self.sleep(0.01)
         self.send_key_down("a")
-        self.sleep(0.11)
-        self.send_key_down("s")
-        self.sleep(0.71)
-        self.send_key_up("s")
-        self.sleep(6.51)
+        self.sleep(0.17)
+        self.send_key_down("lshift")
+        self.sleep(0.14)
+        self.send_key_up("lshift")
+        self.sleep(4.69)
         self.send_key_up("a")
-        self.sleep(0.29)
+        self.sleep(0.41)
         self.send_key_down("d")
         self.sleep(0.31)
         self.send_key_up("d")
-        self.sleep(0.11)
-        self.send_key_down("f") # start pick
-        self.sleep(0.11)
+        self.sleep(0.20)
         self.send_key_down("s")
-        self.sleep(0.11)
+        self.sleep(0.25)
         self.send_key_down("lshift")
-        self.sleep(0.06)
+        self.sleep(0.23)
         self.send_key_up("lshift")
-        self.sleep(0.11)
-        self.send_key_down("lshift")
-        self.sleep(0.06)
-        self.send_key_up("lshift")
-        self.sleep(4.90)
+        self.sleep(5.22)
         self.send_key_up("s")
         self.sleep(0.11)
         self.send_key_down("s")
         self.sleep(0.11)
-        self.send_key_up("f") # end pick
-        self.sleep(0.41)
-        self.send_key_down("space")
-        self.sleep(0.06)
-        self.send_key_up("space")
-        self.sleep(0.56)
-        self.send_key_down("space")
-        self.sleep(0.06)
-        self.send_key_up("space")
-        self.sleep(0.55)
-        self.send_key_down("space")
-        self.sleep(0.06)
-        self.send_key_up("space")
+        self.send_key_up("f")  # end pick
+        self.sleep(0.11)
+
+        deadline = time.time() + 1.29
+        while time.time() < deadline:
+            self.send_key_down("space")
+            self.sleep(0.06)
+            self.send_key_up("space")
+            self.sleep(0.26)
+
         self.sleep(1.21)
         self.send_key_up("s")
         self.sleep(0.11)
@@ -1093,8 +1096,10 @@ class HeistPathA(HeistPath):
         self.walk_until_extract_panel(direction="w")
 
     def lg2_wp4_to_exit2(self):
+        self.send_key_down("f")  # start pick
+        self.sleep(0.01)
         self.send_key_down("w")
-        self.sleep(0.11)
+        self.sleep(0.21)
         self.send_key_down("lshift")
         self.sleep(0.06)
         self.send_key_up("lshift")
@@ -1104,19 +1109,30 @@ class HeistPathA(HeistPath):
         self.send_key_up("lshift")
         self.sleep(1.10)
         self.send_key_down("d")
-        self.sleep(1.21)
+        self.sleep(0.40)
         self.send_key_up("w")
-        self.sleep(1.50)
-        self.send_key_down("w")
+        self.sleep(2.30)
+        self.send_key_down("s")
         self.sleep(1.01)
+        self.send_key_up("s")
+        self.sleep(0.21)
+        self.send_key_down("w")
+        self.sleep(0.74)
         self.send_key_up("w")
-        self.sleep(4.81)
+        self.sleep(4.61)
         self.send_key_up("d")
         self.sleep(0.41)
         self.send_key_down("s")
         self.sleep(1.00)
         self.send_key_up("s")
         self.sleep(0.11)
+        self.send_key_up("f")  # end pick
+        self.sleep(0.11)
+        self.send_key_down("d")
+        self.sleep(1.00)
+        self.send_key_down("w")
+        self.sleep(1.00)
+        self.send_key_up("w")
         self.walk_until_extract_panel(direction="d")
 
     def lg2_wp4_to_exit3(self):
