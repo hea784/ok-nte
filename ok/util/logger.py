@@ -3,6 +3,7 @@ import inspect
 import logging
 import os
 import queue
+import re
 import sys
 import traceback
 from logging.handlers import TimedRotatingFileHandler, QueueHandler, QueueListener
@@ -12,10 +13,23 @@ from ok.util.file import ensure_dir_for_file, get_relative_path
 
 _ok_log_formatter = logging.Formatter('%(asctime)s %(levelname)s %(threadName)s %(message)s')
 _ok_logger = logging.getLogger("ok")
+_OK_STDOUT_HANDLER = "_ok_stdout_handler"
+
+
+def _ensure_default_console_logger():
+    if _ok_logger.handlers:
+        return
+    stdout_handler = logging.StreamHandler(sys.stdout)
+    setattr(stdout_handler, _OK_STDOUT_HANDLER, True)
+    stdout_handler.setFormatter(_ok_log_formatter)
+    stdout_handler.setLevel(logging.DEBUG)
+    _ok_logger.addHandler(stdout_handler)
+    _ok_logger.setLevel(logging.DEBUG)
 
 
 class Logger:
     def __init__(self, name: str):
+        _ensure_default_console_logger()
         self.logger = _ok_logger
         self.name = name.split('.')[-1]
 
@@ -76,6 +90,20 @@ class InfoFilter(logging.Filter):
 
 
 class SafeFileHandler(TimedRotatingFileHandler):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.namer = self._rotation_filename
+
+    def _rotation_filename(self, default_name):
+        dir_name, file_name = os.path.split(default_name)
+        base_name = os.path.basename(self.baseFilename)
+        prefix = base_name + '.'
+        if base_name.endswith('.log') and file_name.startswith(prefix):
+            suffix = file_name[len(prefix):]
+            stem = base_name[:-4]
+            return os.path.join(dir_name, f'{stem}.{suffix}.log')
+        return default_name
+
     def emit(self, record):
         try:
             if self.stream and not self.stream.closed:
@@ -84,6 +112,33 @@ class SafeFileHandler(TimedRotatingFileHandler):
                 raise ValueError("I/O operation on closed file.")
         except Exception:
             self.handleError(record)
+
+    def getFilesToDelete(self):
+        if self.backupCount <= 0:
+            return []
+
+        dir_name, base_name = os.path.split(self.baseFilename)
+        if not base_name.endswith('.log'):
+            return super().getFilesToDelete()
+
+        stem = base_name[:-4]
+        date_pattern = self.extMatch.pattern
+        new_pattern = re.compile(rf'^{re.escape(stem)}\.({date_pattern})\.log$')
+        legacy_pattern = re.compile(rf'^{re.escape(base_name)}\.({date_pattern})$')
+        result = []
+
+        for file_name in os.listdir(dir_name):
+            new_match = new_pattern.fullmatch(file_name)
+            legacy_match = legacy_pattern.fullmatch(file_name)
+            if new_match or legacy_match:
+                file_path = os.path.join(dir_name, file_name)
+                result.append((os.path.getmtime(file_path), os.path.getctime(file_path), file_path))
+
+        if len(result) <= self.backupCount:
+            return []
+
+        result.sort()
+        return [path for _, _, path in result[:len(result) - self.backupCount]]
 
 
 class CommunicateHandler(logging.Handler):
@@ -111,17 +166,21 @@ def config_logger(config=None, name='ok-script'):
 
     communicate_handler = CommunicateHandler()
     communicate_handler.setFormatter(_ok_log_formatter)
-    _ok_logger.handlers = []
+    existing_stdout_handler = _get_stdout_handler()
+    _ok_logger.handlers = [existing_stdout_handler] if existing_stdout_handler and args.parent_pid == 0 else []
 
     if args.parent_pid == 0:
-        stdout_handler = logging.StreamHandler(sys.stdout)
+        stdout_handler = existing_stdout_handler or logging.StreamHandler(sys.stdout)
+        setattr(stdout_handler, _OK_STDOUT_HANDLER, True)
         stdout_handler.setFormatter(_ok_log_formatter)
+        stdout_handler.filters = []
         stdout_handler.addFilter(InfoFilter())
         if config.get('debug'):
             stdout_handler.setLevel(logging.DEBUG)
         else:
             stdout_handler.setLevel(logging.INFO)
-        _ok_logger.addHandler(stdout_handler)
+        if stdout_handler not in _ok_logger.handlers:
+            _ok_logger.addHandler(stdout_handler)
 
     stderr_handler = logging.StreamHandler(sys.stderr)
     stderr_handler.setFormatter(_ok_log_formatter)
@@ -147,3 +206,10 @@ def config_logger(config=None, name='ok-script'):
 
     listener = QueueListener(log_queue, file_handler)
     listener.start()
+
+
+def _get_stdout_handler():
+    for handler in _ok_logger.handlers:
+        if getattr(handler, _OK_STDOUT_HANDLER, False):
+            return handler
+    return None

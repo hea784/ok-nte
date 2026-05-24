@@ -38,7 +38,7 @@ class CharacterSwitchState:
         return self.index < len(self.keys)
 
 
-def _inst_line(text: str, color: str = "white", *, bold: bool = False, indent: int = 0):
+def _inst_line(text: str, color: str = "", *, bold: bool = False, indent: int = 0):
     content = f"{'&nbsp;' * (indent * 4)}{text}"
     if bold:
         content = f"<strong>{content}</strong>"
@@ -52,7 +52,7 @@ def _inst_gap():
 INST = "<br>".join(
     [
         _inst_line("📍 步骤起点：站在可互动小吱的位置开始", "#FF5555", bold=True),
-        _inst_line("⚙️ 镜头设置：控制 ➔ 移动镜头修正 ➔ 禁用", "yellow", bold=True),
+        _inst_line("⚙️ 镜头设置：控制 ➔ 移动镜头修正 ➔ 禁用", "#FF5555", bold=True),
         _inst_gap(),
         _inst_line("路径1推荐设置", bold=True),
         _inst_line("战斗角色: 主角 / 哈尼娅", indent=1),

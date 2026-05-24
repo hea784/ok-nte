@@ -563,9 +563,7 @@ class BaseNTETask(BaseTask):
                     rect = cv2.minAreaRect(cnt)
                     angle = rect[2]  # 得到角度
 
-                    results.append(
-                        {"center": (cx, cy), "angle": angle, "score": round(score, 3)}
-                    )
+                    results.append({"center": (cx, cy), "angle": angle, "score": round(score, 3)})
 
         # 按分数升序排列（得分越低越好）
         results = sorted(results, key=lambda x: x["score"])
@@ -777,9 +775,7 @@ class BaseNTETask(BaseTask):
                     return teleport
                 radius += step
 
-        teleport = self.wait_until(
-            find_teleport, time_out=time_out, raise_if_not_found=True
-        )
+        teleport = self.wait_until(find_teleport, time_out=time_out, raise_if_not_found=True)
         self.log_info(f"found nearest map teleport {teleport}")
         self.operate_click(teleport, action_name="click_nearest_map_teleport", interval=1)
         self.sleep(0.5)
@@ -935,7 +931,7 @@ class BaseNTETask(BaseTask):
             if self.in_team_and_world():
                 return True
             self.handle_monthly_card()
-            texts = self.ocr(log=self.debug)
+            # texts = self.ocr(log=self.debug)
             # if login := self.find_boxes(
             #     texts, boundary=self.box_of_screen(0.3, 0.3, 0.7, 0.7), match="登录"
             # ):
@@ -1166,6 +1162,32 @@ class BaseNTETask(BaseTask):
             if not result and reset_action is not None:
                 reset_action()
         return result
+
+    def wait_click_confirm(
+        self,
+        action,
+        range: tuple[float, float, float, float] | None = None,
+        raise_if_not_found=True,
+    ):
+        if range is None:
+            box = self.main_viewport
+        else:
+            box = self.box_of_screen(*range)
+        button = self.wait_until(
+            lambda: self.find_one(Labels.skip_quest_confirm, box=box),
+            pre_action=action,
+            settle_time=1,
+            raise_if_not_found=raise_if_not_found,
+        )
+        if not button:
+            return False
+        result = self.wait_until(
+            lambda: not self.find_one(Labels.skip_quest_confirm, box=box),
+            pre_action=lambda: self.operate_click(button, interval=2),
+            settle_time=1,
+            raise_if_not_found=raise_if_not_found,
+        )
+        return bool(result)
 
 
 def interac_mask(image):

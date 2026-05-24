@@ -6,7 +6,7 @@ from PySide6.QtCore import QCoreApplication, QEvent, QSize, Qt, QTimer, QThread,
 from PySide6.QtGui import QScreen
 from PySide6.QtWidgets import QMenu, QSystemTrayIcon, QApplication
 from qfluentwidgets import MSFluentWindow, qconfig, FluentIcon, NavigationItemPosition, MessageBox, InfoBar, \
-    InfoBarPosition, Theme, MessageBoxBase
+    InfoBarPosition, Theme, MessageBoxBase, FluentWindow, NavigationDisplayMode
 from qfluentwidgets.common.style_sheet import updateStyleSheet
 
 _original_MessageBoxBase_keyPressEvent = MessageBoxBase.keyPressEvent
@@ -38,6 +38,9 @@ from ok.util.logger import Logger
 
 logger = Logger.get_logger(__name__)
 
+NAVIGATION_EXPAND_MAX_WIDTH = 240
+NAVIGATION_EXPAND_FIT_PADDING = 23
+
 
 class SystemThemeWatcher(QThread):
     """始终监控系统主题变化的观察者"""
@@ -52,7 +55,7 @@ class SystemThemeWatcher(QThread):
             logger.error(f"SystemThemeWatcher error: {e}")
 
 
-class MainWindow(MSFluentWindow):
+class MainWindow(FluentWindow):
 
     def __init__(self, app, config, ok_config, icon, title, version, debug=False, about=None, exit_event=None,
                  global_config=None, executor=None, handler=None):
@@ -107,6 +110,13 @@ class MainWindow(MSFluentWindow):
         visible_onetime_tasks = [task for task in self.executor.onetime_tasks if getattr(task, 'visible', True)]
         visible_trigger_tasks = [task for task in self.executor.trigger_tasks if getattr(task, 'visible', True)]
 
+        if len(visible_trigger_tasks) > 0:
+            from ok.gui.tasks.TriggerTaskTab import TriggerTaskTab
+            self.trigger_tab = TriggerTaskTab()
+            if self.first_task_tab is None:
+                self.first_task_tab = self.trigger_tab
+            self.addSubInterface(self.trigger_tab, FluentIcon.STOP_WATCH, self.tr('Triggers'))
+
         if visible_onetime_tasks:
             from ok.gui.tasks.OneTimeTaskTab import OneTimeTaskTab
             from collections import defaultdict
@@ -135,13 +145,6 @@ class MainWindow(MSFluentWindow):
                 logger.debug(f"add grouped_task_tabs {group_name} len {len(tasks_in_group)}")
                 self.addSubInterface(group_tab, group_icon, self.app.tr(group_name))
                 self.grouped_task_tabs.append(group_tab)
-
-        if len(visible_trigger_tasks) > 0:
-            from ok.gui.tasks.TriggerTaskTab import TriggerTaskTab
-            self.trigger_tab = TriggerTaskTab()
-            if self.first_task_tab is None:
-                self.first_task_tab = self.trigger_tab
-            self.addSubInterface(self.trigger_tab, FluentIcon.ROBOT, self.tr('Triggers'))
 
         # Add custom tabs that should appear after built-in task tabs
         for tab_obj in after_custom_tabs:
@@ -209,6 +212,7 @@ class MainWindow(MSFluentWindow):
         self.themeWatcher.themeChanged.connect(self.on_system_theme_changed)
         self.themeWatcher.start()
 
+        self.navigationInterface.displayModeChanged.connect(self._save_navigation_state)
 
         communicate.capture_error.connect(self.capture_error)
         communicate.notification.connect(self.show_notification)
@@ -256,6 +260,8 @@ class MainWindow(MSFluentWindow):
                         self.addSubInterface(group_tab, group_icon, self.app.tr(script_name))
                     else:
                         self.addSubInterface(group_tab, group_icon, self.app.tr(script_name))
+
+        self.update_navigation_width()
 
     def restart_admin(self):
         w = MessageBox(QCoreApplication.translate("app", "Alert"),
@@ -387,6 +393,35 @@ class MainWindow(MSFluentWindow):
             self.setGeometry(x, y, width, height)
 
         self.setMinimumSize(QSize(min_width, min_height))
+        self.apply_navigation_state()
+
+    def apply_navigation_state(self):
+        self.update_navigation_width()
+        if self.ok_config.get('navigation_expanded', True):
+            self.navigationInterface.expand(False)
+
+    def update_navigation_width(self):
+        panel = self.navigationInterface.panel
+        item_widths = []
+        for item in panel.items.values():
+            widget = item.widget
+            if hasattr(widget, 'suitableWidth'):
+                item_widths.append(widget.suitableWidth() + NAVIGATION_EXPAND_FIT_PADDING)
+
+        if not item_widths:
+            return
+
+        width = min(max(item_widths), NAVIGATION_EXPAND_MAX_WIDTH)
+        self.navigationInterface.setExpandWidth(width)
+
+        if panel.displayMode in (NavigationDisplayMode.EXPAND, NavigationDisplayMode.MENU):
+            self.navigationInterface.expand(False)
+
+    def _save_navigation_state(self, display_mode):
+        self.ok_config['navigation_expanded'] = display_mode in (
+            NavigationDisplayMode.EXPAND,
+            NavigationDisplayMode.MENU,
+        )
 
     def eventFilter(self, obj, event):
         if event.type() == QEvent.Resize or event.type() == QEvent.Move:

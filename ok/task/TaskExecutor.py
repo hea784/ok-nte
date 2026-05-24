@@ -38,6 +38,7 @@ class TaskExecutor:
     trigger_task_index: int
     trigger_tasks: list
     onetime_tasks: list
+    onetime_task_queue: list
     thread: object
     locale: object
     scene: object
@@ -46,6 +47,8 @@ class TaskExecutor:
     config: object
     basic_options: object
     lock: object
+    _ocr_lib_lock: object
+    _ocr_init_thread: object
 
     def __init__(self, device_manager,
                  wait_until_timeout=10, wait_until_settle_time=-1,
@@ -84,8 +87,12 @@ class TaskExecutor:
 
         self.trigger_tasks = []
         self.onetime_tasks = []
+        self.onetime_task_queue = []
         self.thread = None
         self.lock = threading.Lock()
+        self._ocr_lib_lock = threading.Lock()
+        self._ocr_init_thread = None
+        self.init_default_ocr()
 
     def load_tr(self):
         locale_name = self.locale.name()
@@ -108,52 +115,79 @@ class TaskExecutor:
 
     def ocr_lib(self, name="default"):
         if name not in self._ocr_lib:
-            lib = self.config.get('ocr').get(name).get('lib')
-            to_download = self.config.get('ocr').get(name).get('download_models')
-            if to_download:
-                models = self.config.get('download_models').get(to_download)
-                from ok.gui.util.download import download_models
-                download_models(models)
-
-            config_params = self.config.get('ocr').get(name).get('params')
-            if config_params is None:
-                config_params = {}
-            if lib == 'paddleocr':
-                logger.info('use paddleocr as ocr lib')
-                from paddleocr import PaddleOCR
-                lang = 'ch'
-                config_params['use_textline_orientation'] = False
-                config_params['use_doc_unwarping'] = False
-                config_params['use_doc_orientation_classify'] = False
-                config_params['device'] = "gpu" if is_cuda_12_or_above() else "cpu"
-                logger.info(f'init PaddleOCR with {config_params}')
-                self._ocr_lib[name] = PaddleOCR(**config_params)
-                import logging
-                logging.getLogger('ppocr').setLevel(logging.ERROR)
-                config_logger(self.config)
-            elif lib == 'dgocr':
-                if config_params.get('use_dml', True):
-                    config_params['use_dml'] = True
-                from dgocr import DGOCR
-                self._ocr_lib[name] = DGOCR(**config_params)
-            elif lib == 'onnxocr':
-                from onnxocr.onnx_paddleocr import ONNXPaddleOcr
-                logger.info(f'init onnxocr {config_params}')
-                self._ocr_lib[name] = ONNXPaddleOcr(use_angle_cls=False,
-                                                    logger=logger,
-                                                    use_npu=config_params.get('use_npu', True),
-                                                    use_openvino=config_params.get('use_openvino', False))
-            elif lib == 'rapidocr':
-                from rapidocr import RapidOCR
-                params = {"Global.use_cls": False, "Global.max_side_len": 100000, "Global.min_side_len": 0,
-                          "EngineConfig.onnxruntime.use_dml": False}
-                params.update(config_params)
-                logger.info(f'init rapidocr {params}')
-                self._ocr_lib[name] = RapidOCR(params=params)
-            else:
-                raise Exception(f'ocr lib not supported: {lib}')
-            logger.info(f'ocr_lib init {self._ocr_lib[name]} {lib}')
+            with self._ocr_lib_lock:
+                if name not in self._ocr_lib:
+                    self._ocr_lib[name] = self._create_ocr_lib(name)
         return self._ocr_lib[name]
+
+    def init_default_ocr(self):
+        ocr_config = self.config.get('ocr')
+        if not ocr_config:
+            return
+        default_ocr = ocr_config.get('default')
+        if not default_ocr or not default_ocr.get('lib'):
+            return
+        self._ocr_init_thread = threading.Thread(target=self._init_default_ocr, name="DefaultOCRInit", daemon=True)
+        self._ocr_init_thread.start()
+
+    def _init_default_ocr(self):
+        start = time.time()
+        try:
+            logger.info('start init default ocr')
+            self.ocr_lib()
+            logger.info(f'default ocr init end, cost: {time.time() - start:.2f}s')
+        except Exception as e:
+            logger.error(f'init default ocr error, cost: {time.time() - start:.2f}s', e)
+
+    def _create_ocr_lib(self, name):
+        ocr_config = self.config.get('ocr').get(name)
+        lib = ocr_config.get('lib')
+        to_download = ocr_config.get('download_models')
+        if to_download:
+            models = self.config.get('download_models').get(to_download)
+            from ok.gui.util.download import download_models
+            download_models(models)
+
+        config_params = ocr_config.get('params')
+        if config_params is None:
+            config_params = {}
+        else:
+            config_params = dict(config_params)
+        if lib == 'paddleocr':
+            logger.info('use paddleocr as ocr lib')
+            from paddleocr import PaddleOCR
+            config_params['use_textline_orientation'] = False
+            config_params['use_doc_unwarping'] = False
+            config_params['use_doc_orientation_classify'] = False
+            config_params['device'] = "gpu" if is_cuda_12_or_above() else "cpu"
+            logger.info(f'init PaddleOCR with {config_params}')
+            ocr_lib = PaddleOCR(**config_params)
+            import logging
+            logging.getLogger('ppocr').setLevel(logging.ERROR)
+            config_logger(self.config)
+        elif lib == 'dgocr':
+            if config_params.get('use_dml', True):
+                config_params['use_dml'] = True
+            from dgocr import DGOCR
+            ocr_lib = DGOCR(**config_params)
+        elif lib == 'onnxocr':
+            from onnxocr.onnx_paddleocr import ONNXPaddleOcr
+            logger.info(f'init onnxocr {config_params}')
+            ocr_lib = ONNXPaddleOcr(use_angle_cls=False,
+                                    logger=logger,
+                                    use_npu=config_params.get('use_npu', True),
+                                    use_openvino=config_params.get('use_openvino', False))
+        elif lib == 'rapidocr':
+            from rapidocr import RapidOCR
+            params = {"Global.use_cls": False, "Global.max_side_len": 100000, "Global.min_side_len": 0,
+                      "EngineConfig.onnxruntime.use_dml": False}
+            params.update(config_params)
+            logger.info(f'init rapidocr {params}')
+            ocr_lib = RapidOCR(params=params)
+        else:
+            raise Exception(f'ocr lib not supported: {lib}')
+        logger.info(f'ocr_lib init {ocr_lib} {lib}')
+        return ocr_lib
 
     def nullable_frame(self):
         return self._frame
@@ -274,7 +308,7 @@ class TaskExecutor:
                             task.sleep_check()
                             self.reset_scene()
                         except Exception as e:
-                            logger.error(f"sleep_check error {task}", e)
+                            logger.info(f"sleep_check error {task}")
                             raise
                         finally:
                             task.last_sleep_check_time = time.time()
@@ -326,7 +360,6 @@ class TaskExecutor:
         if time_out == 0:
             time_out = self.wait_scene_timeout
         settled = 0
-        result = None
         while not self.exit_event.is_set():
             if pre_action is not None:
                 pre_action()
@@ -334,17 +367,19 @@ class TaskExecutor:
             result = condition()
             result_str = list_or_obj_to_str(result)
             if result:
-                logger.debug(
-                    f"found result {result_str} {(time.time() - start):.3f}")
                 if settle_time == -1:
                     settle_time = self.wait_until_settle_time
                 if settle_time > 0:
-                    if settled > 0 and time.time() - settled > settle_time:
+                    now = time.time()
+                    if settled > 0 and now - settled > settle_time:
+                        logger.debug(f"found result {result_str} {(now - start):.3f}")
                         return result
                     if settled == 0:
-                        settled = time.time()
+                        logger.debug(f"found result {result_str} {(now - start):.3f}")
+                        settled = now
                     continue
                 else:
+                    logger.debug(f"found result {result_str} {(time.time() - start):.3f}")
                     return result
             else:
                 settled = 0
@@ -364,10 +399,50 @@ class TaskExecutor:
         if self.scene:
             self.scene.reset()
 
+    def enqueue_onetime_task(self, task):
+        if task not in self.onetime_tasks:
+            return False
+        with self.lock:
+            if task not in self.onetime_task_queue:
+                self.onetime_task_queue.append(task)
+                logger.info(f'queued onetime_task {task.name}')
+        return True
+
+    def remove_onetime_task(self, task):
+        if task not in self.onetime_tasks:
+            return False
+        removed = False
+        with self.lock:
+            while task in self.onetime_task_queue:
+                self.onetime_task_queue.remove(task)
+                removed = True
+        return removed
+
+    def waiting_for_task(self, task):
+        if task not in self.onetime_tasks or not task.enabled or task.running:
+            return None
+        with self.lock:
+            queue = [queued_task for queued_task in self.onetime_task_queue
+                     if queued_task.enabled and not queued_task.running]
+        if task not in queue:
+            return None
+        index = queue.index(task)
+        if index > 0:
+            return queue[index - 1]
+        if self.current_task and self.current_task != task and self.current_task.running:
+            return self.current_task
+        return None
+
     def next_task(self) -> tuple:
         if self.exit_event.is_set():
             logger.error(f"next_task exit_event.is_set exit")
             return None, False, False
+        with self.lock:
+            while self.onetime_task_queue:
+                onetime_task = self.onetime_task_queue.pop(0)
+                if onetime_task.enabled:
+                    logger.info(f'get queued onetime_task {onetime_task.name}')
+                    return onetime_task, True, False
         for onetime_task in self.onetime_tasks:
             if onetime_task.enabled:
                 logger.info(f'get one enabled onetime_task {onetime_task.name}')
@@ -438,27 +513,32 @@ class TaskExecutor:
                         self.device_manager.stop_hwnd()
                         time.sleep(5)
                         communicate.quit.emit()
+                task.running = False
                 self.current_task = None
                 if not is_trigger_task:
                     communicate.task.emit(task)
-                if self.current_task is not None:
-                    self.current_task.running = False
-                    if not is_trigger_task:
-                        communicate.task.emit(self.current_task)
-                    self.current_task = None
             except TaskDisabledException:
                 logger.info(f"TaskDisabledException, continue {task}")
                 from ok import og
+                task.running = False
+                self.current_task = None
+                if not is_trigger_task:
+                    communicate.task.emit(task)
                 communicate.notification.emit('Stopped', task.name, False,
                                               True, "start", None)
                 continue
             except FinishedException:
                 logger.info(f"FinishedException, breaking")
+                task.running = False
+                self.current_task = None
+                if not is_trigger_task:
+                    communicate.task.emit(task)
                 break
             except Exception as e:
                 if isinstance(e, CaptureException):
                     communicate.capture_error.emit()
                 name = task.name
+                task.running = False
                 task.disable()
                 from ok import og
                 params = None

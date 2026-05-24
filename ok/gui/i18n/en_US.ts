@@ -400,6 +400,18 @@
             <source>Cancel</source>
             <translation>Cancel</translation>
         </message>
+        <message>
+            <source>Available Options</source>
+            <translation>Available Options</translation>
+        </message>
+        <message>
+            <source>Selected Options</source>
+            <translation>Selected Options</translation>
+        </message>
+        <message>
+            <source>Click an option to add it.</source>
+            <translation>Click an option to add it.</translation>
+        </message>
     </context>
     <context>
         <name>ModifyListItem</name>
@@ -744,6 +756,14 @@
             <source>Can't start game, make sure the game is installed</source>
             <translation>Can't start game, make sure the game is installed</translation>
         </message>
+        <message>
+            <source>{vendor} {feature} is enabled and may cause malfunctions!</source>
+            <translation>{vendor} {feature} is enabled and may cause malfunctions!</translation>
+        </message>
+        <message>
+            <source>GPU Driver Warning</source>
+            <translation>GPU Driver Warning</translation>
+        </message>
     </context>
     <context>
         <name>StartLoadingDialog</name>
@@ -838,6 +858,14 @@
             <source>OCR</source>
             <translation>OCR</translation>
         </message>
+        <message>
+            <source>Screenshot Folder</source>
+            <translation>Screenshot Folder</translation>
+        </message>
+        <message>
+            <source>Log Folder</source>
+            <translation>Log Folder</translation>
+        </message>
     </context>
     <context>
         <name>TaskButtons</name>
@@ -915,6 +943,10 @@
         <message>
             <source>Resume</source>
             <translation>Resume</translation>
+        </message>
+        <message>
+            <source>Waiting for {task_name} task to be completed</source>
+            <translation>Waiting for {task_name} task to be completed</translation>
         </message>
     </context>
     <context>

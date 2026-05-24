@@ -400,6 +400,18 @@
             <source>Cancel</source>
             <translation>取消</translation>
         </message>
+        <message>
+            <source>Available Options</source>
+            <translation>可用选项</translation>
+        </message>
+        <message>
+            <source>Selected Options</source>
+            <translation>已选选项</translation>
+        </message>
+        <message>
+            <source>Click an option to add it.</source>
+            <translation>点击选项以添加。</translation>
+        </message>
     </context>
     <context>
         <name>ModifyListItem</name>
@@ -744,6 +756,14 @@
             <source>Can't start game, make sure the game is installed</source>
             <translation>无法启动游戏, 请确认游戏已安装!</translation>
         </message>
+        <message>
+            <source>{vendor} {feature} is enabled and may cause malfunctions!</source>
+            <translation>{vendor} {feature} 已启用，可能导致功能异常！</translation>
+        </message>
+        <message>
+            <source>GPU Driver Warning</source>
+            <translation>GPU 驱动警告</translation>
+        </message>
     </context>
     <context>
         <name>StartLoadingDialog</name>
@@ -834,6 +854,14 @@
             <source>Capture</source>
             <translation>截图</translation>
         </message>
+        <message>
+            <source>Screenshot Folder</source>
+            <translation>截图目录</translation>
+        </message>
+        <message>
+            <source>Log Folder</source>
+            <translation>日志目录</translation>
+        </message>
     </context>
     <context>
         <name>TaskButtons</name>
@@ -911,6 +939,10 @@
         <message>
             <source>Resume</source>
             <translation>继续</translation>
+        </message>
+        <message>
+            <source>Waiting for {task_name} task to be completed</source>
+            <translation>等待 {task_name} 任务完成</translation>
         </message>
     </context>
     <context>
