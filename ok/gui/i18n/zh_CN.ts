@@ -819,12 +819,12 @@
             <translation>选择交互方式</translation>
         </message>
         <message>
-            <source>Show Overlay</source>
-            <translation>显示调试悬浮窗</translation>
+            <source>Enable Boxes</source>
+            <translation>启用标记框</translation>
         </message>
         <message>
-            <source>Hide Overlay</source>
-            <translation>隐藏调试悬浮窗</translation>
+            <source>Disable Boxes</source>
+            <translation>禁用标记框</translation>
         </message>
         <message>
             <source>Show Log on Overlay</source>
@@ -1168,6 +1168,30 @@
             <translation>基本设置</translation>
         </message>
         <message>
+            <source>Enable Blur</source>
+            <translation>启用模糊遮挡</translation>
+        </message>
+        <message>
+            <source>Blur Game UID etc to enhance OLED life</source>
+            <translation>模糊游戏 UID 等固定内容以延长 OLED 屏幕寿命</translation>
+        </message>
+        <message>
+            <source>Blur Algorithm</source>
+            <translation>遮挡算法</translation>
+        </message>
+        <message>
+            <source>Method used to obscure configured areas</source>
+            <translation>用于遮挡配置区域的处理方式</translation>
+        </message>
+        <message>
+            <source>Blur</source>
+            <translation>模糊</translation>
+        </message>
+        <message>
+            <source>Inpaint</source>
+            <translation>内容填充</translation>
+        </message>
+        <message>
             <source>Use DirectML</source>
             <translation>使用DirectML</translation>
         </message>
@@ -1370,6 +1394,14 @@
         <message>
             <source>Target window inactive: Recording paused</source>
             <translation>目标窗口非激活：暂停录制</translation>
+        </message>
+        <message>
+            <source>Blur Interval</source>
+            <translation>遮挡检查间隔</translation>
+        </message>
+        <message>
+            <source>Seconds between processed overlay updates</source>
+            <translation>处理后遮挡层的更新间隔（秒）</translation>
         </message>
     </context>
     <context>
