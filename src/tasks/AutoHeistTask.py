@@ -175,6 +175,7 @@ class AutoHeistTask(NTEOneTimeTask, BaseCombatTask):
         total = int(self.config.get(self.CONF_LOOP_COUNT, 1))
         endless = total == 0
         while endless or count < total:
+            self.ensure_main()
             if not self._ensure_heist_entrance():
                 self.next_frame()
                 continue
