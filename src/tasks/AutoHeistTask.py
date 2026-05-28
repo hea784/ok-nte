@@ -56,6 +56,7 @@ INST = "<br>".join(
         _inst_line("⚠️ 必備條件：至少有一個復活道具", "#FF5555", bold=True),
         _inst_gap(),
         _inst_line("路径1推荐设置", bold=True),
+        _inst_line("FPS: 60~120", indent=1),
         _inst_line("战斗角色: 主角 / 哈尼娅", indent=1),
         _inst_line("跑图角色: 薄荷", indent=1),
         _inst_line("避战角色(可选): 翳 / 浔", indent=1),
@@ -735,7 +736,7 @@ class AutoHeistTask(NTEOneTimeTask, BaseCombatTask):
             self.send_key_up("space")
             self.sleep(0.05)
             self.mouse_up()
-            self.sleep(0.45)
+            self.sleep(0.50)
             if not self.is_in_team():
                 if in_team_settle < 0:
                     in_team_settle = time.time()
