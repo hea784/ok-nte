@@ -37,6 +37,14 @@
             <source>Other Projects</source>
             <translation>Other Projects</translation>
         </message>
+        <message>
+            <source>Update success {from_version} -&gt; {to_version}</source>
+            <translation>Update success {from_version} -&gt; {to_version}</translation>
+        </message>
+        <message>
+            <source>Downgrade success {from_version} -&gt; {to_version}</source>
+            <translation>Downgrade success {from_version} -&gt; {to_version}</translation>
+        </message>
     </context>
     <context>
         <name>ActWindow</name>
@@ -186,13 +194,6 @@
         <message>
             <source>No Capture Available or Selected</source>
             <translation>No Capture Available or Selected</translation>
-        </message>
-    </context>
-    <context>
-        <name>DownloadBar</name>
-        <message>
-            <source>Installing {progress} {percent}%</source>
-            <translation>Installing {progress} {percent}%</translation>
         </message>
     </context>
     <context>
@@ -461,29 +462,6 @@
             <source>app</source>
             <comment>Error</comment>
             <translation>app</translation>
-        </message>
-    </context>
-    <context>
-        <name>RunBar</name>
-        <message>
-            <source> Current Version: </source>
-            <translation> Current Version: </translation>
-        </message>
-        <message>
-            <source>Launcher </source>
-            <translation>Launcher </translation>
-        </message>
-        <message>
-            <source>Choose Profile:</source>
-            <translation>Choose Profile:</translation>
-        </message>
-        <message>
-            <source>Start</source>
-            <translation>Start</translation>
-        </message>
-        <message>
-            <source>Download Dependencies and Start</source>
-            <translation>Download Dependencies and Start</translation>
         </message>
     </context>
     <context>
@@ -989,57 +967,6 @@
         <message>
             <source>Time Elapsed</source>
             <translation>Time Elapsed</translation>
-        </message>
-    </context>
-    <context>
-        <name>UpdateBar</name>
-        <message>
-            <source>Current Version: </source>
-            <translation>Current Version: </translation>
-        </message>
-        <message>
-            <source>Checking for Updates...</source>
-            <translation>Checking for Updates...</translation>
-        </message>
-        <message>
-            <source>Delete Downloaded Dependencies</source>
-            <translation>Delete Downloaded Dependencies</translation>
-        </message>
-        <message>
-            <source>Update Source:</source>
-            <translation>Update Source:</translation>
-        </message>
-        <message>
-            <source>Check for Update</source>
-            <translation>Check for Update</translation>
-        </message>
-        <message>
-            <source>Current Version:</source>
-            <translation>Current Version:</translation>
-        </message>
-        <message>
-            <source>TargetVersion:</source>
-            <translation>TargetVersion:</translation>
-        </message>
-        <message>
-            <source>Update</source>
-            <translation>Update</translation>
-        </message>
-        <message>
-            <source>This is the newest version</source>
-            <translation>This is the newest version</translation>
-        </message>
-        <message>
-            <source>Checking for Update...</source>
-            <translation>Checking for Update...</translation>
-        </message>
-        <message>
-            <source>Updating</source>
-            <translation>Updating</translation>
-        </message>
-        <message>
-            <source>Downgrade</source>
-            <translation>Downgrade</translation>
         </message>
     </context>
     <context>

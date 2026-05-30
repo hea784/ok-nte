@@ -33,6 +33,7 @@ librosa==0.11.0
 llvmlite==0.46.0
     # via numba
 mouse==0.7.1
+    # via ok-script
 msgpack==1.1.2
     # via librosa
 networkx==3.6.1
@@ -81,14 +82,17 @@ pooch==1.8.2
     # via librosa
 psutil==7.2.2
     # via
+    #   ok-script
     #   pycaw
-pyappify==1.0.2
+    # via ok-script
 pycaw==20240210
+    # via ok-script
 pyclipper==1.4.0
     # via onnxocr-ppocrv5
 pycparser==2.23
     # via cffi
 pydirectinput==1.0.4
+    # via ok-script
 pynput==1.8.1
     # via ok-nte (pyproject.toml)
 pyside6==6.9.1
@@ -102,13 +106,16 @@ pyside6-essentials==6.9.1
     #   pyside6
     #   pyside6-addons
 pyside6-fluent-widgets==1.8.3
+    # via ok-script
 pysidesix-frameless-window==0.8.1
     # via pyside6-fluent-widgets
 pywin32==311
     # via
+    #   ok-script
     #   pysidesix-frameless-window
 requests==2.33.1
     # via
+    #   ok-script
     #   pooch
 scikit-image==0.26.0
     # via ok-nte (pyproject.toml)
@@ -141,5 +148,6 @@ tifffile==2026.3.3
 typing-extensions==4.15.0
     # via
     #   librosa
+    #   ok-script
 urllib3==2.7.0
     # via requests

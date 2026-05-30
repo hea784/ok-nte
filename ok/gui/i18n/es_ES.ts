@@ -37,6 +37,14 @@
             <source>Other Projects</source>
             <translation>Otros proyectos</translation>
         </message>
+        <message>
+            <source>Update success {from_version} -&gt; {to_version}</source>
+            <translation>Actualización correcta {from_version} -&gt; {to_version}</translation>
+        </message>
+        <message>
+            <source>Downgrade success {from_version} -&gt; {to_version}</source>
+            <translation>Reversión correcta {from_version} -&gt; {to_version}</translation>
+        </message>
     </context>
     <context>
         <name>ActWindow</name>
@@ -195,13 +203,6 @@
         <message>
             <source>No Capture Available or Selected</source>
             <translation>No hay captura disponible o seleccionada</translation>
-        </message>
-    </context>
-    <context>
-        <name>DownloadBar</name>
-        <message>
-            <source>Installing {progress} {percent}%</source>
-            <translation>Instalando {progress} {percent}%</translation>
         </message>
     </context>
     <context>
@@ -459,29 +460,6 @@
             <source>app</source>
             <comment>Error</comment>
             <translation>Error</translation>
-        </message>
-    </context>
-    <context>
-        <name>RunBar</name>
-        <message>
-            <source> Current Version: </source>
-            <translation> Versión actual: </translation>
-        </message>
-        <message>
-            <source>Launcher </source>
-            <translation>Lanzador </translation>
-        </message>
-        <message>
-            <source>Choose Profile:</source>
-            <translation>Elegir perfil:</translation>
-        </message>
-        <message>
-            <source>Start</source>
-            <translation>Iniciar</translation>
-        </message>
-        <message>
-            <source>Download Dependencies and Start</source>
-            <translation>Descargar dependencias e iniciar</translation>
         </message>
     </context>
     <context>
@@ -987,57 +965,6 @@
         <message>
             <source>Time Elapsed</source>
             <translation>Tiempo transcurrido</translation>
-        </message>
-    </context>
-    <context>
-        <name>UpdateBar</name>
-        <message>
-            <source>Current Version: </source>
-            <translation>Versión actual: </translation>
-        </message>
-        <message>
-            <source>Checking for Updates...</source>
-            <translation>Buscando actualizaciones...</translation>
-        </message>
-        <message>
-            <source>Delete Downloaded Dependencies</source>
-            <translation>Eliminar dependencias descargadas</translation>
-        </message>
-        <message>
-            <source>Update Source:</source>
-            <translation>Fuente de actualización:</translation>
-        </message>
-        <message>
-            <source>Check for Update</source>
-            <translation>Buscar actualización</translation>
-        </message>
-        <message>
-            <source>Current Version:</source>
-            <translation>Versión actual:</translation>
-        </message>
-        <message>
-            <source>TargetVersion:</source>
-            <translation>Versión de destino:</translation>
-        </message>
-        <message>
-            <source>Update</source>
-            <translation>Actualizar</translation>
-        </message>
-        <message>
-            <source>This is the newest version</source>
-            <translation>Esta es la versión más reciente</translation>
-        </message>
-        <message>
-            <source>Checking for Update...</source>
-            <translation>Buscando actualización...</translation>
-        </message>
-        <message>
-            <source>Updating</source>
-            <translation>Actualizando</translation>
-        </message>
-        <message>
-            <source>Downgrade</source>
-            <translation>Bajar de versión</translation>
         </message>
     </context>
     <context>

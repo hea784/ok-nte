@@ -37,6 +37,14 @@
             <source>Other Projects</source>
             <translation>関連プロジェクト</translation>
         </message>
+        <message>
+            <source>Update success {from_version} -&gt; {to_version}</source>
+            <translation>アップデート成功 {from_version} -&gt; {to_version}</translation>
+        </message>
+        <message>
+            <source>Downgrade success {from_version} -&gt; {to_version}</source>
+            <translation>ダウングレード成功 {from_version} -&gt; {to_version}</translation>
+        </message>
     </context>
     <context>
         <name>ActWindow</name>
@@ -195,13 +203,6 @@
         <message>
             <source>No Capture Available or Selected</source>
             <translation>キャプチャ方法が利用不可または未選択です</translation>
-        </message>
-    </context>
-    <context>
-        <name>DownloadBar</name>
-        <message>
-            <source>Installing {progress} {percent}%</source>
-            <translation>インストール中 {progress} {percent}%</translation>
         </message>
     </context>
     <context>
@@ -459,29 +460,6 @@
             <source>app</source>
             <comment>Error</comment>
             <translation>エラー</translation>
-        </message>
-    </context>
-    <context>
-        <name>RunBar</name>
-        <message>
-            <source> Current Version: </source>
-            <translation> 現在のバージョン: </translation>
-        </message>
-        <message>
-            <source>Launcher </source>
-            <translation>ランチャー </translation>
-        </message>
-        <message>
-            <source>Choose Profile:</source>
-            <translation>プロファイルを選択:</translation>
-        </message>
-        <message>
-            <source>Start</source>
-            <translation>開始</translation>
-        </message>
-        <message>
-            <source>Download Dependencies and Start</source>
-            <translation>依存関係をダウンロードして開始</translation>
         </message>
     </context>
     <context>
@@ -979,57 +957,6 @@
         <message>
             <source>Time Elapsed</source>
             <translation>経過時間</translation>
-        </message>
-    </context>
-    <context>
-        <name>UpdateBar</name>
-        <message>
-            <source>Current Version: </source>
-            <translation>現在のバージョン: </translation>
-        </message>
-        <message>
-            <source>Checking for Updates...</source>
-            <translation>アップデートを確認中...</translation>
-        </message>
-        <message>
-            <source>Delete Downloaded Dependencies</source>
-            <translation>ダウンロードした依存関係を削除</translation>
-        </message>
-        <message>
-            <source>Update Source:</source>
-            <translation>更新ソース:</translation>
-        </message>
-        <message>
-            <source>Check for Update</source>
-            <translation>アップデートを確認</translation>
-        </message>
-        <message>
-            <source>Current Version:</source>
-            <translation>現在のバージョン:</translation>
-        </message>
-        <message>
-            <source>TargetVersion:</source>
-            <translation>ターゲットバージョン:</translation>
-        </message>
-        <message>
-            <source>Update</source>
-            <translation>アップデート</translation>
-        </message>
-        <message>
-            <source>This is the newest version</source>
-            <translation>これは最新バージョンです</translation>
-        </message>
-        <message>
-            <source>Checking for Update...</source>
-            <translation>アップデートを確認中...</translation>
-        </message>
-        <message>
-            <source>Updating</source>
-            <translation>更新中</translation>
-        </message>
-        <message>
-            <source>Downgrade</source>
-            <translation>ダウングレード</translation>
         </message>
     </context>
     <context>
