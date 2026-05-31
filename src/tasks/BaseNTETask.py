@@ -24,7 +24,7 @@ logger = Logger.get_logger(__name__)
 stamina_re = re.compile(r"(\d+)/(\d+)")
 
 
-class BaseNTETask(CharUIMixin, BaseTask):
+class BaseNTETask(CharUIMixin, BaseTask): # type: ignore
     DEFAULT_MOVE = False
 
     def __init__(self, *args, **kwargs):

@@ -8,7 +8,7 @@ from src.tasks.BaseNTETask import BaseNTETask
 from src.tasks.NTEOneTimeTask import NTEOneTimeTask
 
 
-class ShopSpecialTask(NTEOneTimeTask, BaseNTETask):
+class OwnerSelectionTask(NTEOneTimeTask, BaseNTETask):
     CONF_ROUNDS = "循环次数"
     CONF_ROB = "抢钱流"
 
@@ -31,8 +31,7 @@ class ShopSpecialTask(NTEOneTimeTask, BaseNTETask):
             "不包含任何局内的制作食物或招待客人操作。\n\n"
             "使用方法：\n"
             "1. 确保您已配置好游戏内的挂机流派。\n"
-            "2. 站在咖啡店可进行 F 交互的位置。\n"
-            "3. （可选）若想指定特定关卡，请先手动进入该关卡一次后退出，再启动本脚本即可。"
+            "2. 在咖啡店按 F 进入店长特供页面。"
         )
         self.icon = FluentIcon.SYNC
         self.default_config.update({self.CONF_ROUNDS: 1, self.CONF_ROB: True})
@@ -83,18 +82,7 @@ class ShopSpecialTask(NTEOneTimeTask, BaseNTETask):
         self.log_info(f"店长特供结束，成功 {success_count}/{rounds}", notify=True)
 
     def run_round(self, round_index: int) -> bool:
-        # 步骤1：按 F 进入店长特供页面
-        self.info_set("当前阶段", "进入店长特供")
-        self.wait_until(
-            lambda: not self.is_in_team(),
-            pre_action=lambda: self.send_key("f", interval=1),
-            settle_time=0.5,
-            time_out=10,
-            raise_if_not_found=True,
-        )
-        self.sleep(0.5)
-
-        # 步骤2：点击开始玩法
+        # 步骤1：点击开始玩法
         self.info_set("当前阶段", "开始玩法")
         start_box = self.box_of_screen(0.922, 0.889, 0.969, 0.972, name="start_btn", hcenter=True)
         button = self.wait_until(
@@ -117,12 +105,12 @@ class ShopSpecialTask(NTEOneTimeTask, BaseNTETask):
         )
         self.sleep(0.5)
 
-        # 步骤3：循环点击 + OCR 检测营业额
+        # 步骤2：循环点击 + OCR 检测营业额
         self.info_set("当前阶段", "营业中")
         if not self.run_until_target_revenue():
             return self._fail_round(round_index, "shop_revenue_timeout", "营业额未在超时内达标")
 
-        # 步骤4：关闭结果界面 → 结算确认
+        # 步骤3：关闭结果界面 → 结算确认
         self.info_set("当前阶段", "结算确认")
         claim_box = self.box_of_screen(0.629, 0.734, 0.688, 0.819, name="claim_btn", hcenter=True)
         button = self.wait_until(
@@ -135,8 +123,8 @@ class ShopSpecialTask(NTEOneTimeTask, BaseNTETask):
         self.sleep(0.5)
 
         self.wait_until(
-            self.is_in_team,
-            pre_action=lambda: self.operate_click(button, interval=1),
+            lambda: not self.find_one(Labels.skip_quest_confirm, box=claim_box),
+            pre_action=lambda: self.operate_click(button, interval=2),
             settle_time=0.5,
             time_out=10,
             raise_if_not_found=True,
@@ -146,6 +134,7 @@ class ShopSpecialTask(NTEOneTimeTask, BaseNTETask):
         self.info_set("当前阶段", "本轮完成")
         return True
 
+    # 工具方法
     def run_until_target_revenue(self) -> bool:
         deadline = time.time() + self.CONTROL_TIMEOUT
 
