@@ -24,7 +24,7 @@ logger = Logger.get_logger(__name__)
 stamina_re = re.compile(r"(\d+)/(\d+)")
 
 
-class BaseNTETask(CharUIMixin, BaseTask): # type: ignore
+class BaseNTETask(BaseTask, CharUIMixin): # type: ignore
     DEFAULT_MOVE = False
 
     def __init__(self, *args, **kwargs):
@@ -1074,7 +1074,7 @@ class BaseNTETask(CharUIMixin, BaseTask): # type: ignore
 
 def interac_mask(image):
     mask = iu.create_color_mask(image, interac_pink_color, to_bgr=False)
-    dilated_mask = iu.morphology_mask(mask, to_bgr=False)
+    dilated_mask = iu.morphology_mask(mask, kernel_size=5, to_bgr=False)
     return dilated_mask
 
 

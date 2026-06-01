@@ -105,7 +105,7 @@ class AutoHeistTask(NTEOneTimeTask, BaseCombatTask):
         self.name = "自动粉爪大劫案"
         self.icon = FluentIcon.SHOPPING_CART
         self.instructions = INST
-        self.supported_languages = ["zh_CN"]
+        self.supported_languages = ["zh_CN", "zh_TW"]
         self.paths = {
             "路径1(路线参考自B站UP: 早柚大魔王丶)": HeistPathA,
             "路径2(在路径1基础上优化了大厅到办公层的路线)": HeistPathB,
@@ -459,7 +459,7 @@ class AutoHeistTask(NTEOneTimeTask, BaseCombatTask):
         self.info_add("失败次数", 1)
 
         def find_popup():
-            self.ocr(0.45, 0.30, 0.55, 0.40, match=re.compile("确认退出"))
+            return self.ocr(0.4516, 0.3069, 0.5473, 0.3792, match=re.compile("确认退出"))
 
         self.wait_until(
             lambda: (
