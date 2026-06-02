@@ -85,9 +85,11 @@ class DarkTask(NTEOneTimeTask, RecordTask):
 
             if remain <= 0:
                 break
-            if elapsed < 5:
+            if elapsed > 15 and elapsed < 40:
                 try:
                     self.send_key_down("w")
+                    self.send_key("space")
+                    self.sleep(0.25)
                     self.send_key("space")
                     self.sleep(1)
                 finally:

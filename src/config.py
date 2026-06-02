@@ -6,7 +6,7 @@ from ok import Box, ConfigOption
 from src.interaction.NTEInteraction import NTEInteraction
 from src.process_feature import process_feature
 
-version = "v0.0.57"
+version = "v0.0.58"
 # 不需要修改version, Github Action打包会自动修改
 
 key_config_option = ConfigOption(
@@ -123,7 +123,7 @@ config = {
         "default": {
             "github": "https://github.com/BnanZ0/ok-nte",
             "discord": "https://discord.gg/vVyCatEBgA",
-            "sponsor": "https://ko-fi.com/bnanz",
+            "sponsor": "https://cnb.cool/BnanZ0/ok-nte-update/-/blob/main/SPONSOR.md",
             "share": "Download from https://github.com/BnanZ0/ok-nte",
             "qq_group": "https://qm.qq.com/q/bIiSLoUTVS",
             "faq": "https://github.com/BnanZ0/ok-nte",
