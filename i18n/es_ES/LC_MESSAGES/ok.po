@@ -618,6 +618,11 @@ msgstr "Carrera oscura"
 msgid "Record has been reset"
 msgstr "La grabación se ha restablecido"
 
+msgid ""
+"No recorded operations were found. Please wait for the recording prompt, then "
+"follow the instructions carefully to record your actions."
+msgstr "No se encontraron operaciones grabadas. Espera a que aparezca el aviso de grabación y sigue las instrucciones con atención para grabar tus acciones."
+
 msgid "Updated successfully"
 msgstr "Actualizado correctamente"
 

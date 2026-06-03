@@ -618,6 +618,11 @@ msgstr "ダークレース"
 msgid "Record has been reset"
 msgstr "記録をリセットしました"
 
+msgid ""
+"No recorded operations were found. Please wait for the recording prompt, then "
+"follow the instructions carefully to record your actions."
+msgstr "記録済みの操作が見つかりません。記録の案内が表示されるまで待ち、指示に従って慎重に操作を記録してください。"
+
 msgid "Updated successfully"
 msgstr "更新しました"
 

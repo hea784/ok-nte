@@ -10,14 +10,14 @@ If you find this project helpful, please consider supporting its development! <b
 <h3>☕ Ko-fi</h3>
 
 <a href="https://ko-fi.com/bnanz" target="_blank">
-  <img src="https://ko-fi.com/img/githubbutton_sm.svg" alt="Support me on Ko-fi" width="200" />
+  <img src="./assets/sponsor/kofi_button.svg" alt="Support me on Ko-fi" width="200" />
 </a>
 
 <br><br>
 
 <h3>✳️ 微信 (WeChat)</h3>
 
-<img src="https://github.com/user-attachments/assets/2c05fd38-4120-4967-adfe-41147e35cc8e" alt="Sponsor QR Code" width="280"/>
+<img src="./assets/sponsor/wechat_qr.png" alt="Sponsor QR Code" width="280"/>
 
 <br><br>
 

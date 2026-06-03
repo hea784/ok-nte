@@ -618,6 +618,11 @@ msgstr "黑暗賽車"
 msgid "Record has been reset"
 msgstr "記錄已重置"
 
+msgid ""
+"No recorded operations were found. Please wait for the recording prompt, then "
+"follow the instructions carefully to record your actions."
+msgstr "未找到已記錄的操作。請等待錄製提示出現，然後依照指示，仔細完成操作錄製。"
+
 msgid "Updated successfully"
 msgstr "更新成功"
 

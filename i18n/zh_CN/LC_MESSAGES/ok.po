@@ -605,6 +605,11 @@ msgstr ""
 msgid "Record has been reset"
 msgstr "记录已重置"
 
+msgid ""
+"No recorded operations were found. Please wait for the recording prompt, then "
+"follow the instructions carefully to record your actions."
+msgstr "未找到已记录的操作。请等待录制提示出现，然后按照指引，仔细完成操作录制。"
+
 msgid "Updated successfully"
 msgstr "更新成功"
 

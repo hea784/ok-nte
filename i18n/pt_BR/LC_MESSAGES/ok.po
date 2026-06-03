@@ -620,6 +620,11 @@ msgstr "Corrida Sombria"
 msgid "Record has been reset"
 msgstr "A gravação foi redefinida"
 
+msgid ""
+"No recorded operations were found. Please wait for the recording prompt, then "
+"follow the instructions carefully to record your actions."
+msgstr "Nenhuma operação gravada foi encontrada. Aguarde o aviso de gravação e siga as instruções com atenção para gravar suas ações."
+
 msgid "Updated successfully"
 msgstr "Atualizado com sucesso"
 

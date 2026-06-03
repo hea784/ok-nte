@@ -618,6 +618,13 @@ msgstr "Dark Race"
 msgid "Record has been reset"
 msgstr "Record has been reset"
 
+msgid ""
+"No recorded operations were found. Please wait for the recording prompt, then "
+"follow the instructions carefully to record your actions."
+msgstr ""
+"No recorded operations were found. Please wait for the recording prompt, then "
+"follow the instructions carefully to record your actions."
+
 msgid "Updated successfully"
 msgstr "Updated successfully"
 

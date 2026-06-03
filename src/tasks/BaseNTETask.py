@@ -872,7 +872,9 @@ class BaseNTETask(BaseTask, CharUIMixin):  # type: ignore
 
     def walk_to_treasure(self):
         if self.find_treasure():
-            self.walk_to_box(self.find_treasure, end_condition=self.find_interac, y_offset=0.1)
+            self.walk_to_box(
+                self.find_treasure, end_condition=self.find_interac, y_offset=0.1, x_threshold=0.15
+            )
             return True
 
     def walk_to_box(

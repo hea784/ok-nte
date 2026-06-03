@@ -618,6 +618,11 @@ msgstr "다크 레이스"
 msgid "Record has been reset"
 msgstr "기록이 초기화되었습니다"
 
+msgid ""
+"No recorded operations were found. Please wait for the recording prompt, then "
+"follow the instructions carefully to record your actions."
+msgstr "기록된 작업을 찾을 수 없습니다. 기록 안내가 표시될 때까지 기다린 뒤, 지시에 따라 신중하게 동작을 기록하세요."
+
 msgid "Updated successfully"
 msgstr "성공적으로 업데이트되었습니다"
 
