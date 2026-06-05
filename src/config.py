@@ -6,7 +6,7 @@ from ok import Box, ConfigOption
 from src.interaction.NTEInteraction import NTEInteraction
 from src.process_feature import process_feature
 
-version = "v0.0.59"
+version = "v0.0.60"
 # 不需要修改version, Github Action打包会自动修改
 
 key_config_option = ConfigOption(
