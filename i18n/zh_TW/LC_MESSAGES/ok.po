@@ -124,6 +124,15 @@ msgstr "重新整理列表"
 msgid "匹配成功: {}"
 msgstr "比對成功: {}"
 
+msgid "置信度: {:.2f}"
+msgstr "信心度: {:.2f}"
+
+msgid "特征已加入"
+msgstr "特徵已加入"
+
+msgid "加入特征"
+msgstr "加入特徵"
+
 msgid "匹配文字"
 msgstr "比對文字"
 

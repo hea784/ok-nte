@@ -124,6 +124,15 @@ msgstr "Actualizar lista"
 msgid "匹配成功: {}"
 msgstr "Coincidencia exitosa: {}"
 
+msgid "置信度: {:.2f}"
+msgstr "Confianza: {:.2f}"
+
+msgid "特征已加入"
+msgstr "Característica añadida"
+
+msgid "加入特征"
+msgstr "Añadir característica"
+
 msgid "匹配文字"
 msgstr "Coincidir texto"
 

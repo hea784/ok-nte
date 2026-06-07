@@ -124,6 +124,15 @@ msgstr "リスト更新"
 msgid "匹配成功: {}"
 msgstr "一致成功: {}"
 
+msgid "置信度: {:.2f}"
+msgstr "信頼度: {:.2f}"
+
+msgid "特征已加入"
+msgstr "特徴を追加しました"
+
+msgid "加入特征"
+msgstr "特徴を追加"
+
 msgid "匹配文字"
 msgstr "テキスト一致"
 

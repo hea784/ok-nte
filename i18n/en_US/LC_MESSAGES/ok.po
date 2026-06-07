@@ -124,6 +124,15 @@ msgstr "Refresh List"
 msgid "匹配成功: {}"
 msgstr "Match successful: {}"
 
+msgid "置信度: {:.2f}"
+msgstr "Confidence: {:.2f}"
+
+msgid "特征已加入"
+msgstr "Feature added"
+
+msgid "加入特征"
+msgstr "Add feature"
+
 msgid "匹配文字"
 msgstr "Match Text"
 

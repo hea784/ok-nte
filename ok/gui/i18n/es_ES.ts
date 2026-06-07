@@ -286,6 +286,50 @@
             <source>Close</source>
             <translation>Cerrar</translation>
         </message>
+        <message>
+            <source>Open Logs</source>
+            <translation>Abrir registros</translation>
+        </message>
+        <message>
+            <source>All Levels</source>
+            <translation>Todos los niveles</translation>
+        </message>
+        <message>
+            <source>Filter logs...</source>
+            <translation>Filtrar registros...</translation>
+        </message>
+        <message>
+            <source>Clear</source>
+            <translation>Limpiar</translation>
+        </message>
+        <message>
+            <source>Waiting for ok-script.log</source>
+            <translation>Esperando ok-script.log</translation>
+        </message>
+        <message>
+            <source>records</source>
+            <translation>registros</translation>
+        </message>
+        <message>
+            <source>Pause</source>
+            <translation>Pausar</translation>
+        </message>
+        <message>
+            <source>Resume</source>
+            <translation>Reanudar</translation>
+        </message>
+        <message>
+            <source>View Log</source>
+            <translation>Ver registro</translation>
+        </message>
+        <message>
+            <source>Pin</source>
+            <translation>Fijar</translation>
+        </message>
+        <message>
+            <source>Unpin</source>
+            <translation>Desfijar</translation>
+        </message>
     </context>
     <context>
         <name>MainWindow</name>
@@ -841,6 +885,14 @@
         <message>
             <source>Log Folder</source>
             <translation>Carpeta de registros</translation>
+        </message>
+        <message>
+            <source>Open Logs</source>
+            <translation>Abrir registros</translation>
+        </message>
+        <message>
+            <source>View Log</source>
+            <translation>Ver registro</translation>
         </message>
     </context>
     <context>
@@ -2564,6 +2616,36 @@
         <message>
             <source>NPU inferring Error, you might need to update the Intel NPU driver!</source>
             <translation>¡Error de inferencia de la NPU, es posible que necesite actualizar el controlador de la NPU de Intel!</translation>
+        </message>
+    </context>
+    <context>
+        <name>GlobalConfigTab</name>
+        <message>
+            <source>Reset Config</source>
+            <translation>Restablecer configuración</translation>
+        </message>
+    </context>
+    <context>
+        <name>LabelAndFileSelector</name>
+        <message>
+            <source>Browse</source>
+            <translation>Examinar</translation>
+        </message>
+        <message>
+            <source>Select File</source>
+            <translation>Seleccionar archivo</translation>
+        </message>
+        <message>
+            <source>Select Folder</source>
+            <translation>Seleccionar carpeta</translation>
+        </message>
+        <message>
+            <source>All Files (*)</source>
+            <translation>Todos los archivos (*)</translation>
+        </message>
+        <message>
+            <source>Select File or Folder</source>
+            <translation>Seleccionar archivo o carpeta</translation>
         </message>
     </context>
 </TS>

@@ -124,6 +124,15 @@ msgstr "목록 새로고침"
 msgid "匹配成功: {}"
 msgstr "매칭 성공: {}"
 
+msgid "置信度: {:.2f}"
+msgstr "신뢰도: {:.2f}"
+
+msgid "特征已加入"
+msgstr "특징이 추가됨"
+
+msgid "加入特征"
+msgstr "특징 추가"
+
 msgid "匹配文字"
 msgstr "텍스트 매칭"
 

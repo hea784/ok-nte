@@ -286,6 +286,50 @@
             <source>Close</source>
             <translation>닫기</translation>
         </message>
+        <message>
+            <source>Open Logs</source>
+            <translation>로그 열기</translation>
+        </message>
+        <message>
+            <source>All Levels</source>
+            <translation>모든 레벨</translation>
+        </message>
+        <message>
+            <source>Filter logs...</source>
+            <translation>로그 필터...</translation>
+        </message>
+        <message>
+            <source>Clear</source>
+            <translation>지우기</translation>
+        </message>
+        <message>
+            <source>Waiting for ok-script.log</source>
+            <translation>ok-script.log 대기 중</translation>
+        </message>
+        <message>
+            <source>records</source>
+            <translation>개</translation>
+        </message>
+        <message>
+            <source>Pause</source>
+            <translation>일시정지</translation>
+        </message>
+        <message>
+            <source>Resume</source>
+            <translation>재개</translation>
+        </message>
+        <message>
+            <source>View Log</source>
+            <translation>로그 보기</translation>
+        </message>
+        <message>
+            <source>Pin</source>
+            <translation>고정</translation>
+        </message>
+        <message>
+            <source>Unpin</source>
+            <translation>고정 해제</translation>
+        </message>
     </context>
     <context>
         <name>MainWindow</name>
@@ -842,6 +886,14 @@
         <message>
             <source>Log Folder</source>
             <translation>로그 폴더</translation>
+        </message>
+        <message>
+            <source>Open Logs</source>
+            <translation>로그 열기</translation>
+        </message>
+        <message>
+            <source>View Log</source>
+            <translation>로그 보기</translation>
         </message>
     </context>
     <context>
@@ -2565,6 +2617,36 @@
         <message>
             <source>NPU inferring Error, you might need to update the Intel NPU driver!</source>
             <translation>NPU 추론 오류, Intel NPU 드라이버를 업데이트해야 할 수 있습니다!</translation>
+        </message>
+    </context>
+    <context>
+        <name>GlobalConfigTab</name>
+        <message>
+            <source>Reset Config</source>
+            <translation>설정 초기화</translation>
+        </message>
+    </context>
+    <context>
+        <name>LabelAndFileSelector</name>
+        <message>
+            <source>Browse</source>
+            <translation>찾아보기</translation>
+        </message>
+        <message>
+            <source>Select File</source>
+            <translation>파일 선택</translation>
+        </message>
+        <message>
+            <source>Select Folder</source>
+            <translation>폴더 선택</translation>
+        </message>
+        <message>
+            <source>All Files (*)</source>
+            <translation>모든 파일 (*)</translation>
+        </message>
+        <message>
+            <source>Select File or Folder</source>
+            <translation>파일 또는 폴더 선택</translation>
         </message>
     </context>
 </TS>

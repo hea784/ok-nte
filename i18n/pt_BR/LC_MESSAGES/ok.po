@@ -126,6 +126,15 @@ msgstr "Atualizar Lista"
 msgid "匹配成功: {}"
 msgstr "Correspondência bem-sucedida: {}"
 
+msgid "置信度: {:.2f}"
+msgstr "Confiança: {:.2f}"
+
+msgid "特征已加入"
+msgstr "Característica adicionada"
+
+msgid "加入特征"
+msgstr "Adicionar característica"
+
 msgid "匹配文字"
 msgstr "Corresponder Texto"
 
