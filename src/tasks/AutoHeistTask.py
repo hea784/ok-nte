@@ -1,7 +1,9 @@
 import re
 import time
 from dataclasses import dataclass
+from functools import cached_property
 from threading import Event
+from typing import ClassVar
 
 from ok import TaskDisabledException
 from qfluentwidgets import FluentIcon
@@ -36,6 +38,34 @@ class CharacterSwitchState:
     def advance(self):
         self.index += 1
         return self.index < len(self.keys)
+
+
+@dataclass(frozen=True)
+class HeistOcrText:
+    DEFAULT_LOCALE: ClassVar[str] = "zh_CN"
+    BY_LOCALE: ClassVar[dict[str, "HeistOcrText"]]
+
+    confirm_exit: str = "确认退出"
+    confirm: str = "确认"
+    challenge_time: str = "挑战时间"
+    safe_extract: str = "安全撤离"
+    exit: str = "退出"
+
+    @classmethod
+    def get(cls, locale: str | None) -> "HeistOcrText":
+        return cls.BY_LOCALE.get(locale or cls.DEFAULT_LOCALE, cls.BY_LOCALE[cls.DEFAULT_LOCALE])
+
+
+HeistOcrText.BY_LOCALE = {
+    HeistOcrText.DEFAULT_LOCALE: HeistOcrText(),
+    "zh_TW": HeistOcrText(
+        confirm_exit="確認退出",
+        confirm="確認",
+        challenge_time="挑戰時間",
+        safe_extract="安全撤離",
+        exit="退出",
+    ),
+}
 
 
 def _inst_line(text: str, color: str = "", *, bold: bool = False, indent: int = 0):
@@ -164,6 +194,10 @@ class AutoHeistTask(NTEOneTimeTask, BaseCombatTask):
         self._interaction_watch_found = False
 
         self._round_label = ""
+
+    @cached_property
+    def OCR_MATCH_TEXT(self) -> HeistOcrText:
+        return HeistOcrText.get(self.get_app_locale())
 
     def run(self):
         super().run()
@@ -460,13 +494,13 @@ class AutoHeistTask(NTEOneTimeTask, BaseCombatTask):
         self.info_add("失败次数", 1)
 
         def find_popup():
-            return self.ocr(0.4516, 0.3069, 0.5473, 0.3792, match=re.compile("确认退出"))
+            return self.ocr(
+                0.4516, 0.3069, 0.5473, 0.3792,
+                match=re.compile(self.OCR_MATCH_TEXT.confirm_exit),
+            )
 
         self.wait_until(
-            lambda: (
-                self.is_in_team_outside_heist()
-                or find_popup()
-            ),
+            lambda: self.is_in_team_outside_heist() or find_popup(),
             pre_action=lambda: self.send_key("esc", action_name="quit_heist", interval=2),
             time_out=60,
             raise_if_not_found=True,
@@ -476,7 +510,10 @@ class AutoHeistTask(NTEOneTimeTask, BaseCombatTask):
             return
 
         btn = self.wait_ocr(
-            0.50, 0.60, 0.70, 0.70, match=re.compile("确认"), time_out=60, raise_if_not_found=True
+            0.50, 0.60, 0.70, 0.70,
+            match=re.compile(self.OCR_MATCH_TEXT.confirm),
+            time_out=60,
+            raise_if_not_found=True,
         )
         self.wait_until(
             lambda: not find_popup(),
@@ -492,7 +529,10 @@ class AutoHeistTask(NTEOneTimeTask, BaseCombatTask):
         skip_task = self.get_task_by_class(SkipDialogTask)
 
         def in_panel():
-            return self.ocr(0.625, 0.483, 0.685, 0.525, match=re.compile("挑战时间"))
+            return self.ocr(
+                0.625, 0.483, 0.685, 0.525,
+                match=re.compile(self.OCR_MATCH_TEXT.challenge_time),
+            )
 
         def action():
             if not self.is_in_team():
@@ -517,7 +557,10 @@ class AutoHeistTask(NTEOneTimeTask, BaseCombatTask):
 
     def has_extract_panel(self):
         """检查当前画面是否出现“安全撤离”面板。"""
-        return self.ocr(0.2602, 0.2639, 0.3520, 0.3257, match=re.compile("安全撤离"))
+        return self.ocr(
+            0.2602, 0.2639, 0.3520, 0.3257,
+            match=re.compile(self.OCR_MATCH_TEXT.safe_extract),
+        )
 
     def is_in_team_outside_heist(self):
         """判断角色已回到队伍界面，但已经不在粉爪副本内。"""
@@ -527,7 +570,10 @@ class AutoHeistTask(NTEOneTimeTask, BaseCombatTask):
     def exit_heist(self):
 
         def in_sum_panel():
-            return self.ocr(0.4496, 0.8354, 0.5547, 0.8868, match=re.compile("退出"))
+            return self.ocr(
+                0.4496, 0.8354, 0.5547, 0.8868,
+                match=re.compile(self.OCR_MATCH_TEXT.exit),
+            )
 
         self.wait_until(
             lambda: self.is_in_team_outside_heist() or self.has_extract_panel(),

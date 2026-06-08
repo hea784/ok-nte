@@ -10,7 +10,7 @@ from src.process_feature import process_feature
 if "PATH" not in os.environ:
     os.environ["PATH"] = ""
 
-version = "v0.0.62"
+version = "v0.0.63"
 # 不需要修改version, Github Action打包会自动修改
 
 key_config_option = ConfigOption(

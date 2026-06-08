@@ -1085,6 +1085,15 @@ class BaseNTETask(BaseTask, CharUIMixin):  # type: ignore
             box=box, to_find=[Labels.confirm_btn_1, Labels.confirm_btn_2], threshold=threshold
         )
 
+    @staticmethod
+    def get_app_locale() -> bool:
+        """get app locale."""
+
+        try:
+            return og.app.locale.name()
+        except Exception:
+            return None
+
 
 def interac_mask(image):
     mask = iu.create_color_mask(image, interac_pink_color, to_bgr=False)
