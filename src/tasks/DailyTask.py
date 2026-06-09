@@ -2,7 +2,7 @@ import re
 from datetime import datetime
 from typing import Callable, List, Optional, Tuple
 
-from ok import CannotFindException, TaskDisabledException, find_color_rectangles, og
+from ok import CannotFindException, TaskDisabledException, find_color_rectangles
 from qfluentwidgets import FluentIcon
 
 from src import text_white_color
@@ -76,7 +76,7 @@ class DailyTask(NTEOneTimeTask, BaseNTETask):
 
     def do_run(self):
         """执行日常任务主流程"""
-        self._logged_in = False
+        self.scene.set_logged_in(False)
         self.ensure_main()
         self.log_info("开始执行日常任务")
 

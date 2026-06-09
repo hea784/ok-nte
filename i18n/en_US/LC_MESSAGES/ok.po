@@ -154,8 +154,8 @@ msgstr "Auto-click teleport in map"
 msgid "填入扫描"
 msgstr "Fill Scan"
 
-msgid "增加 <b style=\"color: #0078d7;\">角色特征</b> 后将自动判断当前角色。<br>如果不想管理 <b style=\"color: #0078d7;\">角色特征</b>，可以直接启用 <b style=\"color: #0078d7;\">{fixed_team}</b> 功能。"
-msgstr "Adding <b style=\"color: #0078d7;\">Character Features</b> will automatically identify the current character.<br>If you don't want to manage <b style=\"color: #0078d7;\">Character Features</b>, you can directly enable the <b style=\"color: #0078d7;\">{fixed_team}</b> function."
+msgid "关联 <b style=\"color: #0078d7;\">角色特征</b> 后将自动判断当前角色。<br>如果不想管理 <b style=\"color: #0078d7;\">角色特征</b>，可以直接启用 <b style=\"color: #0078d7;\">{fixed_team}</b> 功能。"
+msgstr "Linking <b style=\"color: #0078d7;\">Character Features</b> will automatically identify the current character.<br>If you don't want to manage <b style=\"color: #0078d7;\">Character Features</b>, you can directly enable the <b style=\"color: #0078d7;\">{fixed_team}</b> function."
 
 msgid "完成每日活跃度"
 msgstr "Complete Daily Activity"
@@ -254,8 +254,8 @@ msgstr "Failed to identify this feature"
 msgid "未获取到特征"
 msgstr "Feature not obtained"
 
-msgid "未识别，关联新特征"
-msgstr "Unidentified, associating new feature"
+msgid "关联特征"
+msgstr "Link Feature"
 
 msgid ""
 "此为内建 Python 脚本，不可在此修改。\n"
@@ -529,9 +529,6 @@ msgstr "Timeout (s)"
 
 msgid "输出调试日志"
 msgstr "Output debug logs"
-
-msgid "记录新特征"
-msgstr "Record New Feature"
 
 msgid "输入或选择绑定的{combo} (可选)"
 msgstr "Enter or select the bound {combo} (optional)"

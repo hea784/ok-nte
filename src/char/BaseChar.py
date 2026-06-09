@@ -1,19 +1,16 @@
-import time  # noqa
-from enum import StrEnum  # noqa
-from typing import Any, Callable, Union, Optional, List  # noqa
+import time
+from enum import StrEnum
+from typing import TYPE_CHECKING, Callable
 
-import cv2  # noqa
-import numpy as np  # noqa
+from ok import Logger
 
-from ok import Config, Logger, Box  # noqa
-from src import text_white_color  # noqa
-from src.Labels import Labels
+from src import text_white_color
 from src.combat.planner import (
+    ActionExecutor,
     ActionIntent,
+    ActionPredicate,
     ActionSlot,
     ActionTag,
-    ActionExecutor,
-    ActionPredicate,
     CombatContext,
     EntryChainPolicy,
     FieldClaim,
@@ -22,9 +19,8 @@ from src.combat.planner import (
     RoleProfile,
     SwitchInGuard,
 )
+from src.Labels import Labels
 from src.utils import game_filters as gf
-
-from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from src.combat.BaseCombatTask import BaseCombatTask
@@ -552,9 +548,9 @@ class BaseChar:
             return False
 
         if self.ultimate_available():
-            if self.task._combat_settle.time is not None:
-                self.logger.info("click_ultimate blocked by combat_detect_settle")
-            while self.task._combat_settle.time is not None:
+            if self.task.combat_detect_uncertain:
+                self.logger.info("click_ultimate blocked by combat_detect_uncertain")
+            while self.task.combat_detect_uncertain:
                 self.task.next_frame()
                 self.check_combat()
                 self.click_with_interval()

@@ -154,8 +154,8 @@ msgstr "지도에서 자동 순간이동 클릭"
 msgid "填入扫描"
 msgstr "스캔 결과 입력"
 
-msgid "增加 <b style=\"color: #0078d7;\">角色特征</b> 后将自动判断当前角色。<br>如果不想管理 <b style=\"color: #0078d7;\">角色特征</b>，可以直接启用 <b style=\"color: #0078d7;\">{fixed_team}</b> 功能。"
-msgstr "캐릭터 특징을 추가하면 현재 캐릭터를 자동으로 판별합니다.<br>캐릭터 특징을 관리하고 싶지 않다면 {fixed_team} 기능을 직접 활성화할 수 있습니다."
+msgid "关联 <b style=\"color: #0078d7;\">角色特征</b> 后将自动判断当前角色。<br>如果不想管理 <b style=\"color: #0078d7;\">角色特征</b>，可以直接启用 <b style=\"color: #0078d7;\">{fixed_team}</b> 功能。"
+msgstr "<b style=\"color: #0078d7;\">캐릭터 특징</b>을 연결하면 현재 캐릭터를 자동으로 판별합니다.<br><b style=\"color: #0078d7;\">캐릭터 특징</b>을 관리하고 싶지 않다면 <b style=\"color: #0078d7;\">{fixed_team}</b> 기능을 직접 활성화할 수 있습니다."
 
 msgid "完成每日活跃度"
 msgstr "일일 활성도 완료"
@@ -254,8 +254,8 @@ msgstr "특징을 인식하지 못했습니다"
 msgid "未获取到特征"
 msgstr "특징을 가져오지 못했습니다"
 
-msgid "未识别，关联新特征"
-msgstr "인식 불가, 새로운 특징 연결"
+msgid "关联特征"
+msgstr "특징 연결"
 
 msgid ""
 "此为内建 Python 脚本，不可在此修改。\n"
@@ -584,9 +584,6 @@ msgstr "일일 작업에서 카페 처리 방식을 선택"
 
 msgid "不执行"
 msgstr "실행하지 않음"
-
-msgid "记录新特征"
-msgstr "새 특징 기록"
 
 msgid "输入或选择关联的角色名称"
 msgstr "연결된 캐릭터 이름 입력 또는 선택"

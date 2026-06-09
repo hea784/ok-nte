@@ -33,7 +33,6 @@ class BaseNTETask(CharUIMixin, BaseTask):
         self.key_config = self.get_global_config("Game Hotkey Config")
         self.monthly_card_config = self.get_global_config("Monthly Card Config")
         self.sound_config = self.get_global_config("Sound Trigger Config")
-        self._logged_in = False
         self._rotated_template_cache = {}
         self.default_box = ScreenPosition(self)
         self._init_char_ui_state()
@@ -280,7 +279,7 @@ class BaseNTETask(CharUIMixin, BaseTask):
         if current != -1 and arr[current] is None:
             exist_count += 1
 
-        self._logged_in = True
+        self.scene.set_logged_in()
         return True, current, exist_count
 
     def get_box_by_char_spacing(self, box: Box, index: int) -> Box:
@@ -741,7 +740,7 @@ class BaseNTETask(CharUIMixin, BaseTask):
 
     def ensure_main(self, esc=True, time_out=30):
         self.info_set("current task", f"wait main esc={esc}")
-        if not self._logged_in:
+        if not self.scene.logged_in():
             time_out = 600
         if not self.wait_until(
             lambda: self.is_main(esc=esc), time_out=time_out, raise_if_not_found=False
@@ -752,7 +751,7 @@ class BaseNTETask(CharUIMixin, BaseTask):
 
     def is_main(self, esc=True):
         if self.in_team_and_world():
-            self._logged_in = True
+            self.scene.set_logged_in()
             return True
         if self.handle_monthly_card():
             return True
@@ -812,7 +811,7 @@ class BaseNTETask(CharUIMixin, BaseTask):
             self.next_monthly_card_start = 0
 
     def wait_login(self):
-        if not self._logged_in:
+        if not self.scene.logged_in():
             if self.in_team_and_world():
                 return True
             self.handle_monthly_card()

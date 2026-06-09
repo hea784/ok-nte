@@ -154,8 +154,8 @@ msgstr "Clic automático de teletransporte en el mapa"
 msgid "填入扫描"
 msgstr "Completar escaneo"
 
-msgid "增加 <b style=\"color: #0078d7;\">角色特征</b> 后将自动判断当前角色。<br>如果不想管理 <b style=\"color: #0078d7;\">角色特征</b>，可以直接启用 <b style=\"color: #0078d7;\">{fixed_team}</b> 功能。"
-msgstr "Al añadir <b style=\"color: #0078d7;\">Características del personaje</b> se identificará automáticamente al personaje actual.<br>Si no desea gestionar las <b style=\"color: #0078d7;\">Características del personaje</b>, puede activar directamente la función <b style=\"color: #0078d7;\">{fixed_team}</b>."
+msgid "关联 <b style=\"color: #0078d7;\">角色特征</b> 后将自动判断当前角色。<br>如果不想管理 <b style=\"color: #0078d7;\">角色特征</b>，可以直接启用 <b style=\"color: #0078d7;\">{fixed_team}</b> 功能。"
+msgstr "Al vincular <b style=\"color: #0078d7;\">Características del personaje</b>, se identificará automáticamente al personaje actual.<br>Si no desea gestionar las <b style=\"color: #0078d7;\">Características del personaje</b>, puede activar directamente la función <b style=\"color: #0078d7;\">{fixed_team}</b>."
 
 msgid "完成每日活跃度"
 msgstr "Completar actividad diaria"
@@ -254,8 +254,8 @@ msgstr "No se pudo identificar esta característica"
 msgid "未获取到特征"
 msgstr "Característica no obtenida"
 
-msgid "未识别，关联新特征"
-msgstr "No identificado, asociando nueva característica"
+msgid "关联特征"
+msgstr "Vincular característica"
 
 msgid ""
 "此为内建 Python 脚本，不可在此修改。\n"
@@ -584,9 +584,6 @@ msgstr "Elige cómo gestionar las tareas diarias del café"
 
 msgid "不执行"
 msgstr "No ejecutar"
-
-msgid "记录新特征"
-msgstr "Registrar nueva característica"
 
 msgid "输入或选择关联的角色名称"
 msgstr "Introduce o selecciona el nombre del personaje asociado"

@@ -154,8 +154,8 @@ msgstr "地圖中自動點擊傳送"
 msgid "填入扫描"
 msgstr "填入掃描"
 
-msgid "增加 <b style=\"color: #0078d7;\">角色特征</b> 后将自动判断当前角色。<br>如果不想管理 <b style=\"color: #0078d7;\">角色特征</b>，可以直接启用 <b style=\"color: #0078d7;\">{fixed_team}</b> 功能。"
-msgstr "增加 <b style=\"color: #0078d7;\">角色特徵</b> 後將自動判斷當前角色。<br>如果不想管理 <b style=\"color: #0078d7;\">角色特徵</b>，可以直接啟用 <b style=\"color: #0078d7;\">{fixed_team}</b> 功能。"
+msgid "关联 <b style=\"color: #0078d7;\">角色特征</b> 后将自动判断当前角色。<br>如果不想管理 <b style=\"color: #0078d7;\">角色特征</b>，可以直接启用 <b style=\"color: #0078d7;\">{fixed_team}</b> 功能。"
+msgstr "關聯 <b style=\"color: #0078d7;\">角色特徵</b> 後將自動判斷當前角色。<br>如果不想管理 <b style=\"color: #0078d7;\">角色特徵</b>，可以直接啟用 <b style=\"color: #0078d7;\">{fixed_team}</b> 功能。"
 
 msgid "完成每日活跃度"
 msgstr "完成每日活躍度"
@@ -254,8 +254,8 @@ msgstr "未能識別該特徵"
 msgid "未获取到特征"
 msgstr "未獲取到特徵"
 
-msgid "未识别，关联新特征"
-msgstr "未識別，關聯新特徵"
+msgid "关联特征"
+msgstr "關聯特徵"
 
 msgid ""
 "此为内建 Python 脚本，不可在此修改。\n"
@@ -584,9 +584,6 @@ msgstr "選擇日常任務中的一咖舍處理方式"
 
 msgid "不执行"
 msgstr "不執行"
-
-msgid "记录新特征"
-msgstr "記錄新特徵"
 
 msgid "输入或选择关联的角色名称"
 msgstr "輸入或選擇關聯的角色名稱"

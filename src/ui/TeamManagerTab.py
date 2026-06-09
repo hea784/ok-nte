@@ -52,7 +52,7 @@ class NewCharDialog(MessageBoxBase):
     def __init__(self, mat, manager: CustomCharManager, parent=None):
         super().__init__(parent)
         self.manager = manager
-        self.tr_title = og.app.tr("记录新特征")
+        self.tr_title = og.app.tr("关联特征")
         self.tr_name_ph = og.app.tr("输入或选择关联的角色名称")
         self.tr_list_ph = tr_fmt("输入或选择绑定的{combo} (可选)", combo=COMBO)
 
@@ -125,7 +125,7 @@ class SlotCard(CardWidget):
         self.tr_no_image = og.app.tr("无画面")
         self.tr_slot_title = og.app.tr("{} 号位")
         self.tr_scan_prompt = og.app.tr("点击上方按钮扫描...")
-        self.tr_action_btn = og.app.tr("未识别，关联新特征")
+        self.tr_action_btn = og.app.tr("关联特征")
         self.tr_add_match_feature_btn = og.app.tr("加入特征")
         self.tr_feature_added_btn = og.app.tr("特征已加入")
         self.tr_confidence = og.app.tr("置信度: {:.2f}")
@@ -384,7 +384,7 @@ class TeamManagerTab(CustomTab):
             "将优先使用固定角色进行战斗，未启用或槽位为空时自动识别"
         )
         self.tr_scan_tips = tr_fmt(
-            '增加 <b style="color: #0078d7;">角色特征</b> 后将自动判断当前角色。<br>'
+            '关联 <b style="color: #0078d7;">角色特征</b> 后将自动判断当前角色。<br>'
             '如果不想管理 <b style="color: #0078d7;">角色特征</b>，可以直接启用 '
             '<b style="color: #0078d7;">{fixed_team}</b> 功能。',
             fixed_team=self.tr_fixed_team_title,

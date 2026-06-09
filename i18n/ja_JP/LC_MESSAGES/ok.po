@@ -154,8 +154,8 @@ msgstr "マップ内で自動テレポート"
 msgid "填入扫描"
 msgstr "スキャン結果を入力"
 
-msgid "增加 <b style=\"color: #0078d7;\">角色特征</b> 后将自动判断当前角色。<br>如果不想管理 <b style=\"color: #0078d7;\">角色特征</b>，可以直接启用 <b style=\"color: #0078d7;\">{fixed_team}</b> 功能。"
-msgstr "キャラクター特徴を追加すると、現在のキャラクターを自動的に判別します。<br>キャラクター特徴を管理したくない場合は、直接 {fixed_team} 機能を有効にできます。"
+msgid "关联 <b style=\"color: #0078d7;\">角色特征</b> 后将自动判断当前角色。<br>如果不想管理 <b style=\"color: #0078d7;\">角色特征</b>，可以直接启用 <b style=\"color: #0078d7;\">{fixed_team}</b> 功能。"
+msgstr "<b style=\"color: #0078d7;\">キャラクター特徴</b>を関連付けると、現在のキャラクターを自動的に判別します。<br><b style=\"color: #0078d7;\">キャラクター特徴</b>を管理したくない場合は、<b style=\"color: #0078d7;\">{fixed_team}</b> 機能を直接有効にできます。"
 
 msgid "完成每日活跃度"
 msgstr "デイリーアクティビティを完了"
@@ -254,8 +254,8 @@ msgstr "特徴を認識できませんでした"
 msgid "未获取到特征"
 msgstr "特徴を取得できませんでした"
 
-msgid "未识别，关联新特征"
-msgstr "未認識、新しい特徴を関連付け"
+msgid "关联特征"
+msgstr "特徴を関連付け"
 
 msgid ""
 "此为内建 Python 脚本，不可在此修改。\n"
@@ -584,9 +584,6 @@ msgstr "デイリータスクでのカフェ処理方法を選択"
 
 msgid "不执行"
 msgstr "実行しない"
-
-msgid "记录新特征"
-msgstr "新しい特徴を記録"
 
 msgid "输入或选择关联的角色名称"
 msgstr "関連キャラクター名を入力または選択"
