@@ -22,9 +22,9 @@ lv_red_color = {
     "b": (0, 1),
 }
 
-lv_white_hsv= HSVRange((0, 0, 180), (160, 20, 255))
+lv_white_hsv = HSVRange((0, 0, 180), (160, 20, 255))
 
-lv_red_hsv= HSVRange((0, 235, 180), (0, 255, 255))
+lv_red_hsv = HSVRange((0, 235, 180), (0, 255, 255))
 
 
 def isolate_cd_to_black(cv_image):
@@ -53,8 +53,11 @@ def current_char_filter(cv_image):
     # stays closer to the template than similar bright backgrounds do.
     return lab[:, :, 1:3]
 
+
 def isolate_text_to_black(cv_image):
     return iu.create_color_mask(cv_image, text_black_color, invert=True)
 
+
 def ultimate_ready_filter(cv_image):
     return iu.binarize_bgr_by_brightness(cv_image, threshold=128, to_bgr=False)
+    # iu.morphology_mask(filtered, kernel_size=2, closing=True, to_bgr=False)
