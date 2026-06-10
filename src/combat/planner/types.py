@@ -33,6 +33,7 @@ class ActionTag(StrEnum):
     DEFAULT_ACTION = "default_action"
     DAMAGE = "damage"
     ULTIMATE_ACTION = "ultimate_action"
+    ARC_ACTION = "arc_action"
     SUPPORT = "support"
     COORDINATION = "coordination"
     SKILL_ACTION = "skill_action"
@@ -58,6 +59,7 @@ class ActionSlot(StrEnum):
 
     SKILL = "skill"
     ULTIMATE = "ultimate"
+    ARC = "arc"
     ENTRY_REACTION = "entry_reaction"
     FIELD_TIME = "field_time"
     LEGACY_COMBO = "legacy_combo"
@@ -93,6 +95,7 @@ ACTION_TAG_SCORES = {
     ActionTag.DEFAULT_ACTION: 10,
     ActionTag.DAMAGE: 35,
     ActionTag.ULTIMATE_ACTION: 200,
+    ActionTag.ARC_ACTION: 0,
     ActionTag.SUPPORT: 45,
     ActionTag.COORDINATION: 80,
     ActionTag.SKILL_ACTION: 75,

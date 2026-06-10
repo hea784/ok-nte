@@ -71,6 +71,7 @@ class BaseChar:
         self.cycle_start_time = 0.0
         self.combo_label = "default"
         self.element = Element.DEFAULT
+        self.planner_handles_arc = False
 
     def cycle_start(self):
         self.cycle_start_time = time.time()
@@ -110,14 +111,16 @@ class BaseChar:
         if self.has_intro:
             self.add_intro_motion_freeze(self.last_perform)
             self.wait_intro()
+        self._try_default_arc_click()
+            
         self.task.combat_planner.perform_current_char(self)
-        self.task.run_with_interval(
-            lambda: self.logger.debug(f"set current char false {self.index}"),
-            0.5,
-            action_name=("set_current_char_false", self.name, self.index),
-        )
+        self.logger.debug(f"set current char false {self.index}")
         self.task.refresh_cd()
         self.switch_next_char()
+
+    def _try_default_arc_click(self):
+        if not self.planner_handles_arc:
+            self.click_arc()
 
     def add_intro_motion_freeze(self, start):
         self.add_freeze_duration(start, self.INTRO_MOTION_FREEZE_DURATION, freeze_time=-100)
@@ -197,11 +200,6 @@ class BaseChar:
         return self.intents(
             self.click_ultimate_action("base_ultimate"),
             self.click_skill_action("base_skill"),
-            self.planner_action(
-                tags={ActionTag.DEFAULT_ACTION},
-                execute=self._execute_base_arc,
-                reason="fallback arc action",
-            ),
         )
 
     def combat_policies(self, context: CombatContext) -> None:
@@ -227,6 +225,50 @@ class BaseChar:
         """
 
         return [intent for intent in intents if intent is not None]
+
+    def click_arc_action(
+        self,
+        name: str | None = None,
+        tags: set[ActionTag] | None = None,
+        reason: str = "arc action available",
+        can_execute=None,
+        priority_ready: ActionPredicate | None = None,
+        after_execute: Callable[[CombatContext, bool], bool | None] | None = None,
+        chain_policy: EntryChainPolicy = EntryChainPolicy.CONTINUE,
+    ):
+        """创建一个 弧盘 动作声明。
+
+        Args:
+            name: 动作名。默认 `"{角色名}_arc"`，用于日志和高级精确匹配。
+            tags: 动作标签。默认 `{ActionTag.ARC_ACTION}`。
+            reason: 切人/执行日志理由。
+            can_execute: 额外硬限制；slot reservation 由 planner 统一检查。
+            priority_ready: 只用于切人评分。默认永远不因为 arc 主动切人。
+            after_execute: 执行成功后的回调，(context, is_current) -> bool，返回 True 表示
+                           可以立即进入下一个 allowed action。
+            chain_policy: 该 action 之后是否允许执行下一个 allowed action。
+
+        Returns:
+            `ActionIntent`。
+        """
+
+        name = name or f"{self.__str__()}_arc"
+        action_tags = tags or {ActionTag.ARC_ACTION}
+
+        return self.planner_action(
+            tags=action_tags,
+            slot=ActionSlot.ARC,
+            execute=lambda context: self._execute_click_action(
+                context,
+                click=lambda: self.click_arc(),
+                after_execute=after_execute,
+            ),
+            name=name,
+            reason=reason,
+            can_execute=can_execute,
+            priority_ready=priority_ready or (lambda _: False),
+            chain_policy=chain_policy,
+        )
 
     def click_ultimate_action(
         self,
@@ -337,7 +379,7 @@ class BaseChar:
 
     def planner_action(
         self,
-        tags: set[ActionTag],
+        tags: set[ActionTag] | ActionTag,
         execute: ActionExecutor,
         name: str | None = None,
         slot: ActionSlot | None = None,
@@ -384,9 +426,6 @@ class BaseChar:
             priority_ready=priority_ready,
             chain_policy=chain_policy,
         )
-
-    def _execute_base_arc(self, context=None):
-        return self.click_arc()
 
     def has_cd(self, box_name):
         """检查指定技能是否在冷却中 (代理到 task.has_cd)。

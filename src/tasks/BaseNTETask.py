@@ -81,7 +81,15 @@ class BaseNTETask(CharUIMixin, BaseTask):
             return
         return og.my_app.submit_periodic_task(delay, task, *args, **kwargs)
 
-    def _openvino_detect(self, frame, sync, box, threshold, force=False, mask_regions=None):
+    def openvino_detect(
+        self,
+        frame=None,
+        sync: bool = False,
+        box: Box = None,
+        threshold: float = 0.7,
+        force: bool = False,
+        mask_regions=None,
+    ) -> List[Box] | None:
         if og.my_app is None:
             return []
         if box is None:
@@ -89,41 +97,28 @@ class BaseNTETask(CharUIMixin, BaseTask):
         self.draw_boxes(boxes=box, color="blue")
         if frame is None:
             frame = self.frame
-        if sync:
-            results = og.my_app.openvino_detect_sync(
-                image=frame, box=box, threshold=threshold, mask_regions=mask_regions
-            )
-        else:
-            results = og.my_app.openvino_detect_async(
-                image=frame,
-                box=box,
-                threshold=threshold,
-                force=force,
-                mask_regions=mask_regions,
-            )
+        results = og.my_app.openvino_detect(
+            image=frame,
+            sync=sync,
+            box=box,
+            threshold=threshold,
+            force=force,
+            mask_regions=mask_regions,
+        )
         if results:
             self.draw_boxes(boxes=results, color="red")
         return results
-
-    def openvino_detect_async(
-        self, frame=None, box: Box = None, threshold=0.7, force=False, mask_regions=None
-    ) -> List[Box]:
-        """异步检测，返回结果可能为缓存值"""
-        return self._openvino_detect(
-            frame, False, box, threshold, force=force, mask_regions=mask_regions
-        )
-
-    def openvino_detect_sync(
-        self, frame=None, box: Box = None, threshold=0.7, mask_regions=None
-    ) -> List[Box]:
-        """同步检测，会等待结果返回"""
-        return self._openvino_detect(frame, True, box, threshold, mask_regions=mask_regions)
 
     def openvino_clear_cache(self):
         """清空缓存"""
         if og.my_app is None:
             return
         og.my_app.openvino_clear_cache()
+
+    def get_last_openvino_image(self):
+        if og.my_app is None:
+            return None
+        return getattr(og.my_app, 'openvino_latest_image', None)
 
     @property
     def main_viewport(self):

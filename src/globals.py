@@ -170,25 +170,35 @@ class Globals(QObject):
     def openvino_latency_async(self):
         return self._openvino_model_async.latency
 
-    def openvino_detect_async(self, image, box=None, threshold=0.5, force=False, mask_regions=None):
-        """异步检测，返回结果可能为缓存值"""
-        ret = self.openvino_model_async.detect(
-            image,
-            box=box,
-            threshold=threshold,
-            label="target",
-            force=force,
-            mask_regions=mask_regions,
-        )
-        # logger.debug(f"openvino async: {ret}, cost {self.openvino_latency_async:.3f} s")
-        return ret
+    @property
+    def openvino_latest_image(self):
+        return self._openvino_model_async.latest_image if self._openvino_model_async else None
 
-    def openvino_detect_sync(self, image, box=None, threshold=0.5, mask_regions=None):
-        """同步检测"""
-        ret = self.openvino_model_async.detect_sync(
-            image, box=box, threshold=threshold, label="target", mask_regions=mask_regions
-        )
-        # logger.debug(f"openvino sync: {ret}, cost {self.openvino_latency_async:.3f} s")
+    def openvino_detect(
+        self, image, sync=False, box=None, threshold=0.5, force=False, mask_regions=None
+    ):
+        """异步检测，返回结果可能为缓存值"""
+        if not sync:
+            ret = self.openvino_model_async.detect(
+                image,
+                box=box,
+                threshold=threshold,
+                label="target",
+                force=force,
+                mask_regions=mask_regions,
+            )
+        else:
+            ret = self.openvino_model_async.detect_sync(
+                image,
+                box=box,
+                threshold=threshold,
+                label="target",
+                force=force,
+                mask_regions=mask_regions,
+            )
+        # logger.debug(
+        #     f"openvino: sync {sync}, result {ret}, cost {self.openvino_latency_async:.3f}s"
+        # )
         return ret
 
     def openvino_clear_cache(self):

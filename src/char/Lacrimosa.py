@@ -15,7 +15,7 @@ class Lacrimosa(BaseChar):
 
     def combat_intents(self, context):
         claims = []
-        if self.time_elapsed_accounting_for_freeze(self.last_switch_time) > 4:
+        if self.time_elapsed_accounting_for_freeze(self.last_switch_time) > 2.5:
             claims.append(FieldClaim.normal("Lacrimosa wants short field time"))
         return self.intents(
             self.click_ultimate_action(),

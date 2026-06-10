@@ -61,7 +61,7 @@ class CustomChar(BaseChar):
         if self.ultimate_available():
             tags.add(ActionTag.ULTIMATE_ACTION)
 
-        return [
+        return self.intents(
             self.planner_action(
                 name="legacy_combo",
                 tags=tags,
@@ -70,7 +70,7 @@ class CustomChar(BaseChar):
                 reason=reason,
                 chain_policy=EntryChainPolicy.STOP,
             )
-        ]
+        )
 
     def execute_legacy_combo_action(self, context=None):
         self._execute_parsed_combo()
