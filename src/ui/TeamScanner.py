@@ -21,9 +21,9 @@ class TeamScanner:
     def scan(self, task: "BaseCombatTask"):
         in_team, _, count = task.in_team()
         if not in_team or count == 0:
-            raise TeamScanError(self.txt_team_not_exist)
+            raise TeamScanError(task.tr(self.txt_team_not_exist))
         if count < 2:
-            raise TeamScanError(self.txt_team_not_enough)
+            raise TeamScanError(task.tr(self.txt_team_not_enough))
 
         results = []
         frame = task.frame
