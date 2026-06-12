@@ -192,6 +192,7 @@ class AutoHeistTask(NTEOneTimeTask, BaseCombatTask):
         self._held_keys = set()
         self._interaction_watch_active = False
         self._interaction_watch_found = False
+        self._aborting_heist = False
 
         self._round_label = ""
 
@@ -303,6 +304,8 @@ class AutoHeistTask(NTEOneTimeTask, BaseCombatTask):
         )
 
     def sleep_check(self):
+        if self._aborting_heist:
+            return
         self._poll_interaction_watch()
         self._poll_character_switch()
         if self.should_check_monthly_card():
@@ -355,6 +358,14 @@ class AutoHeistTask(NTEOneTimeTask, BaseCombatTask):
             self.info_set("交互检查", "已找到")
             self.log_info("interaction watch succeeded")
         return self._interaction_watch_found
+
+    def _reset_route_checks(self):
+        self._switch_state = None
+        self._handling_switch_state = False
+        self._interaction_watch_active = False
+        self._interaction_watch_found = False
+        self._update_sleep_check_interval()
+        self.info_set("交互检查", None)
 
     def _begin_character_switch(self, role, keys, check_switched=False):
         if not keys:
@@ -492,6 +503,8 @@ class AutoHeistTask(NTEOneTimeTask, BaseCombatTask):
     def abort_heist(self):
         self.log_round_info("出现异常，将退出粉爪副本")
         self.info_add("失败次数", 1)
+        self._aborting_heist = True
+        self._reset_route_checks()
 
         def find_popup():
             return self.ocr(
@@ -499,30 +512,44 @@ class AutoHeistTask(NTEOneTimeTask, BaseCombatTask):
                 match=re.compile(self.OCR_MATCH_TEXT.confirm_exit),
             )
 
-        self.wait_until(
-            lambda: self.is_in_team_outside_heist() or find_popup(),
-            pre_action=lambda: self.send_key("esc", action_name="quit_heist", interval=2),
-            time_out=60,
-            raise_if_not_found=True,
-        )
-        if self.is_in_team_outside_heist():
-            self.log_round_info("当前已在队伍界面且不在粉爪副本中，跳过退出副本")
-            return
+        try:
+            if not self.wait_until(
+                lambda: self.is_in_team_outside_heist() or find_popup(),
+                pre_action=lambda: self.send_key("esc", action_name="quit_heist", interval=2),
+                time_out=60,
+                raise_if_not_found=False,
+            ):
+                self.log_round_info("退出粉爪副本超时，跳过本轮清理")
+                return False
+            if self.is_in_team_outside_heist():
+                self.log_round_info("当前已在队伍界面且不在粉爪副本中，跳过退出副本")
+                return True
 
-        btn = self.wait_ocr(
-            0.50, 0.60, 0.70, 0.70,
-            match=re.compile(self.OCR_MATCH_TEXT.confirm),
-            time_out=60,
-            raise_if_not_found=True,
-        )
-        self.wait_until(
-            lambda: not find_popup(),
-            pre_action=lambda: self.operate_click(btn, action_name="quit_heist", interval=1),
-            time_out=60,
-            raise_if_not_found=True,
-        )
-        self.wait_in_team(time_out=60)
-        self.log_round_info("已退出粉爪副本")
+            btn = self.wait_ocr(
+                0.50, 0.60, 0.70, 0.70,
+                match=re.compile(self.OCR_MATCH_TEXT.confirm),
+                time_out=60,
+                raise_if_not_found=False,
+            )
+            if not btn:
+                self.log_round_info("未找到退出确认按钮，跳过本轮清理")
+                return False
+            if not self.wait_until(
+                lambda: not find_popup(),
+                pre_action=lambda: self.operate_click(btn, action_name="quit_heist", interval=1),
+                time_out=60,
+                raise_if_not_found=False,
+            ):
+                self.log_round_info("确认退出粉爪副本超时，跳过本轮清理")
+                return False
+            if not self.wait_in_team(time_out=60, raise_if_not_found=False):
+                self.log_round_info("等待回到队伍界面超时，跳过本轮清理")
+                return False
+            self.log_round_info("已退出粉爪副本")
+            return True
+        finally:
+            self._aborting_heist = False
+            self._update_sleep_check_interval()
 
     # 进入粉爪副本
     def enter_heist(self):
@@ -690,13 +717,20 @@ class AutoHeistTask(NTEOneTimeTask, BaseCombatTask):
         path_name = self.config.get(self.CONF_PATH)
         path_cls = self.paths.get(path_name, next(iter(self.paths.values())))
         path = path_cls(self)
+        failed = False
         try:
             path.run_path()
+        except Exception:
+            failed = True
+            raise
         finally:
             self._release_held_keys()
             self._reset_quick_pick()
             if self._interaction_watch_active:
-                self.stop_interaction_watch()
+                if failed:
+                    self._reset_route_checks()
+                else:
+                    self.stop_interaction_watch()
 
     def ensure_in_team(self):
         """等待回到队伍界面；等待期间会周期性按 `esc` 关闭可能的面板。"""
@@ -942,14 +976,19 @@ class AutoHeistTask(NTEOneTimeTask, BaseCombatTask):
             if direction is not None:
                 self.send_key_up(direction)
                 self.sleep(0.30)
-            ret = self.wait_until(
-                self.has_extract_panel,
+            ret = None
+            if self.wait_until(
+                lambda: not self.is_in_team(),
                 pre_action=lambda: self.send_key("f", interval=2),
                 time_out=1.75,
-            )
-            if ret:
-                self.sleep(0.30)
-                self.ensure_in_team()
+            ):
+                ret = self.wait_until(
+                    self.has_extract_panel,
+                    time_out=1.75,
+                )
+                if ret:
+                    self.sleep(0.30)
+                    self.ensure_in_team()
             return ret
         else:
             raise AbortException("not found exit interaction")
