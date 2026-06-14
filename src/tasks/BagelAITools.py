@@ -352,11 +352,28 @@ class BagelAITools(NTEOneTimeTask, BaseNTETask):
     # 智能体模快 回帖按赞相关
     # ==========================================
     _RE_PATTERN_WATER = re.compile(
-        r"(互赞|互粉|求.*回|秒回|点赞|回赞|互.*关|留名|顶帖|\bdd\b)", re.IGNORECASE
+        r"(互评|互互互|互赞|互粉|求.*回|秒回|点赞|回赞|互.*关|留名|顶帖|\bdd\b)", re.IGNORECASE
     )
     _RE_PATTERN_SPAM = re.compile(r"(^[a-z\s]+$|^[0-9\s]+$|^[\W_]+$)", re.IGNORECASE)
     _RE_SPAM_CLEANER = re.compile(r"[\d\s\=\÷\+\*\/\\|\[\]\{\}\(\)\<\>\?¿¡§¶†‡■□▲△▼▽◆◇○●•★☆\-]")
-
+    _WHITELIST_STRICT_EXACT = {
+        # 现代网络核心双字心态表达
+        "服了", "呃呃", "草生", "确实", "qs", "gg", "fr", "4k","xd",":)", "(:",
+        # 现代网络核心单字心态表达
+        "6", "六",  "绷", "典", "乐", "草",  "喂", "哈", "神", "大", "巨", "顶", "寄", "润", "麻", "躺", 
+    }
+    _WHITELIST_SPECIAL_MEMES = {
+        # 经典数字梗
+        "114514", "1919810", "2333", "666", "520", "1314", "886", "555", "7777777",
+        # 拼音首字母缩写
+        "awsl", "yyds", "nsdd", "xswl",  "dddd", "jbl", 
+        # 国际化网络黑话
+        "vrc",  "lol", "lmao", "rofl", "omg", "wtf", "wth", "wip", "afk", "brb", "thx", "mvp", "npc", "ㄹㅇ", "ㄱㅇㅇ", "www",
+        # 高频纯符号/标点符号流
+        "???", "!!!", "!?",
+        # 经典颜文字
+        "qaq", "orz", "otz", "owo", "qwq", "tat",
+    }
     _RE_ALBUM_PREFER = re.compile(r"(\d+)[/|]\d+")
     _RE_ALBUM_BACKUP = re.compile(r"历史(?:记录)?_?(\d{1,2})")
     _RE_ALBUM_LAST_RESORT = re.compile(r"(\d{1,2})")
@@ -379,10 +396,7 @@ class BagelAITools(NTEOneTimeTask, BaseNTETask):
                 self.sleep(1.00)
                 btn_sort = self.find_area(area="sort_menu_area", action="click")
                 self.wait_until(
-                    lambda: (
-                        not self.find_area(area="sort_menu_area_done")
-                        or not self.find_area(area="sort_menu_list")
-                    ),
+                    lambda: self.find_area(area="sort_menu_list"),
                     pre_action=lambda btn=btn_sort: self.operate_click(btn, interval=3.14),
                     time_out=30,
                     raise_if_not_found=True,
@@ -390,7 +404,7 @@ class BagelAITools(NTEOneTimeTask, BaseNTETask):
                 self.sleep(3.00)
                 btn_sort_list = self.find_area(area="sort_menu_select", action="click")
                 self.wait_until(
-                    lambda: self.find_area(area="sort_menu_list"),
+                    lambda: not self.find_area(area="sort_menu_list"),
                     pre_action=lambda btn=btn_sort_list: self.operate_click(btn, interval=3.14),
                     time_out=30,
                     raise_if_not_found=True,
@@ -432,6 +446,12 @@ class BagelAITools(NTEOneTimeTask, BaseNTETask):
                 self.sleep(2.56)
                 continue
             post_title_text = post_title[0].name
+            if "过滤水贴" in self.auto_config_list:
+                filtered_result = self.posts_filter([post_title[0]])
+                if not filtered_result:
+                    self.send_key("esc")  # 物理按下 ESC 返回列表
+                    self.sleep(2.56)      # 挂机脚本的标准安全物理冷却
+                    continue
             if post_title_text in self.interacted_posts:
                 self.send_key("esc")
                 self.sleep(2.56)
@@ -559,12 +579,6 @@ class BagelAITools(NTEOneTimeTask, BaseNTETask):
         if not isinstance(all_posts, list):
             all_posts = [all_posts]
 
-        # water_pattern: 匹配互赞、互粉、求回、秒回、点赞、留名、dd顶帖等
-        # spam_char_pattern: 匹配纯数字、纯英文字母、或者全是无意义符号凑字数的垃圾贴（如: "asdfghjk", "11111111", "......"）
-        # ^[a-zA-Z0-9\s\W]+$ 配合长度限制，或者直接判定中文字符极少且全是指头狂飙出来的无意义串
-        # water_pattern = re.compile(r"(互赞|互粉|求.*回|秒回|点赞|回赞|互.*关|留名|顶帖|\bdd\b)", re.IGNORECASE)
-        # spam_char_pattern = re.compile(r"(^[a-zA-Z\s]+$|^[0-9\s]+$|^[\W_]+$)", re.IGNORECASE)
-
         clean_posts = []
 
         for post in all_posts:
@@ -572,19 +586,53 @@ class BagelAITools(NTEOneTimeTask, BaseNTETask):
             text = getattr(post, "name", "").strip()
             if not text:
                 continue
-            if len(text) < 3:
-                self.log_info(f"【拦截】非帖子: '{text}'")
+
+            # 完全符合白名单则放行
+            if (text.lower() in self._WHITELIST_STRICT_EXACT or 
+                text.lower() in self._WHITELIST_SPECIAL_MEMES):
+                clean_posts.append(post)
                 continue
-            meaningful_text = self._RE_SPAM_CLEANER.sub("", text)
+            
+            # 拦截非贴文
+            if len(text) < 3:
+                continue
+
+            if self._RE_PATTERN_SPAM.match(text):
+                if (text.lower() not in self._WHITELIST_STRICT_EXACT and 
+                    text.lower() not in self._WHITELIST_SPECIAL_MEMES):
+                    self.log_info(f"【拦截】垃圾贴: '{text}'")
+                    continue
+
+            meaningful_text = self._RE_SPAM_CLEANER.sub("", text).strip()
+
             # 检查是否包含互赞关键词
             if self._RE_PATTERN_WATER.search(meaningful_text):
                 self.log_info(f"【拦截】互赞贴: '{text}'")
                 continue
+            
+            # meaningful_text 很少的情况
+            is_strict_match = meaningful_text.lower() in self._WHITELIST_STRICT_EXACT
+            if len(meaningful_text) < 3:
+                is_sub_match = any(meme in text.lower() for meme in self._WHITELIST_SPECIAL_MEMES)
+                if is_strict_match or is_sub_match:
+                    clean_posts.append(post)
+                    continue
+                else:
+                    self.log_info(f"【拦截】垃圾贴: '{text}'")
+                    continue
 
-            # 检查是否是纯无意义乱码/凑字数字符（排除纯英文短词，长度大于5的纯字母/数字更可疑）
-            if len(text) > 2 and self._RE_PATTERN_SPAM.match(meaningful_text):
-                self.log_info(f"【拦截】垃圾贴: '{text}'")
-                continue
+            # 检查是否是纯无意义乱码/凑字数字符
+            if self._RE_PATTERN_SPAM.match(meaningful_text):
+                # 同样执行双轨制特赦校验
+                is_strict_match = meaningful_text.lower() in self._WHITELIST_STRICT_EXACT
+                is_sub_match = any(meme in meaningful_text.lower() for meme in self._WHITELIST_SPECIAL_MEMES)
+                if is_strict_match or is_sub_match:
+                    self.log_info(f"【放行】清洗文本 '{meaningful_text}' 属于已知白名单梗，特赦放行")
+                    clean_posts.append(post)
+                    continue
+                else:
+                    self.log_info(f"【拦截】垃圾贴(清洗文本乱码): '{text}'")
+                    continue
 
             # 正常帖子进入有效列表
             clean_posts.append(post)

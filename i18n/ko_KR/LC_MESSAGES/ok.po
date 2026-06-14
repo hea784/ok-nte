@@ -697,3 +697,135 @@ msgstr "<span style=\"color: #95a5a6;\">○ {fixed_team}: 비활성화됨</span>
 
 msgid "启动失败"
 msgstr "시작하지 못했습니다"
+
+msgid "21键自然音布局 (已禁用)"
+msgstr "21키 온음계 레이아웃 (비활성화됨)"
+
+msgid "36键半音布局 (12x3)"
+msgstr "36키 반음계 레이아웃 (12x3)"
+
+msgid "中音"
+msgstr "중음"
+
+msgid "低音"
+msgstr "저음"
+
+msgid "全部歌曲"
+msgstr "모든 노래"
+
+msgid "单曲循环"
+msgstr "한 곡 반복"
+
+msgid "可以弹奏"
+msgstr "연주 가능"
+
+msgid "右下按键中心: "
+msgstr "우측 하단 버튼 중심:"
+
+msgid "定时关闭"
+msgstr "예약 종료"
+
+msgid "导入 MIDI"
+msgstr "MIDI 가져오기"
+
+msgid "尚未载入音轨"
+msgstr "트랙이 로드되지 않음"
+
+msgid "左上按键中心: "
+msgstr "좌측 상단 버튼 중심:"
+
+msgid "已收藏"
+msgstr "즐겨찾기"
+
+msgid "当前游戏钢琴使用 36 键半音布局"
+msgstr "현재 게임 피아노는 36키 반음계 레이아웃을 사용합니다"
+
+msgid "打印键位映射"
+msgstr "키 매핑 출력"
+
+msgid "打开 mid_lib"
+msgstr "mid_lib 열기"
+
+msgid "按键坐标配置"
+msgstr "키 좌표 설정"
+
+msgid "搜索歌曲"
+msgstr "노래 검색"
+
+msgid "播放"
+msgstr "재생"
+
+msgid "播放模式"
+msgstr "재생 모드"
+
+msgid "播放设置"
+msgstr "재생 설정"
+
+msgid "播放速度"
+msgstr "재생 속도"
+
+msgid "收藏歌曲"
+msgstr "즐겨찾기에 추가"
+
+msgid "无法弹奏"
+msgstr "연주 불가"
+
+msgid "智能音域压缩"
+msgstr "스마트 음역 압축"
+
+msgid "未选择歌曲"
+msgstr "노래가 선택되지 않음"
+
+msgid "每个测试音间隔约 1 秒，请用调音器确认实际发音。"
+msgstr "각 테스트 음 간격은 약 1초입니다. 튜너를 사용하여 실제 음을 확인하세요."
+
+msgid "测试中音行"
+msgstr "중음 열 테스트"
+
+msgid "测试全部键"
+msgstr "모든 키 테스트"
+
+msgid "自动弹琴"
+msgstr "자동 피아노"
+
+msgid "自动战斗任务不可用"
+msgstr "자동 전투 임무 사용 불가"
+
+msgid "自动音高"
+msgstr "자동 피치"
+
+msgid "试听选中音轨"
+msgstr "선택한 트랙 미리 듣기"
+
+msgid "调试校准"
+msgstr "디버그 캘리브레이션"
+
+msgid "选中歌曲后可选择参与分析与播放的 MIDI 音轨。"
+msgstr "노래를 선택한 후 분석 및 재생에 참여할 MIDI 트랙을 선택할 수 있습니다."
+
+msgid "选择 MIDI 档案"
+msgstr "MIDI 파일 선택"
+
+msgid "随机播放"
+msgstr "셔플"
+
+msgid "音轨选择"
+msgstr "트랙 선택"
+
+msgid "音高与音域分析"
+msgstr "피치 및 음역 분석"
+
+msgid "音高调整 (半音):"
+msgstr "피치 조절 (반음):"
+
+msgid "顺序播放"
+msgstr "순차 재생"
+
+msgid "高音"
+msgstr "고음"
+
+msgid "MIDI 分析失败"
+msgstr "MIDI 분석 실패"
+
+msgid "MIDI 播放失败"
+msgstr "MIDI 재생 실패"

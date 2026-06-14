@@ -615,18 +615,7 @@ class TeamManagerTab(CustomTab):
     def on_scan_clicked(self):
         og.app.start_controller.handler.post(self.scan_team)
 
-    def _ensure_scan_capture(self):
-        try:
-            executor = og.executor
-            if getattr(executor, "thread", None) is None or getattr(executor, "paused", False):
-                if not og.app.start_controller.do_start():
-                    return og.app.tr("启动失败")
-                return ""
 
-            og.device_manager.do_refresh(True)
-            return og.app.start_controller.check_device_error() or ""
-        except Exception as e:
-            return str(e).strip() or e.__class__.__name__
 
     def scan_team(self):
         self.scan_btn.setEnabled(False)
@@ -635,7 +624,8 @@ class TeamManagerTab(CustomTab):
             # card.status.setText(self.tr_analyzing)
             card.btn_act.hide()
 
-        error_msg = self._ensure_scan_capture()
+        from src.ui.util import ensure_scan_capture
+        error_msg = ensure_scan_capture()
         if error_msg:
             team_manager_signals.scan_done.emit([], error_msg)
             return
