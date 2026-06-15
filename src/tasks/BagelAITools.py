@@ -2,14 +2,33 @@ import base64
 import json
 import random
 import re
+from functools import cached_property
 
 import cv2
 import requests
-from ok import TaskDisabledException
+from ok import TaskDisabledException, get_path_relative_to_exe
 from qfluentwidgets import FluentIcon
 
 from src.tasks.BaseNTETask import BaseNTETask
 from src.tasks.NTEOneTimeTask import NTEOneTimeTask
+
+INS = (
+    "【呗果智能体】\n"
+    "自动模式下将自动发帖回帖点赞；\n"
+    "助手模式下可辅助生成文案。\n"
+    "支持调用支持图片输入的模型生成文案。\n"
+    '本地模型配置教程：<a href="https://github.com/HazukiKaguya/BagelAIToolsDev/blob/main/BagelAIToolsModelDeploy.pdf">'
+    "后端服务器部署教程</a>"
+)
+
+EN_INS = (
+    "【BagelAI Tools】\n"
+    "    Automatic mode will automatically post, reply, and like;\n"
+    "    Assistant mode can help generate text.\n"
+    "    Supports calling models that support image input to generate text.\n"
+    '    Local model configuration tutorial: <a href="https://github.com/HazukiKaguya/BagelAIToolsDev/blob/main/BagelAIToolsModelDeploy.pdf">'
+    "Backend server deployment tutorial</a>"
+)
 
 
 class BagelAITools(NTEOneTimeTask, BaseNTETask):
@@ -17,116 +36,103 @@ class BagelAITools(NTEOneTimeTask, BaseNTETask):
     # 配置区域
     # ==========================================
 
+    CONF_GAME_LANG = "游戏语言"
     CONF_MODEL = "调用模型"
     CONF_HELPER_MODE = "文案助手模式"
     CONF_AUTO_AICONFIG = "智能体模式选项"
     CONF_MODEL_URL = "模型调用地址"
     CONF_MODEL_API = "模型调用API_Key"
     CONF_MODEL_NAME = "所调用模型名称"
-    CONF_PROMPT_REPLY = "回复模块提示词"
-    CONF_PROMPT_POST_TITLE = "发帖标题模块提示词"
-    CONF_PROMPT_POST_CONTENT = "发帖内容模块提示词"
+    CONF_PROMPT_REPLY = "回复生成提示词"
+    CONF_PROMPT_POST_TITLE = "发帖标题生成提示词"
+    CONF_PROMPT_POST_CONTENT = "发帖内容生成提示词"
     INFO_HELPER_COUNT = "帮助文案生成次数"
     INFO_LIKE_COUNT = "成功按赞次数"
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.name = "呗果智能体（支持调用模型）"
-        self.description = "自动模式下将自动发帖回帖点赞\n助手模式下可辅助生成各种文案"
+        self.name = "呗果智能体"
+        self.description = "请详阅使用说明"
         self.icon = FluentIcon.HEART
-        self.supported_languages = ["zh_CN"]
-        self.instructions = """【呗果智能体】\n自动模式下将自动发帖回帖点赞；\n助手模式下可辅助生成文案。\n支持调用支持图片输入的模型生成文案。\n项目开发版地址与配置教程：<a href="https://github.com/HazukiKaguya/BagelAIToolsDev">呗果智能体</a>"""
+        self.instructions = INS if "zh" in self.get_app_locale() else EN_INS
+        self.bagel_supported_languages = [
+            "zh_CN",
+            "zh_TW",
+            "ja_JP",
+            "en_US",
+            "es_ES",
+            "de_DE",
+            "fr_FR",
+            "ru_RU",
+        ]  # "ko_KR" 不可用
+        get_lang = self.get_app_locale()
+        temp_lang = "zh_CN"
+        if get_lang:
+            temp_lang = get_lang
+            if get_lang == "ko_KR":
+                temp_lang = "en_US"
+                self.log_info("ko_KR not support now, switch to en_US")
+        self.model_prompt = self.BASE_BAGEL_I18N["model_prompt"][temp_lang]
+        self.supported_languages = ["zh_CN", "zh_TW", "ja_JP", "en_US", "es_ES"]
         self.default_config.update(
             {
-                self.CONF_MODEL: False,
+                self.CONF_GAME_LANG: temp_lang,
                 self.CONF_HELPER_MODE: False,
                 self.CONF_AUTO_AICONFIG: ["自动发帖", "自动回帖", "自动按赞", "过滤水贴"],
+                self.CONF_MODEL: False,
                 self.CONF_MODEL_URL: "",
                 self.CONF_MODEL_API: "",
                 self.CONF_MODEL_NAME: "qwen/qwen3-vl-4b",
-                self.CONF_PROMPT_REPLY: "帮我写一段回复文案，\n直接回复文案本身，\n不要包含任何其他解释性文本，\n语言要俏皮一些，\n回复内容不超过25字符。",
-                self.CONF_PROMPT_POST_TITLE: "这是帖子配图，\n帮我写一段发帖用标题，\n直接回复标题本身，\n不要包含任何其他解释性文本，\n语言要俏皮一些，\n标题内容不超过20字符。",
-                self.CONF_PROMPT_POST_CONTENT: "帮我写一段发帖用文案，\n直接回复文案本身，\n不要包含任何其他解释性文本，\n语言要俏皮一些，\n文案内容不超过50字符。",
+                self.CONF_PROMPT_REPLY: self.model_prompt["REPLY"],
+                self.CONF_PROMPT_POST_TITLE: self.model_prompt["POST_TITLE"],
+                self.CONF_PROMPT_POST_CONTENT: self.model_prompt["POST_CONTENT"],
             }
         )
         self.config_description.update(
             {
+                self.CONF_GAME_LANG: "请选择游戏所设置的语言",
                 self.CONF_MODEL: "关闭后将降级使用本地词库抽取发帖回复文案",
-                self.CONF_HELPER_MODE: "开启助手模式后，将只会辅助生成文案",
-                self.CONF_AUTO_AICONFIG: "智能体模式选项\n自动回帖会同时点赞",
-                self.CONF_MODEL_URL: "使用模型根据图片生成文案，推荐本地部署",
-                self.CONF_MODEL_API: "未设置请留空，请勿泄露API_Key！",
-                self.CONF_MODEL_NAME: "推荐qwen/qwen3-vl-4b，显存占用较小",
-                self.CONF_PROMPT_REPLY: "回复模块提示词，请先调试好文案再使用",
-                self.CONF_PROMPT_POST_TITLE: "发帖标题模块提示词，请先调试好文案再使用",
-                self.CONF_PROMPT_POST_CONTENT: "发帖内容模块提示词，请先调试好文案再使用",
+                self.CONF_HELPER_MODE: "开启助手模式后, 将只会辅助生成文案",
+                self.CONF_AUTO_AICONFIG: "自动回帖会同时点赞",
+                self.CONF_MODEL_URL: "文案生成模型调用地址, 需兼容OpenAI接口请求格式",
+                self.CONF_MODEL_API: "未设置请留空, 请勿泄露API_Key!",
+                self.CONF_MODEL_NAME: "需要支持视觉输入的视觉语言模型",
+                self.CONF_PROMPT_REPLY: "回复生成提示词, 请先调试好提示词再使用",
+                self.CONF_PROMPT_POST_TITLE: "发帖标题生成提示词, 请先调试好提示词再使用",
+                self.CONF_PROMPT_POST_CONTENT: "发帖内容生成提示词, 请先调试好提示词再使用",
             }
         )
         options = ["自动发帖", "自动回帖", "自动按赞", "过滤水贴"]
         self.config_type.update(
             {
+                self.CONF_GAME_LANG: {
+                    "type": "drop_down",
+                    "options": self.bagel_supported_languages,
+                },
+                self.CONF_PROMPT_REPLY: {
+                    "type": "text_edit",
+                },
+                self.CONF_PROMPT_POST_TITLE: {
+                    "type": "text_edit",
+                },
+                self.CONF_PROMPT_POST_CONTENT: {
+                    "type": "text_edit",
+                },
                 self.CONF_AUTO_AICONFIG: {"type": "multi_selection", "options": options},
+                self.CONF_MODEL: {
+                    "sub_configs": {
+                        True: [
+                            self.CONF_MODEL_URL,
+                            self.CONF_MODEL_API,
+                            self.CONF_MODEL_NAME,
+                            self.CONF_PROMPT_REPLY,
+                            self.CONF_PROMPT_POST_TITLE,
+                            self.CONF_PROMPT_POST_CONTENT,
+                        ]
+                    },
+                },
             }
         )
-        self.preset_replies = [
-            "非常好的帖子，使我疯狂点赞！",
-            "前排围观，给大佬递茶~",
-            "火钳刘明，这贴必火！",
-            "拍的太好了，强烈支持一波！",
-            "好耶、捕获一只宝藏！",
-            "太强了，果断收藏点赞三连走起。",
-            "这一贴尊嘟太美丽啦！",
-            "谁懂，一打开呗果就被美图暴击！",
-            "呜呜捕捉到宝藏帖子，果断点赞！",
-            "纯路人，但在呗果刷到这个，直接留下回复！",
-            "大家快来看，这贴拍的很好！",
-            "这拍照技巧我实名羡慕。",
-            "天哪这个构图！请狠狠把教程砸向我！",
-            "这角色这衣服和场景绝配，种草了！",
-            "又是被别人家画质惊艳到的一天。",
-            "这个地方在哪呀？好美，我也得去打个卡！",
-            "每一张都好看得可以直出当壁纸的程度，爱了爱了。",
-            "这光影绝了！是不是偷偷开了什么高级滤镜？",
-            "被治愈到了！",
-            "多发点爱看！",
-            "今天的呗果冲浪体验，因这篇帖子而变得极好~",
-            "继续加油高产！",
-            "呗主主页还有其他好看的吗？",
-            "今日份的美图已被我成功吸收！",
-            "忍不住点进来看了好久，支持！",
-            "前排围观，大佬吃得太好了吧！",
-            "我一直在刷帖，直到我看到了这篇（手动滑稽）",
-            "火钳刘明！直觉告诉我这篇在呗果要爆！",
-            "满分一百的话，呗主我给101分！",
-            "太真实了。",
-        ]
-        self.preset_posts = [
-            "随手一拍",
-            "太美丽啦",
-            "这角色这衣服这场景绝配",
-            "打卡",
-            "每张都好看到可以当壁纸的程度",
-            "这光影绝了",
-            "被治愈到了",
-            "继续加油高产",
-            "主页还有其他好看的",
-            "今日份的美图",
-            "吃得太好了吧",
-            "直觉告诉我这篇在呗果要爆",
-            "太真实了",
-        ]
-        self.bagel_i18n = {
-            "bagel_icon": "呗果",
-            "sort_menu_area": "推荐|总热门|最新|今日|本周|关注",
-            "sort_menu_select": "最新",
-            "reply_area": "说点什么",
-            "post_text": "发布",
-            "post_check_area": "发布帖子",
-            "post_photo_zone_area": "请选择发布内容",
-            "confirm": "确认",
-            "post_title_area": "请输入标题",
-            "post_content_area": "请输入正文",
-        }
         self.interacted_posts = set()
         self.reply_count = 0
         self.post_count = 0
@@ -135,6 +141,17 @@ class BagelAITools(NTEOneTimeTask, BaseNTETask):
         self.nowview_post = ""
         self.nowview_poster = ""
 
+    @cached_property
+    def BASE_BAGEL_I18N(self):
+        try:
+            _i18n_cache = {}
+            json_path = get_path_relative_to_exe("assets", "bagel_presets.json")
+            with open(json_path, "r", encoding="utf-8") as f:
+                _i18n_cache = json.load(f)
+        except Exception as e:
+            self.log_error(f"Error loading i18n from {json_path}", e)
+        return _i18n_cache
+
     # ==========================================
     # 主模块
     # ==========================================
@@ -142,6 +159,13 @@ class BagelAITools(NTEOneTimeTask, BaseNTETask):
     # 模式判断、异常处理
     def run(self):
         super().run()
+        target_lang = self.config.get(self.CONF_GAME_LANG, "zh_CN")
+        if target_lang not in self.bagel_supported_languages:
+            target_lang = "zh_CN"
+        self.bagel_ocr = self.BASE_BAGEL_I18N["bagel_ocr"][target_lang]
+        self.preset_replies = self.BASE_BAGEL_I18N["preset_replies"][target_lang]
+        self.preset_posts = self.BASE_BAGEL_I18N["preset_posts"][target_lang]
+        self.model_prompt = self.BASE_BAGEL_I18N["model_prompt"][target_lang]
         self.is_running = False
         self.gallery_total_count = 1
         self.reply_count = 0
@@ -351,6 +375,9 @@ class BagelAITools(NTEOneTimeTask, BaseNTETask):
     # ==========================================
     # 智能体模快 回帖按赞相关
     # ==========================================
+
+    # fmt: off
+    # ruff: disable[E501]
     _RE_PATTERN_WATER = re.compile(
         r"(互评|互互互|互赞|互粉|求.*回|秒回|点赞|回赞|互.*关|留名|顶帖|\bdd\b)", re.IGNORECASE
     )
@@ -375,8 +402,10 @@ class BagelAITools(NTEOneTimeTask, BaseNTETask):
         "qaq", "orz", "otz", "owo", "qwq", "tat",
     }
     _RE_ALBUM_PREFER = re.compile(r"(\d+)[/|]\d+")
-    _RE_ALBUM_BACKUP = re.compile(r"历史(?:记录)?_?(\d{1,2})")
+    _RE_ALBUM_BACKUP = re.compile(r"(?:历史(?:记录)?|歴史(?:記錄)?|履歴|기록|Verlauf|История|Histor\w*)[\s\-_]?(\d{1,2})")
     _RE_ALBUM_LAST_RESORT = re.compile(r"(\d{1,2})")
+    # ruff: enable[E501]
+    # fmt: on
 
     # 回帖按赞操作流程
     def reply_like_module(self):
@@ -391,6 +420,7 @@ class BagelAITools(NTEOneTimeTask, BaseNTETask):
             return self.find_area(area="sort_menu_area_done")
 
         is_page_ok = False
+
         while self.enabled and (self.reply_count < 5 or self.like_count < 5):
             if not find_sort_menu_new():
                 self.sleep(1.00)
@@ -450,7 +480,7 @@ class BagelAITools(NTEOneTimeTask, BaseNTETask):
                 filtered_result = self.posts_filter([post_title[0]])
                 if not filtered_result:
                     self.send_key("esc")  # 物理按下 ESC 返回列表
-                    self.sleep(2.56)      # 挂机脚本的标准安全物理冷却
+                    self.sleep(2.56)  # 挂机脚本的标准安全物理冷却
                     continue
             if post_title_text in self.interacted_posts:
                 self.send_key("esc")
@@ -475,6 +505,7 @@ class BagelAITools(NTEOneTimeTask, BaseNTETask):
                 self.info_add(self.INFO_LIKE_COUNT, 1)
             elif "自动按赞" in self.auto_config_list and self.like_count < 5:
                 # 点赞
+                self.reply_count = 5  # 避免一直点赞
                 self.sleep(0.2)
                 self.operate_click(0.53, 0.85)
                 self.like_count += 1
@@ -588,20 +619,24 @@ class BagelAITools(NTEOneTimeTask, BaseNTETask):
                 continue
 
             # 完全符合白名单则放行
-            if (text.lower() in self._WHITELIST_STRICT_EXACT or 
-                text.lower() in self._WHITELIST_SPECIAL_MEMES):
+            if (
+                text.lower() in self._WHITELIST_STRICT_EXACT
+                or text.lower() in self._WHITELIST_SPECIAL_MEMES
+            ):
                 clean_posts.append(post)
                 continue
-            
+
             # 拦截非贴文
             if len(text) < 3:
                 continue
 
-            if self._RE_PATTERN_SPAM.match(text):
-                if (text.lower() not in self._WHITELIST_STRICT_EXACT and 
-                    text.lower() not in self._WHITELIST_SPECIAL_MEMES):
-                    self.log_info(f"【拦截】垃圾贴: '{text}'")
-                    continue
+            if (
+                self._RE_PATTERN_SPAM.match(text)
+                and text.lower() not in self._WHITELIST_STRICT_EXACT
+                and text.lower() not in self._WHITELIST_SPECIAL_MEMES
+            ):
+                self.log_info(f"【拦截】垃圾贴: '{text}'")
+                continue
 
             meaningful_text = self._RE_SPAM_CLEANER.sub("", text).strip()
 
@@ -609,7 +644,7 @@ class BagelAITools(NTEOneTimeTask, BaseNTETask):
             if self._RE_PATTERN_WATER.search(meaningful_text):
                 self.log_info(f"【拦截】互赞贴: '{text}'")
                 continue
-            
+
             # meaningful_text 很少的情况
             is_strict_match = meaningful_text.lower() in self._WHITELIST_STRICT_EXACT
             if len(meaningful_text) < 3:
@@ -625,9 +660,13 @@ class BagelAITools(NTEOneTimeTask, BaseNTETask):
             if self._RE_PATTERN_SPAM.match(meaningful_text):
                 # 同样执行双轨制特赦校验
                 is_strict_match = meaningful_text.lower() in self._WHITELIST_STRICT_EXACT
-                is_sub_match = any(meme in meaningful_text.lower() for meme in self._WHITELIST_SPECIAL_MEMES)
+                is_sub_match = any(
+                    meme in meaningful_text.lower() for meme in self._WHITELIST_SPECIAL_MEMES
+                )
                 if is_strict_match or is_sub_match:
-                    self.log_info(f"【放行】清洗文本 '{meaningful_text}' 属于已知白名单梗，特赦放行")
+                    self.log_info(
+                        f"【放行】清洗文本 '{meaningful_text}' 属于已知白名单梗，特赦放行"
+                    )
                     clean_posts.append(post)
                     continue
                 else:
@@ -696,17 +735,30 @@ class BagelAITools(NTEOneTimeTask, BaseNTETask):
             ):  # 选完照片后调用发帖文案生成并发送方法，返回 True 则说明生成并发布成功了
                 continue
             # 扫描“发布”按钮
-            btn_post_confirm = self.find_area(area="post_confirm_area", action="click")
-            self.sleep(0.50)
-            self.wait_until(
-                lambda: (
-                    self.find_area(area="sort_menu_area")
-                    and not self.find_area(area="post_check_area")
-                ),
-                pre_action=lambda btn=btn_post_confirm: self.operate_click(btn, interval=3.14),
-                time_out=60,
-                raise_if_not_found=True,
-            )
+            target_lang = self.config.get(self.CONF_GAME_LANG, "zh_CN")
+            if target_lang not in ["ru_RU", "ko_KR"]:
+                btn_post_confirm = self.find_area(area="post_confirm_area", action="click")
+                self.sleep(0.50)
+                self.wait_until(
+                    lambda: (
+                        self.find_area(area="sort_menu_area")
+                        and not self.find_area(area="post_check_area")
+                    ),
+                    pre_action=lambda btn=btn_post_confirm: self.operate_click(btn, interval=3.14),
+                    time_out=60,
+                    raise_if_not_found=True,
+                )
+            else:
+                self.sleep(0.50)
+                self.wait_until(
+                    lambda: (
+                        self.find_area(area="sort_menu_area")
+                        and not self.find_area(area="post_check_area")
+                    ),
+                    pre_action=lambda: self.operate_click(0.92, 0.90, interval=3.14),
+                    time_out=60,
+                    raise_if_not_found=True,
+                )
             self.post_count += 1
             self.log_info("成功发帖")
             self.info_add("成功发帖次数", 1)
@@ -866,7 +918,7 @@ class BagelAITools(NTEOneTimeTask, BaseNTETask):
                 self.operate_click(0.89, 0.94, action_name="del_photo")
                 # 账本同步扣减：物理删一张，内存账本减一张
                 current_total -= 1
-                self.log_info(f" [{i + 1}/{number}]：删去1张照片，当前剩 {current_total} 张待删除")
+                self.log_info(f" [{i + 1}/{number}]：删去1张照片，当前剩 {number - i - 1} 张待删除")
                 self.sleep(2.56)
 
         else:
@@ -948,10 +1000,11 @@ class BagelAITools(NTEOneTimeTask, BaseNTETask):
         match_last_resort = self._RE_ALBUM_LAST_RESORT.search(full_ocr_text)
 
         # 动态对齐
+        HISTORY_KEYWORDS = ["史", "记录", "記錄", "istor", "erlauf", "стория", "歴", "기록"]
         if match_prefer:
             photo_total = int(match_prefer.group(1))
             self.log_info(f"[精准匹配] 相册相片数: {photo_total}")
-        elif match_backup and ("历史" in full_ocr_text or "记录" in full_ocr_text):
+        elif match_backup and any(kw in full_ocr_text for kw in HISTORY_KEYWORDS):
             photo_total = int(match_backup.group(1))
             self.log_info(f"[精准匹配] 相册相片数: {photo_total}")
         elif match_last_resort:
@@ -1010,16 +1063,16 @@ class BagelAITools(NTEOneTimeTask, BaseNTETask):
             "sort_menu_area_done": ((0.18, 0.10, 0.30, 0.20), "sort_menu_select"),
             "sort_menu_list": ((0.18, 0.20, 0.30, 0.50), "sort_menu_area"),
             "sort_menu_select": ((0.18, 0.20, 0.30, 0.50),),
-            "reply_area": ((0.70, 0.88, 0.80, 0.93),),
+            "reply_area": ((0.70, 0.88, 0.95, 0.93),),
             "post_title": ((0.71, 0.20, 0.98, 0.26),),
             "poster_name": ((0.75, 0.13, 0.88, 0.20),),
             "post_enter_area": ((0.035, 0.89, 0.10, 0.99), "post_text"),
-            "post_check_area": ((0.03, 0.08, 0.15, 0.16),),
-            "post_photo_zone_area": ((0.25, 0.40, 0.45, 0.55),),
-            "post_photo_confirm": ((0.825, 0.875, 0.95, 0.92), "confirm"),
-            "post_title_area": ((0.70, 0.18, 0.85, 0.28),),
-            "post_content_area": ((0.70, 0.35, 0.85, 0.45),),
-            "post_confirm_area": ((0.86, 0.87, 0.97, 0.92), "post_text"),
+            "post_check_area": ((0.02, 0.08, 0.20, 0.16),),
+            "post_photo_zone_area": ((0.10, 0.40, 0.60, 0.55),),
+            "post_photo_confirm": ((0.82, 0.875, 0.95, 0.92), "confirm"),
+            "post_title_area": ((0.71, 0.18, 0.92, 0.25),),
+            "post_content_area": ((0.70, 0.35, 0.96, 0.45),),
+            "post_confirm_area": ((0.84, 0.86, 0.99, 0.93), "post_text"),
         }
         if area not in configs:
             return None
@@ -1033,15 +1086,15 @@ class BagelAITools(NTEOneTimeTask, BaseNTETask):
 
         # 若指定了 action = "click"，则采用 wait_ocr，否则采用 ocr 即可
         if action == "click":
-            match_regex = re.compile(self.bagel_i18n[i18n_key])
+            match_regex = re.compile(self.bagel_ocr[i18n_key])
             text_area = self.wait_ocr(
-                *ocr_area, match=match_regex, time_out=30, raise_if_not_found=True
+                *ocr_area, match=match_regex, time_out=30, threshold=0.70, raise_if_not_found=True
             )
         elif action == "get_text":
             text_area = self.ocr(*ocr_area)
         else:
-            match_regex = re.compile(self.bagel_i18n[i18n_key])
-            text_area = self.ocr(*ocr_area, match=match_regex)
+            match_regex = re.compile(self.bagel_ocr[i18n_key])
+            text_area = self.ocr(*ocr_area, match=match_regex, threshold=0.70)
         return text_area
 
     # 字数审查模块
@@ -1109,8 +1162,10 @@ class BagelAITools(NTEOneTimeTask, BaseNTETask):
             try:
                 reply_prompt = self.config.get(
                     self.CONF_PROMPT_REPLY,
-                    "帮我写一段回复文案，直接回复文案本身，不要包含任何其他解释性文本，语言要俏皮一些，回复内容不超过25字符。",
+                    "",
                 )
+                if reply_prompt == "":
+                    reply_prompt = self.model_prompt["REPLY"]
                 model_reply = self.get_vlm_response(
                     reply_prompt, temp_img_path, post_title=title_text, author=author_name
                 )
@@ -1125,6 +1180,7 @@ class BagelAITools(NTEOneTimeTask, BaseNTETask):
         # 40% 概率用对方昵称替换通称
         if author_name and author_name != "呗主" and random.random() < 0.4:
             base_reply = base_reply.replace("呗主", author_name).replace("博主", author_name)
+        self.sleep(1.14)
         self.log_info(f"本地词库 | 为帖子【{title_text}】随机回复: '{base_reply}'")
         return base_reply
 
@@ -1155,13 +1211,17 @@ class BagelAITools(NTEOneTimeTask, BaseNTETask):
                 if generate_type == "title":
                     post_prompt = self.config.get(
                         self.CONF_PROMPT_POST_TITLE,
-                        "这是帖子配图，帮我写一段发帖用标题，直接回复标题本身，不要包含任何其他解释性文本，语言要俏皮一些，标题内容不超过20字符。",
+                        "",
                     )
+                    if post_prompt == "":
+                        post_prompt = self.model_prompt["POST_TITLE"]
                 else:
                     post_prompt = self.config.get(
                         self.CONF_PROMPT_POST_CONTENT,
-                        "帮我写一段发帖用文案，直接回复文案本身，不要包含任何其他解释性文本，语言要俏皮一些，文案内容不超过20字符。",
+                        "",
                     )
+                    if post_prompt == "":
+                        post_prompt = self.model_prompt["POST_CONTENT"]
                 model_post = self.get_vlm_response(post_prompt, temp_img_path)
                 self.log_info(f"模型生成 | 为所选图片生成{action}: '{model_post}'")
                 if generate_type == "title":
@@ -1172,6 +1232,7 @@ class BagelAITools(NTEOneTimeTask, BaseNTETask):
 
         # 模型生成不可用时，使用本地词库随机选取
         base_post = random.choice(self.preset_posts)
+        self.sleep(1.14)
         self.log_info(f"本地词库 | 为所选图片随机选取{action}: '{base_post}'")
         return base_post
 

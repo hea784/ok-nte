@@ -9,12 +9,8 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-msgid ""
-"<b style=\"color: #0078d7;\">角色</b> 和 <b style=\"color: "
-"#0078d7;\">{combo}</b> 支持输入并创建，也支持选择已有项。"
-msgstr ""
-"<b style=\"color: #0078d7;\">角色</b> 和 <b style=\"color: "
-"#0078d7;\">{combo}</b> 支援輸入並建立，也支援選擇已有項。"
+msgid "<b style=\"color: #0078d7;\">角色</b> 和 <b style=\"color: #0078d7;\">{combo}</b> 支持输入并创建，也支持选择已有项。"
+msgstr "<b style=\"color: #0078d7;\">角色</b> 和 <b style=\"color: #0078d7;\">{combo}</b> 支援輸入並建立，也支援選擇已有項。"
 
 msgid "Arc Key"
 msgstr "弓箭按鍵"
@@ -58,8 +54,7 @@ msgstr "執行任務時開啟以避免月卡中斷"
 msgid "Ultimate Key"
 msgstr "極軌技快速鍵"
 
-msgid ""
-"Your computer's local time when the monthly card will popup, hour in (1-24)"
+msgid "Your computer's local time when the monthly card will popup, hour in (1-24)"
 msgstr "月卡彈出時的電腦本地時間，小時 (1-24)"
 
 msgid "[内置代码]"
@@ -156,14 +151,8 @@ msgstr "地圖中自動點擊傳送"
 msgid "填入扫描"
 msgstr "填入掃描"
 
-msgid ""
-"关联 <b style=\"color: #0078d7;\">角色特征</b> 后将自动判断当前角色。<br>如果不想管理 <b "
-"style=\"color: #0078d7;\">角色特征</b>，可以直接启用 <b style=\"color: "
-"#0078d7;\">{fixed_team}</b> 功能。"
-msgstr ""
-"關聯 <b style=\"color: #0078d7;\">角色特徵</b> 後將自動判斷當前角色。<br>如果不想管理 <b "
-"style=\"color: #0078d7;\">角色特徵</b>，可以直接啟用 <b style=\"color: "
-"#0078d7;\">{fixed_team}</b> 功能。"
+msgid "关联 <b style=\"color: #0078d7;\">角色特征</b> 后将自动判断当前角色。<br>如果不想管理 <b style=\"color: #0078d7;\">角色特征</b>，可以直接启用 <b style=\"color: #0078d7;\">{fixed_team}</b> 功能。"
+msgstr "關聯 <b style=\"color: #0078d7;\">角色特徵</b> 後將自動判斷當前角色。<br>如果不想管理 <b style=\"color: #0078d7;\">角色特徵</b>，可以直接啟用 <b style=\"color: #0078d7;\">{fixed_team}</b> 功能。"
 
 msgid "完成每日活跃度"
 msgstr "完成每日活躍度"
@@ -385,9 +374,7 @@ msgstr ""
 msgid "Counter Attack Threshold"
 msgstr "反擊觸發閾值"
 
-msgid ""
-"Counter attack sound recognition threshold (0.0-1.0, lower is more "
-"sensitive)"
+msgid "Counter attack sound recognition threshold (0.0-1.0, lower is more sensitive)"
 msgstr "反擊聲音識別閾值（0.0-1.0，越低越靈敏）"
 
 msgid "Dodge Threshold"
@@ -628,9 +615,7 @@ msgstr "黑暗賽車"
 msgid "Record has been reset"
 msgstr "記錄已重置"
 
-msgid ""
-"No recorded operations were found. Please wait for the recording prompt, "
-"then follow the instructions carefully to record your actions."
+msgid "No recorded operations were found. Please wait for the recording prompt, then follow the instructions carefully to record your actions."
 msgstr "未找到已記錄的操作。請等待錄製提示出現，然後依照指示，仔細完成操作錄製。"
 
 msgid "Updated successfully"
@@ -829,3 +814,117 @@ msgstr "MIDI 分析失敗"
 
 msgid "MIDI 播放失败"
 msgstr "MIDI 播放失敗"
+
+msgid "键盘布局"
+msgstr "鍵盤配置"
+
+msgid "de_DE"
+msgstr "Deutsch"
+
+msgid "en_US"
+msgstr "English"
+
+msgid "es_ES"
+msgstr "Español"
+
+msgid "fr_FR"
+msgstr "Français"
+
+msgid "ja_JP"
+msgstr "日本語"
+
+msgid "ru_RU"
+msgstr "Русский"
+
+msgid "zh_CN"
+msgstr "简体中文"
+
+msgid "zh_TW"
+msgstr "繁體中文"
+
+msgid "文案生成模型调用地址, 需兼容OpenAI接口请求格式"
+msgstr "文案生成模型調用連結，需相容OpenAI介面請求格式"
+
+msgid "关闭后将降级使用本地词库抽取发帖回复文案"
+msgstr "關閉後將降級使用本地詞庫抽取發文與回覆文案"
+
+msgid "发帖内容生成提示词"
+msgstr "發文內容生成提示詞"
+
+msgid "发帖内容生成提示词, 请先调试好提示词再使用"
+msgstr "發文內容生成提示詞，請先調整好提示詞再使用"
+
+msgid "发帖标题生成提示词"
+msgstr "發文標題生成提示詞"
+
+msgid "发帖标题生成提示词, 请先调试好提示词再使用"
+msgstr "發文標題生成提示詞，請先調整好提示詞再使用"
+
+msgid "呗果智能体"
+msgstr "唄果智能體"
+
+msgid "回复生成提示词"
+msgstr "回覆生成提示詞"
+
+msgid "回复生成提示词, 请先调试好提示词再使用"
+msgstr "回覆生成提示詞，請先調整好提示詞再使用"
+
+msgid "开启助手模式后, 将只会辅助生成文案"
+msgstr "開啟助手模式後，將僅會輔助生成文案"
+
+msgid "所调用模型名称"
+msgstr "所調用模型名稱"
+
+msgid "文案助手模式"
+msgstr "文案助手模式"
+
+msgid "智能体模式选项"
+msgstr "智能體模式選項"
+
+msgid "自动回帖会同时点赞"
+msgstr "自動回覆時會同步按讚"
+
+msgid "未设置请留空, 请勿泄露API_Key!"
+msgstr "未設置請留空，請勿外洩 API_Key！"
+
+msgid "需要支持视觉输入的视觉语言模型"
+msgstr "需要支援視覺輸入的視覺語言模型"
+
+msgid "模型调用API_Key"
+msgstr "模型調用 API_Key"
+
+msgid "模型调用地址"
+msgstr "模型調用位址"
+
+msgid "次数"
+msgstr "次數"
+
+msgid "游戏语言"
+msgstr "遊戲語言"
+
+msgid "请选择游戏所设置的语言"
+msgstr "請選擇遊戲內設定的語言"
+
+msgid "留言"
+msgstr "留言"
+
+msgid "自动发帖"
+msgstr "自動發文"
+
+msgid "自动呗果"
+msgstr "自動唄果"
+
+msgid "自动回帖"
+msgstr "自動回覆"
+
+msgid "自动按赞"
+msgstr "自動按讚"
+
+msgid "请详阅使用说明"
+msgstr "請詳閱使用說明"
+
+msgid "调用模型"
+msgstr "調用模型"
+
+msgid "过滤水贴"
+msgstr "過濾灌水文"
