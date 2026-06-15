@@ -43,6 +43,7 @@ class Labels(str, Enum):
     heist_interac_lock_pick = 'heist_interac_lock_pick'
     heist_lock_pick = 'heist_lock_pick'
     heist_timer = 'heist_timer'
+    in_domain = 'in_domain'
     interactable = 'interactable'
     is_current_char = 'is_current_char'
     launcher_start_game = 'launcher_start_game'

@@ -529,7 +529,9 @@ class TeamManagerTab(CustomTab):
 
         self.vbox.addStretch(1)
 
-        team_manager_signals.scan_done.connect(self.on_scan_done)
+        team_manager_signals.scan_done.connect(
+            self.on_scan_done, Qt.ConnectionType.QueuedConnection
+        )
         char_manager_signals.refresh_tab.connect(self.reload_fixed_team_options)
         self.refresh_fixed_team_state()
 
@@ -613,18 +615,16 @@ class TeamManagerTab(CustomTab):
         self.update_fixed_team_status()
 
     def on_scan_clicked(self):
-        og.app.start_controller.handler.post(self.scan_team)
-
-
-
-    def scan_team(self):
         self.scan_btn.setEnabled(False)
         self.scan_btn.setText(self.tr_scanning)
         for card in self.slots:
-            # card.status.setText(self.tr_analyzing)
             card.btn_act.hide()
+        og.app.start_controller.handler.post(self.scan_team)
+
+    def scan_team(self):
 
         from src.ui.util import ensure_scan_capture
+
         error_msg = ensure_scan_capture()
         if error_msg:
             team_manager_signals.scan_done.emit([], error_msg)

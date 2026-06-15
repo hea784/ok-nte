@@ -86,7 +86,7 @@
         },
         {
             "id": 16,
-            "file_name": "images/0.png",
+            "file_name": "images/3.png",
             "width": 2560,
             "height": 1440
         },
@@ -110,19 +110,19 @@
         },
         {
             "id": 20,
-            "file_name": "images/7.png",
+            "file_name": "images/8.png",
             "width": 1920,
             "height": 1080
         },
         {
             "id": 21,
-            "file_name": "images/3.png",
+            "file_name": "images/4.png",
             "width": 2560,
             "height": 1440
         },
         {
             "id": 22,
-            "file_name": "images/4.png",
+            "file_name": "images/5.png",
             "width": 2560,
             "height": 1440
         },
@@ -134,13 +134,13 @@
         },
         {
             "id": 24,
-            "file_name": "images/5.png",
+            "file_name": "images/6.png",
             "width": 2560,
             "height": 1440
         },
         {
             "id": 25,
-            "file_name": "images/6.png",
+            "file_name": "images/7.png",
             "width": 2560,
             "height": 1440
         },
@@ -949,6 +949,19 @@
             ],
             "area": 9025,
             "iscrowd": 0
+        },
+        {
+            "id": 61,
+            "image_id": 16,
+            "category_id": 42,
+            "bbox": [
+                26,
+                22,
+                55,
+                63
+            ],
+            "area": 3465,
+            "iscrowd": 0
         }
     ],
     "categories": [
@@ -1155,6 +1168,11 @@
         {
             "id": 41,
             "name": "stamina_icon",
+            "supercategory": ""
+        },
+        {
+            "id": 42,
+            "name": "in_domain",
             "supercategory": ""
         },
         {

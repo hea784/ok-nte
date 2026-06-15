@@ -113,7 +113,9 @@ class CharManagerTab(CustomTab):
         self._pending_command = ""
         self._doc_translation_pending_locales = set()
         self._all_characters = []
-        self.doc_translation_ready.connect(self._on_doc_translation_ready)
+        self.doc_translation_ready.connect(
+            self._on_doc_translation_ready, Qt.ConnectionType.QueuedConnection
+        )
         char_manager_signals.refresh_tab.connect(self.refresh_list)
 
         self._filter_timer = QTimer()

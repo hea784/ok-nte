@@ -89,6 +89,7 @@ class MidiPlayerSignals(QObject):
     playback_status = Signal(str)
     playback_progress = Signal(float, float)
     playback_song_changed = Signal(str)
+    library_indexed = Signal(object)
 
 
 class MidiPlayerTab(CustomTab):
@@ -123,11 +124,24 @@ class MidiPlayerTab(CustomTab):
         self._is_slider_dragging = False
         self._calibration_thread = None
         self.midi_signals = MidiPlayerSignals(self)
-        self.midi_signals.analysis_done.connect(self.on_song_analysis_done)
-        self.midi_signals.analysis_failed.connect(self.on_song_analysis_failed)
-        self.midi_signals.playback_status.connect(self.on_playback_status_changed)
-        self.midi_signals.playback_progress.connect(self.on_playback_progress)
-        self.midi_signals.playback_song_changed.connect(self.on_playback_song_changed)
+        self.midi_signals.analysis_done.connect(
+            self.on_song_analysis_done, Qt.ConnectionType.QueuedConnection
+        )
+        self.midi_signals.analysis_failed.connect(
+            self.on_song_analysis_failed, Qt.ConnectionType.QueuedConnection
+        )
+        self.midi_signals.playback_status.connect(
+            self.on_playback_status_changed, Qt.ConnectionType.QueuedConnection
+        )
+        self.midi_signals.playback_progress.connect(
+            self.on_playback_progress, Qt.ConnectionType.QueuedConnection
+        )
+        self.midi_signals.playback_song_changed.connect(
+            self.on_playback_song_changed, Qt.ConnectionType.QueuedConnection
+        )
+        self.midi_signals.library_indexed.connect(
+            self._on_library_indexed, Qt.ConnectionType.QueuedConnection
+        )
 
         # Main horizontal layout to split left (list) and right (details)
         self.main_h_layout = QHBoxLayout(self)
@@ -456,7 +470,7 @@ class MidiPlayerTab(CustomTab):
 
         hbox_mode = QHBoxLayout()
         lbl_mode = BodyLabel(og.app.tr("键盘布局"))
-        
+
         # Mode Selection
         self.segmented_widget = SegmentedWidget()
         self.segmented_widget.addItem("36_keys", og.app.tr("36键半音布局 (12x3)"))
@@ -468,7 +482,7 @@ class MidiPlayerTab(CustomTab):
         self.segmented_widget.items["21_keys"].installEventFilter(
             ToolTipFilter(self.segmented_widget.items["21_keys"], showDelay=300)
         )
-        
+
         hbox_mode.addWidget(lbl_mode)
         hbox_mode.addStretch()
         hbox_mode.addWidget(self.segmented_widget)
@@ -618,13 +632,21 @@ class MidiPlayerTab(CustomTab):
         self.pitch_chart.set_data(dummy, base_min - shift, base_max - shift, playable)
 
     def refresh_song_list(self, keep_selection=True):
-        """Refresh the visible list from mid_lib without parsing MIDI files."""
+        """Refresh the visible list from mid_lib without parsing MIDI files.
+        Runs indexing in a background thread to prevent UI freezing.
+        """
         selected_id = self.selected_song_id if keep_selection else None
-        try:
-            self.library.index()
-        except Exception as e:
-            print(f"Failed to index MIDI library: {e}")
 
+        def _task():
+            try:
+                self.library.index()
+            except Exception as e:
+                self.logger.error("Failed to index MIDI library", e)
+            self.midi_signals.library_indexed.emit(selected_id)
+
+        threading.Thread(target=_task, daemon=True).start()
+
+    def _on_library_indexed(self, selected_id):
         self.songs_by_id = {song.id: song for song in self.library.list_songs()}
         self._prune_missing_song_settings()
         self.populate_song_list(selected_id)
@@ -1090,9 +1112,7 @@ class MidiPlayerTab(CustomTab):
                 pitches = prepared.mapped_pitches
                 notes = prepared.notes
                 counts = Counter(pitches)
-                playable_pitches = {
-                    pitch for pitch in pitches if pitch in layout.playable_pitches
-                }
+                playable_pitches = {pitch for pitch in pitches if pitch in layout.playable_pitches}
                 unplayable_pitches = {
                     pitch for pitch in pitches if pitch not in layout.playable_pitches
                 }
@@ -1155,6 +1175,7 @@ class MidiPlayerTab(CustomTab):
         self.clear_track_selection()
         from PySide6.QtCore import Qt
         from qfluentwidgets import InfoBar, InfoBarPosition
+
         InfoBar.error(
             title=og.app.tr("MIDI 分析失败"),
             content=message,
@@ -1179,7 +1200,10 @@ class MidiPlayerTab(CustomTab):
         if files:
             try:
                 imported = self.library.import_files(files)
-                self.refresh_song_list(keep_selection=False)
+                # 避免完整重新扫描资料夹造成卡顿，直接更新内存中的歌曲列表
+                for song in imported:
+                    self.songs_by_id[song.id] = song
+                self.populate_song_list(None)
                 print(f"Imported {len(imported)} files to mid_lib.")
             except Exception as e:
                 print(f"Error importing MIDI files: {e}")
@@ -1421,6 +1445,7 @@ class MidiPlayerTab(CustomTab):
             print(f"MIDI playback failed: {status[6:]}")
             from PySide6.QtCore import Qt
             from qfluentwidgets import InfoBar, InfoBarPosition
+
             InfoBar.error(
                 title=og.app.tr("MIDI 播放失败"),
                 content=status[6:],

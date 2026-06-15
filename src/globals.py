@@ -206,22 +206,9 @@ class Globals(QObject):
         self.openvino_model_async.clear_cache()
 
     def init_sound_context(self):
-        try:
-            import time
+        from src.ui.util import wait_main_window
 
-            from ok import og
-
-            # og.gui_ready.wait(timeout=30)
-            use_gui = og.ok.config.get("use_gui") and not og.ok.args.get('headless', False)
-            deadline = time.time() + 30
-            if use_gui:
-                while time.time() < deadline:
-                    if og.app.main_window is not None:
-                        if og.app.main_window.isVisible():
-                            break
-                    time.sleep(1)
-        except Exception as e:
-            logger.error("init sound context delay error", e)
+        wait_main_window()
 
         from src.sound_trigger.SoundCombatContext import SoundCombatContext
 

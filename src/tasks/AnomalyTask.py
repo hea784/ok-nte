@@ -169,8 +169,9 @@ class AnomalyTask(NTEOneTimeTask, BaseCombatTask):
         completed_count = 0
         while completed_count < total_count:
             double = completed_count < double_count
+            self.wait_until(lambda: self.find_one(Labels.in_domain), time_out=30)
             self.wait_in_team()
-            self.sleep(2)
+            self.sleep(1)
             if not self.do_combat_and_claim(double):
                 self.log_warning("本次未成功领取奖励，退出副本后重试当前目标")
                 self.exit_anomaly()
@@ -192,6 +193,7 @@ class AnomalyTask(NTEOneTimeTask, BaseCombatTask):
             lambda: not self.find_interac(),
             post_action=lambda: self.send_interac(handle_claim=False),
             time_out=10,
+            settle_time=0.5,
         )
 
         self.wait_until(lambda: self.find_one(Labels.stamina_icon), settle_time=0.5, time_out=10)

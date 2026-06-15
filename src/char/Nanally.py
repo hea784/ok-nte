@@ -67,3 +67,6 @@ class Nanally(BaseChar):
 
         clicked = self.click_skill()
         return clicked
+    
+    def on_combat_end(self, chars):
+        self.switch_other_char()

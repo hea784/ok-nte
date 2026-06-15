@@ -471,6 +471,35 @@ class BaseChar:
         self._ultimate_available = self.ultimate_available()
         self.task.switch_next_char(self, post_action=post_action, free_intro=free_intro)
 
+    def switch_other_char(self):
+        target_index = (self.index + 1) % len(self.task.chars)
+        for char in self.task.chars:
+            if char and char.index != self.index:
+                target_index = char.index
+                break
+        next_char = str(target_index + 1)
+
+        from src.tasks.trigger.AutoCombatTask import AutoCombatTask
+
+        if isinstance(self.task, AutoCombatTask):
+            self.logger.debug("AutoCombatTask, skip switch_other_char")
+            return
+        self.logger.debug(
+            f"{self.char_name} on_combat_end {self.index} switch next char: {next_char}"
+        )
+        start = time.time()
+        while time.time() - start < 6:
+            in_team, current_index, _ = self.task.in_team()
+            if in_team and current_index != self.index:
+                for char in self.task.chars:
+                    if char:
+                        char.is_current_char = char.index == current_index
+                break
+            else:
+                self.task.send_key(next_char)
+            self.sleep(0.2, False)
+        self.logger.debug(f"switch_other_char on_combat_end {self.index} switch end")
+
     def sleep(self, sec, sleep_check=True):
         try:
             if not sleep_check:

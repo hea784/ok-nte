@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Optional
 
 import cv2
 import numpy as np
-from ok import Box, Logger, find_color_rectangles
+from ok import Box, Logger, TaskDisabledException, find_color_rectangles
 
 from src.Labels import Labels
 from src.tasks.BaseNTETask import BaseNTETask
@@ -39,6 +39,12 @@ class CombatDetectState:
     uncertain_until: Optional[float] = None
     retarget_ready_at: Optional[float] = None
     retarget_detect_requested: bool = False
+
+    def reset(self):
+        self.miss_count = 0
+        self.uncertain_until = None
+        self.retarget_ready_at = None
+        self.retarget_detect_requested = False
 
     @property
     def uncertain(self) -> bool:
@@ -90,7 +96,7 @@ class CombatCheck(BaseNTETask):
     def do_reset_to_false(self):
         self.cds = {}
         self._in_combat = False
-        self.combat_detect_state = CombatDetectState()
+        self.combat_detect_state.reset()
         self.find_lv_future = None
         self._lv_async = None
         self.openvino_clear_cache()
@@ -188,6 +194,8 @@ class CombatCheck(BaseNTETask):
         self.in_sleep_check = True
         try:
             return self.do_check_in_combat(target)
+        except TaskDisabledException:
+            raise
         except Exception as e:
             logger.error("do_check_in_combat", e)
         finally:
@@ -198,7 +206,7 @@ class CombatCheck(BaseNTETask):
         return self.combat_detect_state.uncertain
 
     def _reset_combat_detect_state(self):
-        self.combat_detect_state = CombatDetectState()
+        self.combat_detect_state.reset()
 
     def _update_combat_detect_state(self, combat_detect) -> CombatDetectPhase:
         now = time.time()
@@ -274,6 +282,7 @@ class CombatCheck(BaseNTETask):
                 self.log_info("on_combat_check failed")
                 return self.reset_to_false(reason="on_combat_check failed")
             if self.is_boss():
+                self._reset_combat_detect_state()
                 return self.scene.set_in_combat()
             # else:
             #     frame = getattr(self, 'cache_frame', None)

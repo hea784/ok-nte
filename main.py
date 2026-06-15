@@ -1,8 +1,7 @@
-import ok
-
-from src.config import config
-
 if __name__ == "__main__":
-    config = config
-    ok = ok.OK(config)
-    ok.start()
+    import ok
+
+    from src.config import config
+
+    ok_instance = ok.OK(config)
+    ok_instance.start()
