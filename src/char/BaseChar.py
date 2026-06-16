@@ -72,6 +72,7 @@ class BaseChar:
         self.combo_label = "default"
         self.element = Element.DEFAULT
         self.planner_handles_arc = False
+        self.is_dead = False
 
     def cycle_start(self):
         self.cycle_start_time = time.time()
@@ -455,6 +456,20 @@ class BaseChar:
         self.last_switch_time = time.time()
         self.is_current_char = False
         self.has_intro = False
+
+    def mark_dead(self, reason: str = ""):
+        """标记角色已死亡，让 planner 后续调度跳过该角色。"""
+
+        if not self.is_dead:
+            self.logger.info(f"mark dead {reason}".strip())
+        self.is_dead = True
+        self.is_current_char = False
+        self.has_intro = False
+
+    def clear_dead(self):
+        """清除死亡标记。战斗结束或重新加载队伍时调用。"""
+
+        self.is_dead = False
 
     def __repr__(self):
         """返回角色类名作为其字符串表示。"""
@@ -844,6 +859,7 @@ class BaseChar:
     def reset_state(self):
         """重置角色的战斗相关状态 (如入场技标记)。"""
         self.has_intro = False
+        self.clear_dead()
         self._ultimate_available = False
         self._skill_available = False
 

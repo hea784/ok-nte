@@ -219,7 +219,7 @@ class CombatPlanner:
 
         candidates = []
         for char in self.state.chars:
-            if char is None:
+            if not self._can_switch_to(char):
                 continue
             priority = char.describe_role().combat_start_priority
             if priority > 0:
@@ -456,7 +456,7 @@ class CombatPlanner:
         )
 
         for char in self.state.chars:
-            if char is None:
+            if not self._can_switch_to(char):
                 continue
             if char == current_char:
                 continue
@@ -652,7 +652,7 @@ class CombatPlanner:
         if not has_intro:
             return None
         reaction_target = self.task.find_element_ring_reaction_target(current_char)
-        if reaction_target is None or reaction_target == current_char:
+        if not self._can_switch_to(reaction_target) or reaction_target == current_char:
             return None
         return SwitchDecision(
             reaction_target,
@@ -672,7 +672,7 @@ class CombatPlanner:
             if step is None or not step.requires_entry_reaction:
                 continue
             target = self._strict_route_target(context, step)
-            if target is None or target == current_char:
+            if not self._can_switch_to(target) or target == current_char:
                 continue
             return SwitchDecision(
                 target=target,
@@ -694,6 +694,13 @@ class CombatPlanner:
                 if request_is_switch(request):
                     request.notify_expired()
                     logger.info(f"switch request target missing: {request.reason}")
+                    continue
+                active_requests.append(request)
+                continue
+            if not self._can_switch_to(target):
+                if request_is_switch(request):
+                    request.notify_expired()
+                    logger.info(f"switch request target dead: {request.reason}")
                     continue
                 active_requests.append(request)
                 continue
@@ -838,6 +845,16 @@ class CombatPlanner:
             if step is None or not step.optional:
                 return
             if step.requires_entry_reaction:
+                if self._route_step_blocked_by_dead_target(context, step):
+                    logger.info(
+                        f"strict route skips optional dead target step: "
+                        f"{request.reason} / {step.reason}"
+                    )
+                    if request.skip_current_step():
+                        if request.fulfilled():
+                            context._state.fulfill_locked_route()
+                            return
+                        continue
                 return
             target = self._strict_route_target(context, step)
             if target is None:
@@ -924,6 +941,13 @@ class CombatPlanner:
         step = request.current_step()
         if step is None:
             return None
+        if self._route_step_blocked_by_dead_target(context, step):
+            logger.warning(
+                f"strict route target dead, route unlocked: {request.reason} / {step.reason}"
+            )
+            request.notify_expired()
+            context._state.locked_route = None
+            return None
 
         target = self._strict_route_target(context, step)
         if target is not None:
@@ -968,9 +992,22 @@ class CombatPlanner:
 
     def _strict_route_target(self, context: CombatContext, step: FollowupStep) -> "BaseChar | None":
         for char in context.chars:
-            if char is not None and step.matches_char(char):
+            if self._can_switch_to(char) and step.matches_char(char):
                 return char
         return None
+
+    def _route_step_blocked_by_dead_target(
+        self, context: CombatContext, step: FollowupStep
+    ) -> bool:
+        matching_chars = [
+            char for char in context.chars if char is not None and step.matches_char(char)
+        ]
+        return bool(matching_chars) and all(not self._can_switch_to(char) for char in matching_chars)
+
+    def _can_switch_to(self, char: "BaseChar | None") -> bool:
+        """返回 planner 是否允许把目标角色作为切人候选。"""
+
+        return char is not None and not getattr(char, "is_dead", False)
 
     def _log_switch_decision(self, current_char: "BaseChar", decision: SwitchDecision):
         breakdown = (

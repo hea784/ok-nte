@@ -537,6 +537,9 @@ class BaseCombatTask(CombatCheck):
                     if elapsed > self.switch_char_time_out:
                         self.raise_not_in_combat(info)
 
+                    if self._mark_dead_char_if_detected(switch_to):
+                        return
+
                     self.run_with_interval(lambda: logger.info(info), interval=1)
                     self.sleep(0.01)
                     continue
@@ -605,6 +608,13 @@ class BaseCombatTask(CombatCheck):
             post_action(switch_to, has_intro)
 
         logger.info(f"{log_prefix} end {(time.time() - start_time):.3f}s")
+
+    def _mark_dead_char_if_detected(self, switch_to: "BaseChar"):
+        if self.find_confirm(self.box_of_screen(0.655, 0.694, 0.709, 0.787, hcenter=True)):
+            switch_to.mark_dead("not in team while revive confirm is visible")
+            self.ensure_main(in_world=False)
+            return True
+        return False
 
     def _capture_active_health_snapshot(self, frame):
         """截取当前出场角色血条颜色快照，用于快速判断切人是否已经发生。"""
@@ -809,6 +819,12 @@ class BaseCombatTask(CombatCheck):
         current_char = self.get_current_char(raise_exception=False)
         if current_char:
             self.get_current_char().on_combat_end(self.chars)
+        self._clear_dead_chars()
+
+    def _clear_dead_chars(self):
+        for char in self.chars:
+            if char is not None:
+                char.clear_dead()
 
     def _wrap_wait_until_action(self, action):
         def wrapped_action():

@@ -118,7 +118,7 @@ class BaseNTETask(CharUIMixin, BaseTask):
     def get_last_openvino_image(self):
         if og.my_app is None:
             return None
-        return getattr(og.my_app, 'openvino_latest_image', None)
+        return getattr(og.my_app, "openvino_latest_image", None)
 
     @property
     def main_viewport(self):
@@ -733,19 +733,26 @@ class BaseNTETask(CharUIMixin, BaseTask):
         logger.info(f"found {feature} {result}")
         return result
 
-    def ensure_main(self, esc=True, time_out=30):
+    def ensure_main(self, esc=True, in_world=True, time_out=30):
         self.info_set("current task", f"wait main esc={esc}")
         if not self.scene.logged_in():
             time_out = 600
         if not self.wait_until(
-            lambda: self.is_main(esc=esc), time_out=time_out, raise_if_not_found=False
+            lambda: self.is_main(esc=esc, in_world=in_world),
+            time_out=time_out,
+            raise_if_not_found=False,
         ):
             raise Exception("Please start in game world and in team!")
         self.sleep(0.5)
         self.info_set("current task", None)
 
-    def is_main(self, esc=True):
-        if self.in_team_and_world():
+    def is_main(self, esc=True, in_world=True):
+        in_team_or_world = False
+        if in_world:
+            in_team_or_world = bool(self.in_team_and_world())
+        else:
+            in_team_or_world = bool(self.is_in_team())
+        if in_team_or_world:
             self.scene.set_logged_in()
             return True
         if self.handle_monthly_card():
@@ -753,7 +760,7 @@ class BaseNTETask(CharUIMixin, BaseTask):
         if self.wait_login():
             return True
         if esc:
-            self.back(after_sleep=2)
+            self.send_key("esc", action_name="is_main", interval=2)
 
     def find_monthly_card(self):
         return self.find_one(Labels.monthly_card)
