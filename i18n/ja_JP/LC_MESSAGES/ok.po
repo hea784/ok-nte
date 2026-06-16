@@ -928,3 +928,60 @@ msgstr "モデル使用"
 
 msgid "过滤水贴"
 msgstr "スパム除外"
+
+msgid "1"
+msgstr ""
+
+msgid "2"
+msgstr ""
+
+msgid "3"
+msgstr ""
+
+msgid "4"
+msgstr ""
+
+msgid "使用任何路径前请先阅读使用说明"
+msgstr "ルートを使用する前に使用説明をお読みください"
+
+msgid "循环次数, 设置为0则一直运行"
+msgstr "ループ回数（0に設定すると無限実行）"
+
+msgid "战斗角色"
+msgstr "戦闘キャラクター (Combat Team)"
+
+msgid "自动粉爪大劫案"
+msgstr "自動ピンクポウ強盗"
+
+msgid "跑图角色"
+msgstr "探索キャラクター (Exploration)"
+
+msgid "路径"
+msgstr "ルート (Route)"
+
+msgid "路径1(路线参考自B站UP: 早柚大魔王丶)"
+msgstr "ルート1 (Route 1) (Bilibili UP: 早柚大魔王丶のルートを参考)"
+
+msgid "路径2(在路径1基础上优化了大厅到办公层的路线)"
+msgstr "ルート2 (Route 2) (ルート1をベースにロビーからオフィスへのルートを最適化)"
+
+msgid "选0~1个"
+msgstr "0〜1個選択"
+
+msgid "选1~2个"
+msgstr "1〜2個選択"
+
+msgid "选1个"
+msgstr "1個選択"
+
+msgid "避战方法"
+msgstr "回避方法 (Stealth Method)"
+
+msgid "避战角色"
+msgstr "回避キャラクター (Stealth Character)"
+
+msgid "长按shift"
+msgstr "Shift長押し (Hold Shift)"
+
+msgid "长按攻击"
+msgstr "攻撃長押し (Hold Attack)"

@@ -928,3 +928,60 @@ msgstr "모델 사용"
 
 msgid "过滤水贴"
 msgstr "스팸 필터링"
+
+msgid "1"
+msgstr ""
+
+msgid "2"
+msgstr ""
+
+msgid "3"
+msgstr ""
+
+msgid "4"
+msgstr ""
+
+msgid "使用任何路径前请先阅读使用说明"
+msgstr "경로를 사용하기 전에 사용 설명서를 읽어주세요"
+
+msgid "循环次数, 设置为0则一直运行"
+msgstr "루프 횟수 (0으로 설정 시 무한 실행)"
+
+msgid "战斗角色"
+msgstr "전투 캐릭터 (Combat Team)"
+
+msgid "自动粉爪大劫案"
+msgstr "자동 핑크 발톱 강도 사건"
+
+msgid "跑图角色"
+msgstr "탐사 캐릭터 (Exploration)"
+
+msgid "路径"
+msgstr "경로 (Route)"
+
+msgid "路径1(路线参考自B站UP: 早柚大魔王丶)"
+msgstr "경로 1 (Route 1) (B리리 UP: 早柚大魔王丶 경로 참고)"
+
+msgid "路径2(在路径1基础上优化了大厅到办公层的路线)"
+msgstr "경로 2 (Route 2) (경로 1 기준 로비에서 사무실까지 경로 최적화)"
+
+msgid "选0~1个"
+msgstr "0~1개 선택"
+
+msgid "选1~2个"
+msgstr "1~2개 선택"
+
+msgid "选1个"
+msgstr "1개 선택"
+
+msgid "避战方法"
+msgstr "회피 방법 (Stealth Method)"
+
+msgid "避战角色"
+msgstr "회피 캐릭터 (Stealth Character)"
+
+msgid "长按shift"
+msgstr "Shift 길게 누르기 (Hold Shift)"
+
+msgid "长按攻击"
+msgstr "공격 길게 누르기 (Hold Attack)"

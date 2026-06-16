@@ -928,3 +928,60 @@ msgstr "Usar Modelo"
 
 msgid "过滤水贴"
 msgstr "Filtrar SPAM"
+
+msgid "1"
+msgstr ""
+
+msgid "2"
+msgstr ""
+
+msgid "3"
+msgstr ""
+
+msgid "4"
+msgstr ""
+
+msgid "使用任何路径前请先阅读使用说明"
+msgstr "Lea las instrucciones antes de usar cualquier ruta"
+
+msgid "循环次数, 设置为0则一直运行"
+msgstr "Número de bucles (0 para ejecutar indefinidamente)"
+
+msgid "战斗角色"
+msgstr "Personajes de combate (Combat Team)"
+
+msgid "自动粉爪大劫案"
+msgstr "Robo de Garra Rosa Automático"
+
+msgid "跑图角色"
+msgstr "Personaje de exploración (Exploration)"
+
+msgid "路径"
+msgstr "Ruta (Route)"
+
+msgid "路径1(路线参考自B站UP: 早柚大魔王丶)"
+msgstr "Ruta 1 (Route 1) (Ruta de Bilibili UP: 早柚大魔王丶)"
+
+msgid "路径2(在路径1基础上优化了大厅到办公层的路线)"
+msgstr "Ruta 2 (Route 2) (Ruta optimizada de Vestíbulo a Oficina basada en la Ruta 1)"
+
+msgid "选0~1个"
+msgstr "Seleccionar 0-1"
+
+msgid "选1~2个"
+msgstr "Seleccionar 1-2"
+
+msgid "选1个"
+msgstr "Seleccionar 1"
+
+msgid "避战方法"
+msgstr "Método de sigilo (Stealth Method)"
+
+msgid "避战角色"
+msgstr "Personaje de sigilo (Stealth Character)"
+
+msgid "长按shift"
+msgstr "Mantener presionado Shift (Hold Shift)"
+
+msgid "长按攻击"
+msgstr "Mantener presionado Ataque (Hold Attack)"

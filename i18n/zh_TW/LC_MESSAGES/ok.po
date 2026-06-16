@@ -928,3 +928,60 @@ msgstr "調用模型"
 
 msgid "过滤水贴"
 msgstr "過濾灌水文"
+
+msgid "1"
+msgstr ""
+
+msgid "2"
+msgstr ""
+
+msgid "3"
+msgstr ""
+
+msgid "4"
+msgstr ""
+
+msgid "使用任何路径前请先阅读使用说明"
+msgstr "使用任何路徑前請先閱讀使用說明"
+
+msgid "循环次数, 设置为0则一直运行"
+msgstr "循環次數，設定為0則一直運行"
+
+msgid "战斗角色"
+msgstr "戰鬥角色"
+
+msgid "自动粉爪大劫案"
+msgstr "自動粉爪大劫案"
+
+msgid "跑图角色"
+msgstr "跑圖角色"
+
+msgid "路径"
+msgstr "路徑"
+
+msgid "路径1(路线参考自B站UP: 早柚大魔王丶)"
+msgstr "路徑1(路線參考自B站UP: 早柚大魔王丶)"
+
+msgid "路径2(在路径1基础上优化了大厅到办公层的路线)"
+msgstr "路徑2(在路徑1基礎上優化了大廳到辦公層的路線)"
+
+msgid "选0~1个"
+msgstr "選0~1個"
+
+msgid "选1~2个"
+msgstr "選1~2個"
+
+msgid "选1个"
+msgstr "選1個"
+
+msgid "避战方法"
+msgstr "避戰方法"
+
+msgid "避战角色"
+msgstr "避戰角色"
+
+msgid "长按shift"
+msgstr "長按shift"
+
+msgid "长按攻击"
+msgstr "長按攻擊"

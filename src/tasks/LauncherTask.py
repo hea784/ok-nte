@@ -7,48 +7,48 @@ import psutil
 import win32con
 import win32gui
 import win32process
+from qfluentwidgets import FluentIcon
+
 from ok import TaskDisabledException, og
 from ok.gui.Communicate import communicate
 from ok.util.process import execute, is_admin
-from qfluentwidgets import FluentIcon
-
 from src.interaction.NTEInteraction import NTEInteraction
 from src.Labels import Labels
 from src.tasks.BaseNTETask import BaseNTETask
 
 GAME_EXE = "HTGame.exe"
 LAUNCHER_EXE = "NTEGame.exe"
-GAME_CAPTURE_CONFIG = {
-    "windows": {
-        "exe": GAME_EXE,
-        "hwnd_class": "UnrealWindow",
-        "interaction": NTEInteraction,
-        "capture_method": [
-            "WGC",
-            "BitBlt_RenderFull",
-        ],
-    },
-}
+
+
+class DynamicConfig(dict):
+    @property
+    def GAME_CAPTURE_CONFIG(self):
+        return {
+            "windows": {
+                "exe": GAME_EXE,
+                "hwnd_class": "UnrealWindow",
+                "interaction": NTEInteraction,
+                "capture_method": og.device_manager.config.get("capture", "WGC"),
+            },
+        }
+
+    @property
+    def LAUNCHER_CAPTURE_CONFIG(self):
+        return {
+            "windows": {
+                "exe": LAUNCHER_EXE,
+                "hwnd_class": "Qt51517QWindowOwnDC",
+                "top_hwnd_class": ["Qt51517QWindowToolSaveBitsOwnDC"],
+                "interaction": "PostMessage",
+                "capture_method": og.device_manager.config.get("capture", "WGC"),
+            },
+        }
 
 
 class LauncherButtonState(Enum):
     START = "start"
     READY_OTHER = "ready_other"
     NOT_READY = "not_ready"
-
-
-LAUNCHER_CAPTURE_CONFIG = {
-    "windows": {
-        "exe": LAUNCHER_EXE,
-        "hwnd_class": "Qt51517QWindowOwnDC",
-        "top_hwnd_class": ["Qt51517QWindowToolSaveBitsOwnDC"],
-        "interaction": "PostMessage",
-        "capture_method": [
-            "WGC",
-            "BitBlt_RenderFull",
-        ],
-    },
-}
 
 
 class LauncherTask(BaseNTETask):
@@ -61,6 +61,7 @@ class LauncherTask(BaseNTETask):
         self.default_config.update({self.CONF_PATH: ""})
         self.enable_after_start = True  # auto run after start
         self.visible = False  # False to hide from the UI
+        self.capture_config = DynamicConfig()
 
     def run(self):
         self.log_info("Launcher task started")
@@ -116,14 +117,18 @@ class LauncherTask(BaseNTETask):
         self._wait_for_game_and_capture()
 
     def _capture_game(self):
-        self.log_info(f"Switching capture to game window: {GAME_CAPTURE_CONFIG}")
-        self.executor.device_manager.ensure_capture(GAME_CAPTURE_CONFIG)
+        self.log_info(
+            f"Switching capture to game window: {self.capture_config.GAME_CAPTURE_CONFIG}"
+        )
+        self.executor.device_manager.ensure_capture(self.capture_config.GAME_CAPTURE_CONFIG)
         self.log_info("Game capture is ready; activating game window")
 
     def _capture_launcher(self):
-        self.log_info(f"Switching capture to launcher window: {LAUNCHER_CAPTURE_CONFIG}")
+        self.log_info(
+            f"Switching capture to launcher window: {self.capture_config.LAUNCHER_CAPTURE_CONFIG}"
+        )
         self._log_task_state("before launcher ensure_capture")
-        self.executor.device_manager.ensure_capture(LAUNCHER_CAPTURE_CONFIG)
+        self.executor.device_manager.ensure_capture(self.capture_config.LAUNCHER_CAPTURE_CONFIG)
         self._log_task_state("after launcher ensure_capture")
         self.log_info("Launcher capture is ready; activating launcher window")
 
@@ -284,7 +289,7 @@ class LauncherTask(BaseNTETask):
             return False
         launcher_hwnd = self._find_window_for_process(
             launcher_proc,
-            hwnd_class=LAUNCHER_CAPTURE_CONFIG["windows"]["hwnd_class"],
+            hwnd_class=self.capture_config.LAUNCHER_CAPTURE_CONFIG["windows"]["hwnd_class"],
             require_title=True,
         )
         if not launcher_hwnd:

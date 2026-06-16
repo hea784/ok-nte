@@ -928,3 +928,60 @@ msgstr "Use Model"
 
 msgid "过滤水贴"
 msgstr "Filter SPAM"
+
+msgid "1"
+msgstr ""
+
+msgid "2"
+msgstr ""
+
+msgid "3"
+msgstr ""
+
+msgid "4"
+msgstr ""
+
+msgid "使用任何路径前请先阅读使用说明"
+msgstr "Please read the instructions before using any route"
+
+msgid "循环次数, 设置为0则一直运行"
+msgstr "Number of loops; set to 0 to run indefinitely"
+
+msgid "战斗角色"
+msgstr "Combat Characters"
+
+msgid "自动粉爪大劫案"
+msgstr "Auto Pink Paw Heist"
+
+msgid "跑图角色"
+msgstr "Exploration Character"
+
+msgid "路径"
+msgstr "Route"
+
+msgid "路径1(路线参考自B站UP: 早柚大魔王丶)"
+msgstr "Route 1 (Path based on Bilibili Creator: 早柚大魔王丶)"
+
+msgid "路径2(在路径1基础上优化了大厅到办公层的路线)"
+msgstr "Route 2 (Optimized path from Lobby to Office Floor based on Route 1)"
+
+msgid "选0~1个"
+msgstr "Select 0-1"
+
+msgid "选1~2个"
+msgstr "Select 1-2"
+
+msgid "选1个"
+msgstr "Select 1"
+
+msgid "避战方法"
+msgstr "Stealth Method"
+
+msgid "避战角色"
+msgstr "Stealth Character"
+
+msgid "长按shift"
+msgstr "Hold Shift"
+
+msgid "长按攻击"
+msgstr "Hold Attack"

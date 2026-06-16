@@ -905,3 +905,60 @@ msgstr ""
 
 msgid "过滤水贴"
 msgstr ""
+
+msgid "1"
+msgstr ""
+
+msgid "2"
+msgstr ""
+
+msgid "3"
+msgstr ""
+
+msgid "4"
+msgstr ""
+
+msgid "使用任何路径前请先阅读使用说明"
+msgstr ""
+
+msgid "循环次数, 设置为0则一直运行"
+msgstr ""
+
+msgid "战斗角色"
+msgstr ""
+
+msgid "自动粉爪大劫案"
+msgstr ""
+
+msgid "跑图角色"
+msgstr ""
+
+msgid "路径"
+msgstr ""
+
+msgid "路径1(路线参考自B站UP: 早柚大魔王丶)"
+msgstr ""
+
+msgid "路径2(在路径1基础上优化了大厅到办公层的路线)"
+msgstr ""
+
+msgid "选0~1个"
+msgstr ""
+
+msgid "选1~2个"
+msgstr ""
+
+msgid "选1个"
+msgstr ""
+
+msgid "避战方法"
+msgstr ""
+
+msgid "避战角色"
+msgstr ""
+
+msgid "长按shift"
+msgstr ""
+
+msgid "长按攻击"
+msgstr ""

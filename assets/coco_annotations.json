@@ -167,6 +167,12 @@
             "file_name": "images/0.png",
             "width": 2560,
             "height": 1440
+        },
+        {
+            "id": 30,
+            "file_name": "images/0.png",
+            "width": 2560,
+            "height": 1440
         }
     ],
     "annotations": [
@@ -962,6 +968,19 @@
             ],
             "area": 3465,
             "iscrowd": 0
+        },
+        {
+            "id": 62,
+            "image_id": 30,
+            "category_id": 62,
+            "bbox": [
+                513,
+                339,
+                156,
+                141
+            ],
+            "area": 21996,
+            "iscrowd": 0
         }
     ],
     "categories": [
@@ -1268,6 +1287,11 @@
         {
             "id": 61,
             "name": "confirm_btn_2",
+            "supercategory": ""
+        },
+        {
+            "id": 62,
+            "name": "heist_exit",
             "supercategory": ""
         }
     ]

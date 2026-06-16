@@ -1,6 +1,6 @@
-from ok import TaskDisabledException, og
 from qfluentwidgets import FluentIcon
 
+from ok import TaskDisabledException, og
 from src.combat.BaseCombatTask import BaseCombatTask
 from src.Labels import Labels
 from src.tasks.BaseNTETask import BaseNTETask
