@@ -582,9 +582,14 @@ class BaseCombatTask(CombatCheck):
                             f"has_intro {switch_to.has_intro}"
                         )
 
-                self.send_key(switch_to.index + 1, action_name="switch_char_send", interval=0.2)
+                self.send_key(
+                    switch_to.index + 1,
+                    action_name="switch_char_send",
+                    interval=0.15,
+                    down_time=0.05,
+                )
                 self.sleep(0.001)
-                self.click(action_name="switch_char_click", interval=0.5)
+                self.click(action_name="switch_char_click", interval=0.3)
                 if switch_key_sent_at <= 0:
                     switch_key_sent_at = current_time
 

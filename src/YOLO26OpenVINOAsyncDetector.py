@@ -1,12 +1,19 @@
+import threading
 import time
 
 import numpy as np
-from ok import Box
 from openvino import AsyncInferQueue, Core, Layout, PartialShape, Type
 from openvino.preprocess import ColorFormat, PrePostProcessor, ResizeAlgorithm
 
+from ok import Box, Logger
+
+logger = Logger.get_logger(__name__)
+
 
 class YOLO26OpenVINOAsyncDetector:
+    _MAX_RETIRED_INFER_QUEUES = 1
+    _SYNC_WAIT_TIMEOUT = 1.5
+
     def __init__(self, xml_path, num_requests=1):
         self.core = Core()
         model = self.core.read_model(model=xml_path)
@@ -41,7 +48,9 @@ class YOLO26OpenVINOAsyncDetector:
         # 3. 创建异步队列
         # 对于游戏辅助，jobs 建议设为 1 或 2，以保证最低延迟
         self.num_requests = num_requests
-        self.infer_queue = self._create_infer_queue()
+        self._state_lock = threading.RLock()
+        self._retired_infer_queues = []
+        self._active_queue_jobs = {}
 
         # 内部状态
         self.latest_results = None
@@ -49,37 +58,68 @@ class YOLO26OpenVINOAsyncDetector:
         self.class_names = ["target"]  # 可根据 data.yaml 修改
         self.latency = 0.0  # 单次推理总耗时 (秒)
         self.job_id = 0
-        self._retired_infer_queues = []
-        self._active_queue_jobs = {}
+        self._zombie_queues = []
+        self.infer_queue = self._create_infer_queue()
 
     def _create_infer_queue(self):
         infer_queue = AsyncInferQueue(self.compiled_model, jobs=self.num_requests)
         infer_queue.set_callback(self._callback)
         return infer_queue
 
+    def _get_active_retired_count(self):
+        with self._state_lock:
+            return sum(
+                1 for q in self._retired_infer_queues
+                if self._active_queue_jobs.get(id(q), 0) > 0
+            )
+
     def _cleanup_retired_infer_queues(self):
-        self._retired_infer_queues = [
-            infer_queue
-            for infer_queue in self._retired_infer_queues
-            if self._active_queue_jobs.get(id(infer_queue), 0) > 0
-        ]
+        with self._state_lock:
+            # 必须延迟销毁队列！如果因为 active_jobs 降为 0 就立刻从列表中移除对象，
+            # 此时 C++ 回调线程可能尚未完全退出。Python GC 此时调用析构函数，
+            # 将导致 GIL 锁死，造成软件完全卡死且无法恢复。
+            while len(self._retired_infer_queues) > 10:
+                self._retired_infer_queues.pop(0)
 
     def _mark_queue_job_started(self, infer_queue):
-        queue_id = id(infer_queue)
-        self._active_queue_jobs[queue_id] = (
-            self._active_queue_jobs.get(queue_id, 0) + 1
-        )
-        return queue_id
+        with self._state_lock:
+            queue_id = id(infer_queue)
+            self._active_queue_jobs[queue_id] = (
+                self._active_queue_jobs.get(queue_id, 0) + 1
+            )
+            return queue_id
 
     def _mark_queue_job_finished(self, queue_id):
-        pending_jobs = self._active_queue_jobs.get(queue_id, 0) - 1
-        if pending_jobs > 0:
-            self._active_queue_jobs[queue_id] = pending_jobs
-        else:
-            self._active_queue_jobs.pop(queue_id, None)
+        with self._state_lock:
+            pending_jobs = self._active_queue_jobs.get(queue_id, 0) - 1
+            if pending_jobs > 0:
+                self._active_queue_jobs[queue_id] = pending_jobs
+            else:
+                self._active_queue_jobs.pop(queue_id, None)
 
     def _queue_has_active_jobs(self, infer_queue):
-        return self._active_queue_jobs.get(id(infer_queue), 0) > 0
+        with self._state_lock:
+            return self._active_queue_jobs.get(id(infer_queue), 0) > 0
+
+    def _try_rotate_busy_queue(self):
+        with self._state_lock:
+            self._cleanup_retired_infer_queues()
+            if self.infer_queue.is_ready():
+                return True
+            if self._get_active_retired_count() >= self._MAX_RETIRED_INFER_QUEUES:
+                return False
+
+            # Cancel current queue's requests so it stops stealing CPU immediately
+            try:
+                for req in self.infer_queue:
+                    req.cancel()
+            except Exception:
+                pass
+
+            self._retired_infer_queues.append(self.infer_queue)
+            self.infer_queue = self._create_infer_queue()
+            self.job_id += 1
+            return True
 
     def _callback(self, infer_request, user_data):
         """异步推理完成后的回调函数"""
@@ -140,9 +180,15 @@ class YOLO26OpenVINOAsyncDetector:
 
             self.latest_results = tmp_results
             self.latest_image = user_data.get("image")
+        except Exception:
+            # Task was likely cancelled via req.cancel()
+            pass
         finally:
             if queue_id is not None:
                 self._mark_queue_job_finished(queue_id)
+            done_event = user_data.get("done_event")
+            if done_event is not None:
+                done_event.set()
 
     def detect(
         self,
@@ -152,6 +198,7 @@ class YOLO26OpenVINOAsyncDetector:
         label="target",
         force=False,
         mask_regions=None,
+        done_event=None,
     ):
         """
         发起异步检测
@@ -166,88 +213,99 @@ class YOLO26OpenVINOAsyncDetector:
         """
 
         self._cleanup_retired_infer_queues()
-        if force or self.infer_queue.is_ready():
-            if force and not self.infer_queue.is_ready():
-                # Keep the busy queue alive so replacing it does not wait for its running request.
-                self._retired_infer_queues.append(self.infer_queue)
-                self.infer_queue = self._create_infer_queue()
-                self.job_id += 1
+        if not self.infer_queue.is_ready():
+            if not force or not self._try_rotate_busy_queue():
+                if done_event is not None:
+                    done_event.set()
+                return self.latest_results
 
-            h, w = image.shape[:2]
+        h, w = image.shape[:2]
 
-            if box is None:
-                box = Box(x=0, y=0, width=w, height=h)
+        if box is None:
+            box = Box(x=0, y=0, width=w, height=h)
 
-            # 1. 切片提取原始 ROI
-            input_crop = image[
-                max(0, box.y) : min(h, box.y + box.height),
-                max(0, box.x) : min(w, box.x + box.width),
-            ]
+        # 1. 切片提取原始 ROI
+        input_crop = image[
+            max(0, box.y) : min(h, box.y + box.height),
+            max(0, box.x) : min(w, box.x + box.width),
+        ]
 
-            crop_h, crop_w = input_crop.shape[:2]
-            if crop_h == 0 or crop_w == 0:
-                return self.latest_results  # 防止出界错误
+        crop_h, crop_w = input_crop.shape[:2]
+        if crop_h == 0 or crop_w == 0:
+            if done_event is not None:
+                done_event.set()
+            return self.latest_results  # 防止出界错误
 
-            # 2. 补边逻辑：算出需要补多少灰边，让比例等于 model_ratio
-            crop_ratio = crop_w / crop_h
-            pad_x, pad_y = 0, 0
+        # 2. 补边逻辑：算出需要补多少灰边，让比例等于 model_ratio
+        crop_ratio = crop_w / crop_h
+        pad_x, pad_y = 0, 0
 
-            if crop_ratio < self.model_ratio:
-                # 框太瘦高了，左右补边
-                target_h = crop_h
-                target_w = int(crop_h * self.model_ratio)
-                pad_x = (target_w - crop_w) // 2
-            else:
-                # 框太扁宽了，上下补边
-                target_w = crop_w
-                target_h = int(crop_w / self.model_ratio)
-                pad_y = (target_h - crop_h) // 2
+        if crop_ratio < self.model_ratio:
+            # 框太瘦高了，左右补边
+            target_h = crop_h
+            target_w = int(crop_h * self.model_ratio)
+            pad_x = (target_w - crop_w) // 2
+        else:
+            # 框太扁宽了，上下补边
+            target_w = crop_w
+            target_h = int(crop_w / self.model_ratio)
+            pad_y = (target_h - crop_h) // 2
 
-            # 3. 创建灰底画布并贴图 (耗时极短，保留 PPP 优势)
-            canvas = np.full((target_h, target_w, 3), 114, dtype=np.uint8)
-            canvas[pad_y : pad_y + crop_h, pad_x : pad_x + crop_w] = input_crop
-            self._apply_canvas_mask(
-                canvas,
-                mask_regions,
-                image_shape=(h, w),
-                box=box,
-                pad_x=pad_x,
-                pad_y=pad_y,
-            )
+        # 3. 创建灰底画布并贴图 (耗时极短，保留 PPP 优势)
+        canvas = np.full((target_h, target_w, 3), 114, dtype=np.uint8)
+        canvas[pad_y : pad_y + crop_h, pad_x : pad_x + crop_w] = input_crop
+        self._apply_canvas_mask(
+            canvas,
+            mask_regions,
+            image_shape=(h, w),
+            box=box,
+            pad_x=pad_x,
+            pad_y=pad_y,
+        )
 
-            input_tensor = np.expand_dims(canvas, axis=0)
+        input_tensor = np.expand_dims(canvas, axis=0)
 
+        with self._state_lock:
             self.job_id += 1
             current_job_id = self.job_id
-
             infer_queue = self.infer_queue
             queue_id = self._mark_queue_job_started(infer_queue)
-            try:
-                infer_queue.start_async(
-                    {0: input_tensor},
-                    {
-                        "box": box,
-                        "threshold": threshold,
-                        "label": label,
-                        "start_time": time.time(),
-                        # 传给回调函数，用于减去补边的偏移
-                        "pad_x": pad_x,
-                        "pad_y": pad_y,
-                        "target_w": target_w,  # 记录画布的总宽用于还原缩放
-                        "job_id": current_job_id,
-                        "queue_id": queue_id,
-                        "image": image,
-                    },
-                )
-            except Exception:
-                self._mark_queue_job_finished(queue_id)
-                raise
+
+        try:
+            infer_queue.start_async(
+                {0: input_tensor},
+                {
+                    "box": box,
+                    "threshold": threshold,
+                    "label": label,
+                    "start_time": time.time(),
+                    # 传给回调函数，用于减去补边的偏移
+                    "pad_x": pad_x,
+                    "pad_y": pad_y,
+                    "target_w": target_w,  # 记录画布的总宽用于还原缩放
+                    "job_id": current_job_id,
+                    "queue_id": queue_id,
+                    "image": image,
+                    "done_event": done_event,
+                },
+            )
+        except Exception:
+            self._mark_queue_job_finished(queue_id)
+            if done_event is not None:
+                done_event.set()
+            raise
 
         return self.latest_results
 
-    def wait(self):
-        """强制阻塞主线程，直到所有正在进行的推理任务全部完成"""
-        self.infer_queue.wait_all()
+    def wait(self, include_retired=False):
+        """强制阻塞主线程，默认只等待当前推理队列完成。"""
+        with self._state_lock:
+            queues = [self.infer_queue]
+            if include_retired:
+                queues.extend(self._retired_infer_queues)
+        for infer_queue in queues:
+            infer_queue.wait_all()
+        self._cleanup_retired_infer_queues()
 
     def _apply_canvas_mask(self, canvas, mask_regions, image_shape, box, pad_x, pad_y):
         if not mask_regions:
@@ -279,16 +337,50 @@ class YOLO26OpenVINOAsyncDetector:
         self, image, box=None, threshold=0.5, label="target", force=False, mask_regions=None
     ):
         """同步检测版本：发起请求后立即堵住，直到拿到结果"""
-        self.detect(image, box, threshold, label, force=force, mask_regions=mask_regions)
-        self.wait()
+        done_event = threading.Event()
+        self.detect(
+            image,
+            box,
+            threshold,
+            label,
+            force=force,
+            mask_regions=mask_regions,
+            done_event=done_event,
+        )
+        if not done_event.wait(timeout=self._SYNC_WAIT_TIMEOUT):
+            with self._state_lock:
+                self.job_id += 1
+                if (
+                    self._active_queue_jobs.get(id(self.infer_queue), 0) > 0
+                    and self._get_active_retired_count() < self._MAX_RETIRED_INFER_QUEUES
+                ):
+                    self._retired_infer_queues.append(self.infer_queue)
+                    self.infer_queue = self._create_infer_queue()
+                retired_count = self._get_active_retired_count()
+                active_jobs = sum(self._active_queue_jobs.values())
+            logger.warning(
+                "openvino sync detect timed out after "
+                f"{self._SYNC_WAIT_TIMEOUT:.1f}s, retired_queues={retired_count}, "
+                f"active_jobs={active_jobs}"
+            )
+            return None
         return self.latest_results
 
     def clear_cache(self):
         """清空缓存"""
-        self.latest_results = None
-        self.latest_image = None
-        self.job_id += 1  # 增加 epoch，所有正在运行的旧任务的回调都会失效
-        if self._queue_has_active_jobs(self.infer_queue):
-            self._retired_infer_queues.append(self.infer_queue)
-        self.infer_queue = self._create_infer_queue()
+        with self._state_lock:
+            self.latest_results = None
+            self.latest_image = None
+            self.job_id += 1  # 增加 epoch，所有正在运行的旧任务的回调都会失效
+            if (
+                self._queue_has_active_jobs(self.infer_queue)
+                and self._get_active_retired_count() < self._MAX_RETIRED_INFER_QUEUES
+            ):
+                try:
+                    for req in self.infer_queue:
+                        req.cancel()
+                except Exception:
+                    pass
+                self._retired_infer_queues.append(self.infer_queue)
+                self.infer_queue = self._create_infer_queue()
         self._cleanup_retired_infer_queues()

@@ -1,5 +1,12 @@
 from src.char.BaseChar import BaseChar
-from src.combat.planner import ActionTag, CombatContext, FieldPreference, Role, RoleProfile
+from src.combat.planner import (
+    ActionTag,
+    CombatContext,
+    EntryChainPolicy,
+    FieldPreference,
+    Role,
+    RoleProfile,
+)
 
 
 class Jiuyuan(BaseChar):
@@ -16,17 +23,12 @@ class Jiuyuan(BaseChar):
     def combat_intents(self, context):
         return self.intents(
             self.click_ultimate_action(),
-            self.click_skill_action(after_execute=self._after_skill_execute),
+            self.click_skill_action(chain_policy=EntryChainPolicy.STOP_ON_SUCCESS),
             self.planner_action(
                 tags=ActionTag.DEFAULT_ACTION,
                 execute=self.fire_bullets,
             ),
         )
-    
-    def _after_skill_execute(self, context: CombatContext = None, success=False):
-        if success and not context.has_strict_route():
-            self.continues_normal_attack(1.4)
-            self.sleep(0.5)
 
     def fire_bullets(self, context: CombatContext = None):
         if context.has_strict_route():
@@ -37,7 +39,6 @@ class Jiuyuan(BaseChar):
         if not self.has_bullets(box):
             return
         self.heavy_attack()
-        self.sleep(0.1)
         return True
 
     def has_bullets(self, box):

@@ -154,7 +154,7 @@ class CombatCheck(BaseNTETask):
                 if self.is_in_team():
                     self.middle_click()
                     self.sleep(0.3)
-                    if self.combat_detect(lv=lv, force=True):
+                    if self.combat_detect(lv=lv):
                         return True
                     if turn:
                         self.send_key("a", down_time=0.1)
