@@ -6,8 +6,8 @@ from typing import List
 
 import cv2
 import numpy as np
-from ok import Box, Logger, safe_get
 
+from ok import Box, Logger, safe_get
 from src import text_white_color
 from src.char.BaseChar import BaseChar, Element
 from src.char.CharFactory import get_char_by_name, get_char_by_pos
@@ -426,14 +426,15 @@ class BaseCombatTask(CombatCheck):
         self.load_chars()
         self.switch_to_combat_start_char()
         self.info["Combat Count"] = self.info.get("Combat Count", 0) + 1
-        try:
-            while self.in_combat():
-                logger.debug(f"combat_once loop {self.chars}")
-                self.get_current_char(raise_exception=True).perform()
-        except CharDeadException as e:
-            raise e
-        except NotInCombatException as e:
-            logger.info(f"combat_once out of combat break {e}")
+        with self.retarget_turn_policy(enable=True):
+            try:
+                while self.in_combat():
+                    logger.debug(f"combat_once loop {self.chars}")
+                    self.get_current_char(raise_exception=True).perform()
+            except CharDeadException as e:
+                raise e
+            except NotInCombatException as e:
+                logger.info(f"combat_once out of combat break {e}")
         self.combat_end()
         self.wait_in_team_and_world(time_out=10, raise_if_not_found=False)
 
@@ -889,7 +890,6 @@ class BaseCombatTask(CombatCheck):
     def check_combat(self):
         """检查当前是否处于战斗状态, 如果不是则抛出异常。"""
         if self._in_combat:
-            self.next_frame()
             if not self.in_combat():
                 # if self.debug:
                 #     self.screenshot('not_in_combat_calling_check_combat')

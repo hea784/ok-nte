@@ -2,8 +2,9 @@ import threading
 from concurrent.futures import ThreadPoolExecutor
 from threading import Event
 
-from ok import Logger, get_path_relative_to_exe
 from PySide6.QtCore import QObject
+
+from ok import Logger, get_path_relative_to_exe
 
 logger = Logger.get_logger(__name__)
 
@@ -196,8 +197,9 @@ class Globals(QObject):
                 force=force,
                 mask_regions=mask_regions,
             )
+        # latency = self.openvino_latency_async if ret is not None else -1
         # logger.debug(
-        #     f"openvino: sync {sync}, result {ret}, cost {self.openvino_latency_async:.3f}s"
+        #     f"openvino: sync {sync}, result {ret}, cost {latency:.3f}s"
         # )
         return ret
 

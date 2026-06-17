@@ -40,8 +40,8 @@ class YOLO26OpenVINOAsyncDetector:
 
         # 3. 创建异步队列
         # 对于游戏辅助，jobs 建议设为 1 或 2，以保证最低延迟
-        self.infer_queue = AsyncInferQueue(self.compiled_model, jobs=num_requests)
-        self.infer_queue.set_callback(self._callback)
+        self.num_requests = num_requests
+        self.infer_queue = self._create_infer_queue()
 
         # 内部状态
         self.latest_results = None
@@ -49,62 +49,100 @@ class YOLO26OpenVINOAsyncDetector:
         self.class_names = ["target"]  # 可根据 data.yaml 修改
         self.latency = 0.0  # 单次推理总耗时 (秒)
         self.job_id = 0
+        self._retired_infer_queues = []
+        self._active_queue_jobs = {}
+
+    def _create_infer_queue(self):
+        infer_queue = AsyncInferQueue(self.compiled_model, jobs=self.num_requests)
+        infer_queue.set_callback(self._callback)
+        return infer_queue
+
+    def _cleanup_retired_infer_queues(self):
+        self._retired_infer_queues = [
+            infer_queue
+            for infer_queue in self._retired_infer_queues
+            if self._active_queue_jobs.get(id(infer_queue), 0) > 0
+        ]
+
+    def _mark_queue_job_started(self, infer_queue):
+        queue_id = id(infer_queue)
+        self._active_queue_jobs[queue_id] = (
+            self._active_queue_jobs.get(queue_id, 0) + 1
+        )
+        return queue_id
+
+    def _mark_queue_job_finished(self, queue_id):
+        pending_jobs = self._active_queue_jobs.get(queue_id, 0) - 1
+        if pending_jobs > 0:
+            self._active_queue_jobs[queue_id] = pending_jobs
+        else:
+            self._active_queue_jobs.pop(queue_id, None)
+
+    def _queue_has_active_jobs(self, infer_queue):
+        return self._active_queue_jobs.get(id(infer_queue), 0) > 0
 
     def _callback(self, infer_request, user_data):
         """异步推理完成后的回调函数"""
-        job_id = user_data.get("job_id", 0)
-        if job_id < self.job_id:
-            return
+        queue_id = user_data.get("queue_id")
+        try:
+            job_id = user_data.get("job_id", 0)
+            if job_id < self.job_id:
+                return
 
-        start_time = user_data["start_time"]
-        self.latency = time.time() - start_time
+            start_time = user_data["start_time"]
+            self.latency = time.time() - start_time
 
-        detections = infer_request.get_output_tensor().data[0]
+            detections = infer_request.get_output_tensor().data[0]
 
-        box = user_data["box"]
-        threshold = user_data["threshold"]
-        target_label = user_data["label"]
-        pad_x = user_data["pad_x"]
-        pad_y = user_data["pad_y"]
+            box = user_data["box"]
+            threshold = user_data["threshold"]
+            target_label = user_data["label"]
+            pad_x = user_data["pad_x"]
+            pad_y = user_data["pad_y"]
 
-        # 1. 画布相较于模型的缩放比例
-        scale = user_data["target_w"] / self.model_w
+            # 1. 画布相较于模型的缩放比例
+            scale = user_data["target_w"] / self.model_w
 
-        tmp_results = []
-        for x1, y1, x2, y2, conf, cls_id in detections:
-            if conf < threshold:
-                continue
+            tmp_results = []
+            for x1, y1, x2, y2, conf, cls_id in detections:
+                if conf < threshold:
+                    continue
 
-            name = (
-                self.class_names[int(cls_id)] if int(cls_id) < len(self.class_names) else "unknown"
-            )
-            if target_label and name != target_label:
-                continue
-
-            # 2. 从 AI 的坐标还原到带灰边的 Canvas 坐标
-            canvas_x1 = x1 * scale
-            canvas_y1 = y1 * scale
-            canvas_w = (x2 - x1) * scale
-            canvas_h = (y2 - y1) * scale
-
-            # 3. 减去灰边的偏移量，得到在输入 input_crop 中的坐标
-            # 再加上外面传进来的 Box 原图坐标，直接映射到全屏
-            abs_x = int(canvas_x1 - pad_x + box.x)
-            abs_y = int(canvas_y1 - pad_y + box.y)
-
-            tmp_results.append(
-                Box(
-                    x=abs_x,
-                    y=abs_y,
-                    width=int(canvas_w),
-                    height=int(canvas_h),
-                    confidence=float(conf),
-                    name=name,
+                name = (
+                    self.class_names[int(cls_id)]
+                    if int(cls_id) < len(self.class_names)
+                    else "unknown"
                 )
-            )
+                if target_label and name != target_label:
+                    continue
 
-        self.latest_results = tmp_results
-        self.latest_image = user_data.get("image")
+                # 2. 从 AI 的坐标还原到带灰边的 Canvas 坐标
+                canvas_x1 = x1 * scale
+                canvas_y1 = y1 * scale
+                canvas_w = (x2 - x1) * scale
+                canvas_h = (y2 - y1) * scale
+
+                # 3. 减去灰边的偏移量，得到在输入 input_crop 中的坐标
+                # 再加上外面传进来的 Box 原图坐标，直接映射到全屏
+                abs_x = int(canvas_x1 - pad_x + box.x)
+                abs_y = int(canvas_y1 - pad_y + box.y)
+
+                tmp_results.append(
+                    Box(
+                        x=abs_x,
+                        y=abs_y,
+                        width=int(canvas_w),
+                        height=int(canvas_h),
+                        confidence=float(conf),
+                        name=name,
+                    )
+                )
+
+            self.latest_results = tmp_results
+            self.latest_image = user_data.get("image")
+        finally:
+            if queue_id is not None:
+                self._mark_queue_job_finished(queue_id)
 
     def detect(
         self,
@@ -121,13 +159,20 @@ class YOLO26OpenVINOAsyncDetector:
         :param box: 指定检测区域的 Box 实例。如果为 None, 则检测全图。
         :param threshold: 置信度阈值
         :param label: 指定检测的类别名称
-        :param force: 如果为 True，即使队列满也会阻塞提交新任务
+        :param force: 如果为 True，即使队列满也会丢弃旧结果并立刻提交新任务
         :param mask_regions: 需要屏蔽的全图归一化区域列表，格式为
             [(x1, y1, x2, y2), ...]。屏蔽会应用到推理画布，不修改原图。
         :return: list[Box] (返回的是上一帧或最近一次完成的结果)
         """
 
+        self._cleanup_retired_infer_queues()
         if force or self.infer_queue.is_ready():
+            if force and not self.infer_queue.is_ready():
+                # Keep the busy queue alive so replacing it does not wait for its running request.
+                self._retired_infer_queues.append(self.infer_queue)
+                self.infer_queue = self._create_infer_queue()
+                self.job_id += 1
+
             h, w = image.shape[:2]
 
             if box is None:
@@ -175,21 +220,28 @@ class YOLO26OpenVINOAsyncDetector:
             self.job_id += 1
             current_job_id = self.job_id
 
-            self.infer_queue.start_async(
-                {0: input_tensor},
-                {
-                    "box": box,
-                    "threshold": threshold,
-                    "label": label,
-                    "start_time": time.time(),
-                    # 传给回调函数，用于减去补边的偏移
-                    "pad_x": pad_x,
-                    "pad_y": pad_y,
-                    "target_w": target_w,  # 记录画布的总宽用于还原缩放
-                    "job_id": current_job_id,
-                    "image": image,
-                },
-            )
+            infer_queue = self.infer_queue
+            queue_id = self._mark_queue_job_started(infer_queue)
+            try:
+                infer_queue.start_async(
+                    {0: input_tensor},
+                    {
+                        "box": box,
+                        "threshold": threshold,
+                        "label": label,
+                        "start_time": time.time(),
+                        # 传给回调函数，用于减去补边的偏移
+                        "pad_x": pad_x,
+                        "pad_y": pad_y,
+                        "target_w": target_w,  # 记录画布的总宽用于还原缩放
+                        "job_id": current_job_id,
+                        "queue_id": queue_id,
+                        "image": image,
+                    },
+                )
+            except Exception:
+                self._mark_queue_job_finished(queue_id)
+                raise
 
         return self.latest_results
 
@@ -236,3 +288,7 @@ class YOLO26OpenVINOAsyncDetector:
         self.latest_results = None
         self.latest_image = None
         self.job_id += 1  # 增加 epoch，所有正在运行的旧任务的回调都会失效
+        if self._queue_has_active_jobs(self.infer_queue):
+            self._retired_infer_queues.append(self.infer_queue)
+        self.infer_queue = self._create_infer_queue()
+        self._cleanup_retired_infer_queues()

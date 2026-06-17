@@ -1,5 +1,6 @@
 import threading
 import time
+from contextlib import contextmanager
 from dataclasses import dataclass
 from enum import Enum
 from functools import cache
@@ -7,8 +8,8 @@ from typing import TYPE_CHECKING, Optional
 
 import cv2
 import numpy as np
-from ok import Box, Logger, TaskDisabledException, find_color_rectangles
 
+from ok import Box, Logger, TaskDisabledException, find_color_rectangles
 from src.Labels import Labels
 from src.tasks.BaseNTETask import BaseNTETask
 from src.utils import game_filters as gf
@@ -28,7 +29,7 @@ class CombatDetectPhase(Enum):
 
 @dataclass(frozen=True)
 class CombatDetectPolicy:
-    miss_required: int = 2
+    miss_required: int = 1
     uncertain_seconds: float = 0.4
     retarget_settle_seconds: float = 0.3
 
@@ -74,6 +75,17 @@ class CombatCheck(BaseNTETask):
         self._target_template_cache_key = None
         self._target_match_templates = None
         self._bg_ocr_lock = threading.Lock()
+        self._find_lv_latency = 0
+        self._turn_on_retarget = False
+
+    @contextmanager
+    def retarget_turn_policy(self, enable=True):
+        old_val = self._turn_on_retarget
+        self._turn_on_retarget = enable
+        try:
+            yield
+        finally:
+            self._turn_on_retarget = old_val
 
     @property
     def in_animation(self):
@@ -128,18 +140,26 @@ class CombatCheck(BaseNTETask):
         is_boss = self.find_one(Labels.boss_lv_text, box=box, frame_processor=filter)
         return bool(is_boss)
 
-    def target_enemy(self, wait=True, lv=True):
+    def target_enemy(self, wait=True, lv=True, turn=False):
         if not wait:
             self.middle_click()
         else:
-            logger.info(f"targeting enemy for {self.target_enemy_time_out}s")
-            deadline = time.time() + self.target_enemy_time_out
+            time_out = self.target_enemy_time_out
+            if turn:
+                # 引入了转向，需要额外增加耗时，原本的时间不足以完成
+                time_out += 2
+            logger.info(f"targeting enemy for {time_out}s")
+            deadline = time.time() + time_out
             while time.time() < deadline:
                 if self.is_in_team():
-                    if self.combat_detect(lv=lv, force=True):
-                        return True
                     self.middle_click()
                     self.sleep(0.3)
+                    if self.combat_detect(lv=lv, force=True):
+                        return True
+                    if turn:
+                        self.send_key("a", down_time=0.1)
+                        self.middle_click()
+                        self.sleep(0.3)
                 self.next_frame()
 
     def has_health_bar(self):
@@ -231,11 +251,8 @@ class CombatCheck(BaseNTETask):
         return CombatDetectPhase.VERIFY_TARGET
 
     def _uncertain_combat_state(self, combat_detect, now: float) -> CombatDetectPhase:
-        if self._wait_for_retarget_detect(now):
-            return CombatDetectPhase.UNCERTAIN
-        if self.combat_detect_state.uncertain_until > now:
-            return CombatDetectPhase.UNCERTAIN
-        if combat_detect is None:
+        if self.combat_detect_state.uncertain_until > now or combat_detect is None:
+            self._wait_for_retarget_detect(now)
             return CombatDetectPhase.UNCERTAIN
         return CombatDetectPhase.VERIFY_TARGET
 
@@ -248,7 +265,6 @@ class CombatCheck(BaseNTETask):
         if self.combat_detect_state.retarget_detect_requested:
             return False
 
-        self.next_frame()
         self.async_combat_detect(exhaustive=True, force=True)
         self.combat_detect_state.retarget_detect_requested = True
         return True
@@ -301,7 +317,7 @@ class CombatCheck(BaseNTETask):
             if combat_phase is CombatDetectPhase.UNCERTAIN:
                 return self.scene.set_in_combat()
 
-            if self.target_enemy(wait=True):
+            if self.target_enemy(wait=True, turn=self._turn_on_retarget):
                 self._reset_combat_detect_state()
                 self.find_lv_future = None
                 self._lv_async = None
@@ -411,9 +427,11 @@ class CombatCheck(BaseNTETask):
                 self.find_lv_future.cancel()
             if frame is None:
                 frame = self.frame
+            now = time.time()
             self.find_lv_future = self.thread_pool_executor.submit(self.find_lv, frame=frame)
 
             def callback(f):
+                self._find_lv_latency = time.time() - now
                 if self.find_lv_future is not f:
                     return
                 try:
@@ -425,6 +443,10 @@ class CombatCheck(BaseNTETask):
                     self.find_lv_future = None
 
             self.find_lv_future.add_done_callback(callback)
+        # latency = self._find_lv_latency if ret is not None else -1
+        # logger.debug(
+        #     f"find_lv: sync False, result {ret}, cost {latency:.3f}s"
+        # )
         return ret
 
     def async_combat_detect(self, target=True, lv=True, exhaustive=False, force=False):

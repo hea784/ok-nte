@@ -1,15 +1,16 @@
 import time
 
-from ok import TaskDisabledException, og
 from qfluentwidgets import FluentIcon
 
+from ok import TaskDisabledException, og
 from src.tasks.NTEOneTimeTask import NTEOneTimeTask
 from src.tasks.RecordTask import RecordTask
 
 RECORD_INS = (
     "记录点击目标关卡的操作，分为两个步骤：\n"
-    "1. 使用滚轮滚动至目标可见 (若不需要则点击目标)\n"
-    "2. 点击目标"
+    "1. 使用滚轮滚动至[目标关卡]可见 (若不需要则点击[目标关卡])\n"
+    "2. 点击目标关卡\n\n"
+    "※ 请勿点击[开始营业]"
 )
 
 
@@ -54,7 +55,7 @@ class OwnerSelectionTask(NTEOneTimeTask, RecordTask):
             pass
         except Exception as e:
             self.screenshot("shop_special_unexpected_exception")
-            self.log_error("ShopSpecialTask error", e)
+            self.log_error("OwnerSelection error", e)
             raise
 
     def do_run(self):
