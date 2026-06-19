@@ -75,7 +75,7 @@ class WhirlwindTask(NTEOneTimeTask, BaseCombatTask):
                 self.send_key(self.get_ultimate_key())
                 self.sleep(0.15)
         self.sleep(2)
-        self.wait_in_team(settle_time=1)
+        self.wait_in_team(time_out=60, settle_time=1)
         self.click(key="middle")
         self.sleep(1)
 
@@ -91,15 +91,19 @@ class WhirlwindTask(NTEOneTimeTask, BaseCombatTask):
                 else:
                     failed_time = 0
 
-                angle = ret[0].get("angle")
-                if angle is None:
-                    if failed_time == 0:
-                        failed_time = time.time()
-                else:
-                    failed_time = 0
+                if ret:
+                    angle = ret[0].get("angle")
+                    if angle is None:
+                        if failed_time == 0:
+                            failed_time = time.time()
+                    else:
+                        failed_time = 0
 
-                if failed_time != 0 and time.time() - failed_time > 4:
-                    return False
+                if failed_time != 0:
+                    if time.time() - failed_time > 4:
+                        return False
+                    self.sleep(0.25)
+                    continue
 
                 error = self._normalize_angle(self.TARGET_NAVIGATION_ANGLE - angle)
                 if abs(error) <= self.NAVIGATION_ANGLE_TOLERANCE:
@@ -129,7 +133,7 @@ class WhirlwindTask(NTEOneTimeTask, BaseCombatTask):
         self.click(key="middle")
         self.sleep(0.2)
         self.send_key("w")
-        self.sleep(0.5)
+        self.sleep(1)
         self.next_frame()
 
     def _release_navigation_keys(self):
