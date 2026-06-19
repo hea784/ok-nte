@@ -788,23 +788,22 @@ class CombatPlanner:
         profile = char.describe_role()
         if profile.max_field_time <= 0:
             return None
-        duration = min(profile.max_field_time, 4)
         return ActionIntent(
             name="planner_field_time",
             tags={ActionTag.FIELD_TIME, ActionTag.DAMAGE},
             slot=ActionSlot.FIELD_TIME,
-            execute=lambda _: self._execute_field_time(char, duration),
+            execute=lambda _: self._execute_field_time(char, profile.max_field_time),
             reason=f"{profile.field_preference} field time fallback",
             chain_policy=EntryChainPolicy.STOP,
         )
 
-    def _execute_field_time(self, char: "BaseChar", duration: float) -> ActionResult:
-        duration -= char.time_elapsed_accounting_for_freeze(char.last_perform)
+    def _execute_field_time(self, char: "BaseChar", max_field_time: float) -> ActionResult:
+        duration = max_field_time - char.time_elapsed_accounting_for_freeze(char.last_perform)
         if duration > 0:
             char.continues_normal_attack(duration)
         return ActionResult(
             name="planner_field_time",
-            success=True,
+            success=duration > 0,
             tags={ActionTag.FIELD_TIME, ActionTag.DAMAGE},
             slot=ActionSlot.FIELD_TIME,
         )

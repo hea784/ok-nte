@@ -11,7 +11,9 @@ logger = Logger.get_logger(__name__)
 
 
 class YOLO26OpenVINOAsyncDetector:
-    _MAX_RETIRED_INFER_QUEUES = 1
+    _MAX_ACTIVE_RETIRED_INFER_QUEUES = 3
+    _MAX_RETIRED_INFER_QUEUES = 10
+    _RETIRED_QUEUE_KEEP_SECONDS = 3.0
     _SYNC_WAIT_TIMEOUT = 1.5
 
     def __init__(self, xml_path, num_requests=1):
@@ -58,7 +60,7 @@ class YOLO26OpenVINOAsyncDetector:
         self.class_names = ["target"]  # 可根据 data.yaml 修改
         self.latency = 0.0  # 单次推理总耗时 (秒)
         self.job_id = 0
-        self._zombie_queues = []
+        self._force_next_submit = False
         self.infer_queue = self._create_infer_queue()
 
     def _create_infer_queue(self):
@@ -69,8 +71,8 @@ class YOLO26OpenVINOAsyncDetector:
     def _get_active_retired_count(self):
         with self._state_lock:
             return sum(
-                1 for q in self._retired_infer_queues
-                if self._active_queue_jobs.get(id(q), 0) > 0
+                1 for record in self._retired_infer_queues
+                if self._active_queue_jobs.get(id(record["queue"]), 0) > 0
             )
 
     def _cleanup_retired_infer_queues(self):
@@ -78,8 +80,21 @@ class YOLO26OpenVINOAsyncDetector:
             # 必须延迟销毁队列！如果因为 active_jobs 降为 0 就立刻从列表中移除对象，
             # 此时 C++ 回调线程可能尚未完全退出。Python GC 此时调用析构函数，
             # 将导致 GIL 锁死，造成软件完全卡死且无法恢复。
-            while len(self._retired_infer_queues) > 10:
-                self._retired_infer_queues.pop(0)
+            now = time.monotonic()
+            active_records = []
+            inactive_records = []
+            for record in self._retired_infer_queues:
+                queue_id = id(record["queue"])
+                active = self._active_queue_jobs.get(queue_id, 0) > 0
+                still_warm = now - record["retired_at"] < self._RETIRED_QUEUE_KEEP_SECONDS
+                if active or still_warm:
+                    active_records.append(record)
+                else:
+                    inactive_records.append(record)
+
+            keep_slots = max(0, self._MAX_RETIRED_INFER_QUEUES - len(active_records))
+            inactive_to_keep = inactive_records[-keep_slots:] if keep_slots > 0 else []
+            self._retired_infer_queues = active_records + inactive_to_keep
 
     def _mark_queue_job_started(self, infer_queue):
         with self._state_lock:
@@ -101,24 +116,35 @@ class YOLO26OpenVINOAsyncDetector:
         with self._state_lock:
             return self._active_queue_jobs.get(id(infer_queue), 0) > 0
 
+    def _cancel_queue_requests(self, infer_queue):
+        try:
+            for req in infer_queue:
+                req.cancel()
+        except Exception:
+            logger.debug("openvino cancel queue requests failed", exc_info=True)
+
+    def _retire_queue(self, infer_queue, cancel=True):
+        if cancel:
+            self._cancel_queue_requests(infer_queue)
+        self._retired_infer_queues.append(
+            {
+                "queue": infer_queue,
+                "retired_at": time.monotonic(),
+            }
+        )
+
     def _try_rotate_busy_queue(self):
         with self._state_lock:
             self._cleanup_retired_infer_queues()
             if self.infer_queue.is_ready():
                 return True
-            if self._get_active_retired_count() >= self._MAX_RETIRED_INFER_QUEUES:
+            if self._get_active_retired_count() >= self._MAX_ACTIVE_RETIRED_INFER_QUEUES:
                 return False
 
-            # Cancel current queue's requests so it stops stealing CPU immediately
-            try:
-                for req in self.infer_queue:
-                    req.cancel()
-            except Exception:
-                pass
-
-            self._retired_infer_queues.append(self.infer_queue)
-            self.infer_queue = self._create_infer_queue()
+            # Cancel current queue's requests so it stops stealing CPU immediately.
             self.job_id += 1
+            self._retire_queue(self.infer_queue, cancel=True)
+            self.infer_queue = self._create_infer_queue()
             return True
 
     def _callback(self, infer_request, user_data):
@@ -181,8 +207,7 @@ class YOLO26OpenVINOAsyncDetector:
             self.latest_results = tmp_results
             self.latest_image = user_data.get("image")
         except Exception:
-            # Task was likely cancelled via req.cancel()
-            pass
+            logger.debug("openvino callback ignored failed/cancelled task", exc_info=True)
         finally:
             if queue_id is not None:
                 self._mark_queue_job_finished(queue_id)
@@ -190,7 +215,7 @@ class YOLO26OpenVINOAsyncDetector:
             if done_event is not None:
                 done_event.set()
 
-    def detect(
+    def _detect(
         self,
         image,
         box: Box = None,
@@ -212,12 +237,12 @@ class YOLO26OpenVINOAsyncDetector:
         :return: list[Box] (返回的是上一帧或最近一次完成的结果)
         """
 
+        submitted = False
         self._cleanup_retired_infer_queues()
+        force_submit = force or self._force_next_submit
         if not self.infer_queue.is_ready():
-            if not force or not self._try_rotate_busy_queue():
-                if done_event is not None:
-                    done_event.set()
-                return self.latest_results
+            if not force_submit or not self._try_rotate_busy_queue():
+                return self.latest_results, submitted
 
         h, w = image.shape[:2]
 
@@ -232,9 +257,7 @@ class YOLO26OpenVINOAsyncDetector:
 
         crop_h, crop_w = input_crop.shape[:2]
         if crop_h == 0 or crop_w == 0:
-            if done_event is not None:
-                done_event.set()
-            return self.latest_results  # 防止出界错误
+            return self.latest_results, submitted  # 防止出界错误
 
         # 2. 补边逻辑：算出需要补多少灰边，让比例等于 model_ratio
         crop_ratio = crop_w / crop_h
@@ -270,6 +293,7 @@ class YOLO26OpenVINOAsyncDetector:
             current_job_id = self.job_id
             infer_queue = self.infer_queue
             queue_id = self._mark_queue_job_started(infer_queue)
+            self._force_next_submit = False
 
         try:
             infer_queue.start_async(
@@ -289,20 +313,44 @@ class YOLO26OpenVINOAsyncDetector:
                     "done_event": done_event,
                 },
             )
+            submitted = True
         except Exception:
             self._mark_queue_job_finished(queue_id)
             if done_event is not None:
                 done_event.set()
             raise
 
-        return self.latest_results
+        return self.latest_results, submitted
+
+    def detect(
+        self,
+        image,
+        box: Box = None,
+        threshold=0.5,
+        label="target",
+        force=False,
+        mask_regions=None,
+    ):
+        """
+        发起异步检测，返回上一帧或最近一次完成的结果。
+        """
+
+        results, _ = self._detect(
+            image,
+            box=box,
+            threshold=threshold,
+            label=label,
+            force=force,
+            mask_regions=mask_regions,
+        )
+        return results
 
     def wait(self, include_retired=False):
         """强制阻塞主线程，默认只等待当前推理队列完成。"""
         with self._state_lock:
             queues = [self.infer_queue]
             if include_retired:
-                queues.extend(self._retired_infer_queues)
+                queues.extend(record["queue"] for record in self._retired_infer_queues)
         for infer_queue in queues:
             infer_queue.wait_all()
         self._cleanup_retired_infer_queues()
@@ -338,23 +386,26 @@ class YOLO26OpenVINOAsyncDetector:
     ):
         """同步检测版本：发起请求后立即堵住，直到拿到结果"""
         done_event = threading.Event()
-        self.detect(
+        _, submitted = self._detect(
             image,
-            box,
-            threshold,
-            label,
+            box=box,
+            threshold=threshold,
+            label=label,
             force=force,
             mask_regions=mask_regions,
             done_event=done_event,
         )
+        if not submitted:
+            return None
         if not done_event.wait(timeout=self._SYNC_WAIT_TIMEOUT):
             with self._state_lock:
                 self.job_id += 1
                 if (
                     self._active_queue_jobs.get(id(self.infer_queue), 0) > 0
-                    and self._get_active_retired_count() < self._MAX_RETIRED_INFER_QUEUES
+                    and self._get_active_retired_count()
+                    < self._MAX_ACTIVE_RETIRED_INFER_QUEUES
                 ):
-                    self._retired_infer_queues.append(self.infer_queue)
+                    self._retire_queue(self.infer_queue, cancel=True)
                     self.infer_queue = self._create_infer_queue()
                 retired_count = self._get_active_retired_count()
                 active_jobs = sum(self._active_queue_jobs.values())
@@ -372,15 +423,12 @@ class YOLO26OpenVINOAsyncDetector:
             self.latest_results = None
             self.latest_image = None
             self.job_id += 1  # 增加 epoch，所有正在运行的旧任务的回调都会失效
+            self._force_next_submit = True
             if (
                 self._queue_has_active_jobs(self.infer_queue)
-                and self._get_active_retired_count() < self._MAX_RETIRED_INFER_QUEUES
+                and self._get_active_retired_count()
+                < self._MAX_ACTIVE_RETIRED_INFER_QUEUES
             ):
-                try:
-                    for req in self.infer_queue:
-                        req.cancel()
-                except Exception:
-                    pass
-                self._retired_infer_queues.append(self.infer_queue)
+                self._retire_queue(self.infer_queue, cancel=True)
                 self.infer_queue = self._create_infer_queue()
         self._cleanup_retired_infer_queues()

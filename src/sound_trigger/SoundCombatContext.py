@@ -1,6 +1,6 @@
 import threading
 import time
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Callable, Optional
 
 from ok import Logger
 from src.sound_trigger.DodgeCounterTrigger import DodgeCounterTrigger
@@ -9,6 +9,9 @@ if TYPE_CHECKING:
     from src.sound_trigger.SoundListener import SoundListener
     
 logger = Logger.get_logger(__name__)
+
+
+_ACTION_UNSET = object()
 
 
 class SoundCombatContext:
@@ -38,6 +41,8 @@ class SoundCombatContext:
         self._enable_sound_trigger = True
         self._dodge_all_attacks = True
         self._pending_task = None
+        self._dodge_action: Optional[Callable] = None
+        self._counter_action: Optional[Callable] = None
         self._pending_config = None
         self._pending_action = None
 
@@ -103,6 +108,8 @@ class SoundCombatContext:
         dodge_all_attacks: bool = True,
         threshold: float = 0.13,
         counter_attack_threshold: float = 0.12,
+        dodge_action: Optional[Callable] = None,
+        counter_action: Optional[Callable] = None,
         **kwargs,
     ):
         with self._context_lock:
@@ -116,6 +123,10 @@ class SoundCombatContext:
 
             self._enable_sound_trigger = enable_sound_trigger
             self._dodge_all_attacks = dodge_all_attacks
+            if dodge_action is not None:
+                self._dodge_action = dodge_action
+            if counter_action is not None:
+                self._counter_action = counter_action
 
             if not (0.0 <= threshold <= 1.0):
                 raise ValueError("threshold must be between 0.0 and 1.0")
@@ -140,6 +151,8 @@ class SoundCombatContext:
 
             self._trigger = DodgeCounterTrigger(
                 task=self._pending_task if self._pending_task is not None else task,
+                dodge_action=self._dodge_action,
+                counter_action=self._counter_action,
             )
 
             self._listener.on_dodge_triggered = self._on_dodge_triggered
@@ -236,12 +249,35 @@ class SoundCombatContext:
         finally:
             self.exit_priority()
 
-    def update_task(self, task):
+    def update_task(
+        self,
+        task,
+        dodge_action: Optional[Callable] | object = _ACTION_UNSET,
+        counter_action: Optional[Callable] | object = _ACTION_UNSET,
+    ):
         with self._context_lock:
+            current_task = self._trigger.task if self._trigger else self._pending_task
+            task_changed = current_task is not task
             self._pending_task = task
+
+            if task_changed:
+                self._dodge_action = None if dodge_action is _ACTION_UNSET else dodge_action
+                self._counter_action = None if counter_action is _ACTION_UNSET else counter_action
+            else:
+                if dodge_action is not _ACTION_UNSET:
+                    self._dodge_action = dodge_action
+                if counter_action is not _ACTION_UNSET:
+                    self._counter_action = counter_action
+
             if self._trigger:
                 self._trigger.task = task
+                self._trigger.set_actions(
+                    dodge_action=self._dodge_action,
+                    counter_action=self._counter_action,
+                )
             if task is None:
+                self._dodge_action = None
+                self._counter_action = None
                 self._pending_action = None
                 self.clear_priority()
 
@@ -251,8 +287,11 @@ class SoundCombatContext:
             if current_task is not task:
                 return False
             self._pending_task = None
+            self._dodge_action = None
+            self._counter_action = None
             if self._trigger:
                 self._trigger.task = None
+                self._trigger.set_actions()
             self._pending_action = None
             self.clear_priority()
             return True
@@ -316,6 +355,8 @@ class SoundCombatContext:
             self._config = {}
             self._dodge_all_attacks = True
             self._pending_task = None
+            self._dodge_action = None
+            self._counter_action = None
             self._pending_config = None
             self._pending_action = None
             logger.info("SoundCombatContext shutdown complete")

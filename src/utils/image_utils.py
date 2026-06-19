@@ -4,7 +4,9 @@ from typing import Tuple
 
 import cv2
 import numpy as np
-from ok import color_range_to_bound
+
+from ok import Box, color_range_to_bound
+from ok.gui.Communicate import communicate
 
 
 def binarize_bgr_by_brightness(image, threshold=180, to_bgr: bool = True):
@@ -204,9 +206,7 @@ def mask_corners(image, ratio_w=0.5555, ratio_h=0.8571, corners=None, to_bgr=Tru
         "bottom_right": [[w, h], [x_right, h], [w, y_bottom]],
     }
 
-    contours = [
-        np.array(corner_points[corner], dtype=np.int32) for corner in selected_corners
-    ]
+    contours = [np.array(corner_points[corner], dtype=np.int32) for corner in selected_corners]
 
     mask_shape = image.shape if to_bgr else image.shape[:2]
     white = np.ones(mask_shape, dtype=np.uint8) * 255
@@ -427,3 +427,56 @@ def restore_world_brightness(image, percentile=0.99):
         return cv2.convertScaleAbs(image, alpha=scale, beta=0)
 
     return image
+
+
+def find_color_enriched_regions(
+    color_range, box: Box, image: np.ndarray, min_area: float = 0.01
+) -> list[Box]:
+    """
+    接受 color_range 和 box 传入，找出范围内符合 color_range 的富集区。
+
+    参数:
+    - self: 调用者所在任务实例 (需包含 self.frame 属性)
+    - color_range: 颜色范围，将使用 color_range_to_bound 解析
+    - box: ok.Box 对象
+    - min_area: 面积比例 (例如 0.01 表示 1%)，用于根据裁切好的画面动态调整实际最小像素面积
+
+    返回:
+    - list[Box]: 包含所有富集区的 Box 对象列表
+    """
+    box.name = "enriched_regions"
+    communicate.emit_draw_box(boxes=box, color="blue", debug=True)
+    lower_bound, upper_bound = color_range_to_bound(color_range)
+
+    # 直接使用传入的 box 获取裁切画面 (ROI)
+    roi = box.crop_frame(image)
+    if roi is None or roi.size == 0:
+        return []
+
+    mask = cv2.inRange(roi, lower_bound, upper_bound)
+    contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+    # 根据裁切画面的总大小动态计算最小面积阈值
+    h, w = roi.shape[:2]
+    actual_min_area = h * w * min_area
+
+    result_boxes = []
+    i = 1
+    for contour in contours:
+        area = cv2.contourArea(contour)
+        if area >= actual_min_area:
+            cx, cy, cw, ch = cv2.boundingRect(contour)
+            # 根据 box 的原图坐标还原
+            result_boxes.append(
+                Box(
+                    x=box.x + cx,
+                    y=box.y + cy,
+                    width=cw,
+                    height=ch,
+                    name=f"enriched_regions_{i}",
+                )
+            )
+            i += 1
+    if result_boxes:
+        communicate.emit_draw_box(boxes=result_boxes, color="red", debug=True)
+    return result_boxes

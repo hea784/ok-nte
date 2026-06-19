@@ -5,11 +5,16 @@ import time
 import win32api
 import win32con
 import win32gui
-from ok import og
-from ok.device.intercation import INPUT, MOUSEINPUT, PostMessageInteraction, SendInput
-from ok.util.logger import Logger
 from win32api import GetCursorPos, SetCursorPos
 
+from ok import og
+from ok.device.intercation import (
+    INPUT,
+    MOUSEINPUT,
+    PostMessageInteraction,
+    SendInput,
+)
+from ok.util.logger import Logger
 from src.interaction.keyboard_layout import QwertyPhysicalKeyMapper
 
 logger = Logger.get_logger(__name__)
@@ -24,25 +29,30 @@ class NTEInteraction(PostMessageInteraction):
         self.user32 = ctypes.windll.user32
         self.qwerty_physical_key_mapper = QwertyPhysicalKeyMapper()
         self._disable_key_mapping = 0
+        self._activate_require = True
+        self.hwnd_window.visible_monitors.append(self)
 
-    def send_key(self, *args, **kwargs):
+    def on_visible(self, visible):
+        self._activate_require = not visible
+
+    def send_key(self, key, down_time=0.01):
         with self._input_lock:
-            mapped_args, mapped_kwargs = self._map_key_args(args, kwargs)
+            key = self._map_key(key)
             self._disable_key_mapping += 1
             try:
-                return super().send_key(*mapped_args, **mapped_kwargs)
+                return super().send_key(key, down_time=down_time)
             finally:
                 self._disable_key_mapping -= 1
 
-    def send_key_down(self, *args, **kwargs):
+    def send_key_down(self, key, activate=True):
         with self._input_lock:
-            mapped_args, mapped_kwargs = self._map_key_args(args, kwargs)
-            return super().send_key_down(*mapped_args, **mapped_kwargs)
+            key = self._map_key(key)
+            return super().send_key_down(key, activate=activate)
 
-    def send_key_up(self, *args, **kwargs):
+    def send_key_up(self, key):
         with self._input_lock:
-            mapped_args, mapped_kwargs = self._map_key_args(args, kwargs)
-            return super().send_key_up(*mapped_args, **mapped_kwargs)
+            key = self._map_key(key)
+            return super().send_key_up(key)
 
     def scroll(self, x, y, scroll_amount):
         with self._input_lock:
@@ -81,27 +91,13 @@ class NTEInteraction(PostMessageInteraction):
                 continue
         return fallback_hwnd
 
-    def _map_key_args(self, args, kwargs):
+    def _map_key(self, key):
         if self._disable_key_mapping or not og.global_config.get_config("Game Hotkey Config").get(
             "Use QWERTY Physical Keys", False
         ):
-            return args, kwargs
+            return key
 
-        if args:
-            key = args[0]
-        else:
-            key = kwargs.get("key")
-
-        mapped_key = self.qwerty_physical_key_mapper.map_key(key)
-        if mapped_key is None:
-            return args, kwargs
-
-        if args:
-            return (mapped_key, *args[1:]), kwargs
-
-        mapped_kwargs = kwargs.copy()
-        mapped_kwargs["key"] = mapped_key
-        return args, mapped_kwargs
+        return self.qwerty_physical_key_mapper.map_key(key) or key
 
     def click(self, x=-1, y=-1, move_back=False, name=None, down_time=0.01, move=True, key="left"):
         with self._input_lock:
@@ -187,3 +183,9 @@ class NTEInteraction(PostMessageInteraction):
         mi = MOUSEINPUT(dx, dy, 0, 1, 0, None)
         i = INPUT(0, mi)  # type=0 indicates a mouse event
         SendInput(1, ctypes.pointer(i), ctypes.sizeof(INPUT))
+
+    def try_activate(self):
+        if self._activate_require:
+            if not self.hwnd_window.is_foreground():
+                super().try_activate()
+            self._activate_require = False

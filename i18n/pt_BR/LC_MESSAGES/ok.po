@@ -746,3 +746,15 @@ msgstr ""
 "Nenhuma operação gravada foi encontrada. Aguarde o aviso de gravação e siga as instruções com atenção para gravar suas ações.\n"
 "NÃO altere as janelas manualmente!\n"
 "Aguarde pacientemente até que o software traga a janela do jogo para o primeiro plano."
+
+msgid "影院约会"
+msgstr "Encontro no Cinema"
+
+msgid "约会目标"
+msgstr "Alvo do Encontro"
+
+msgid "自动小旋风"
+msgstr "Redemoinho Automático"
+
+msgid "可交互「小旋风」下按开始"
+msgstr "Pressione iniciar sob o 'Redemoinho' interativo"

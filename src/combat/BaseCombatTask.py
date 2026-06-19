@@ -1,6 +1,7 @@
 import re
 import time
-from dataclasses import dataclass
+from contextlib import contextmanager
+from dataclasses import dataclass, fields
 from threading import Lock, Thread
 from typing import List
 
@@ -38,19 +39,17 @@ class CharDeadException(NotInCombatException):
 
 @dataclass
 class SleepCheckSkip:
-    """sleep_check 中可跳过的检查项。"""
-
     sound_combat_context: bool = False
     check_combat: bool = False
 
     @property
     def all(self) -> bool:
-        return self.sound_combat_context and self.check_combat
+        return all(getattr(self, field.name) for field in fields(self))
 
     @all.setter
     def all(self, value: bool):
-        self.sound_combat_context = value
-        self.check_combat = value
+        for field in fields(self):
+            setattr(self, field.name, value)
 
 
 class BaseCombatTask(CombatCheck):
@@ -423,7 +422,6 @@ class BaseCombatTask(CombatCheck):
         self.wait_until(
             self.in_combat, time_out=wait_combat_time, raise_if_not_found=raise_if_not_found
         )
-        self.load_chars()
         self.switch_to_combat_start_char()
         self.info["Combat Count"] = self.info.get("Combat Count", 0) + 1
         with self.retarget_turn_policy(enable=True):
@@ -521,8 +519,8 @@ class BaseCombatTask(CombatCheck):
             f"has_intro {has_intro}"
         )
 
-        try:
-            self.sleep_check_skip.check_combat = True
+        with self.skip_sleep_checks() as skip:
+            skip.check_combat = True
 
             while True:
                 current_time = time.time()
@@ -601,8 +599,6 @@ class BaseCombatTask(CombatCheck):
                     self.raise_not_in_combat(f"{log_prefix} failed {switch_to_name}")
 
                 self.sleep(0.01)
-        finally:
-            self.sleep_check_skip.check_combat = False
 
         if has_intro and current_char:
             if self.record_element_ring_reaction(current_char, switch_to):
@@ -858,13 +854,17 @@ class BaseCombatTask(CombatCheck):
             raise_if_not_found=raise_if_not_found,
         )
 
-    @property
-    def skip_sleep_check(self) -> bool:
-        return self.sleep_check_skip.all
-
-    @skip_sleep_check.setter
-    def skip_sleep_check(self, value: bool):
-        self.sleep_check_skip.all = value
+    @contextmanager
+    def skip_sleep_checks(self):
+        old_values = {
+            field.name: getattr(self.sleep_check_skip, field.name)
+            for field in fields(self.sleep_check_skip)
+        }
+        try:
+            yield self.sleep_check_skip
+        finally:
+            for check, old_value in old_values.items():
+                setattr(self.sleep_check_skip, check, old_value)
 
     def sleep_check(self):
         if (

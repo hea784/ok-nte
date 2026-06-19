@@ -2,19 +2,20 @@ import re
 from datetime import datetime
 from typing import Callable, List, Optional, Tuple
 
-from ok import CannotFindException, TaskDisabledException, find_color_rectangles
 from qfluentwidgets import FluentIcon
 
+from ok import CannotFindException, TaskDisabledException, find_color_rectangles
 from src import text_white_color
 from src.Labels import Labels
 from src.tasks.AnomalyTask import AnomalyTask
 from src.tasks.BaseNTETask import BaseNTETask
 from src.tasks.CoffeeTask import CoffeeTask
+from src.tasks.mixin.CinemaDateMixin import CinemaDateMixin
 from src.tasks.NTEOneTimeTask import NTEOneTimeTask
 from src.utils import image_utils as iu
 
 
-class DailyTask(NTEOneTimeTask, BaseNTETask):
+class DailyTask(NTEOneTimeTask, CinemaDateMixin, BaseNTETask):
     """日常任务执行器"""
 
     # --- 配置项键名 ---
@@ -24,6 +25,8 @@ class DailyTask(NTEOneTimeTask, BaseNTETask):
     CONF_CLAIM_BP = "领取环期任务奖励"
     CONF_COFFEE_TASK = "一咖舍任务"
     CONF_AUTO_CYCLE_SUB_TASK = "自动循环项目"
+    CONF_CINEMA_DATE = "影院约会"
+    CINEMA_DATE_TARGET = "约会目标"
     DAILY_STAMINA_TARGET = "目标消耗体力"
 
     # --- 一咖舍任务选项 ---
@@ -46,6 +49,8 @@ class DailyTask(NTEOneTimeTask, BaseNTETask):
                 self.DAILY_STAMINA_TARGET: 180,
                 self.CONF_AUTO_CYCLE_SUB_TASK: False,
                 self.CONF_COFFEE_TASK: self.COFFEE_MODE_NONE,
+                self.CONF_CINEMA_DATE: False,
+                self.CINEMA_DATE_TARGET: "",
             }
         )
         self.config_description.update(
@@ -58,10 +63,22 @@ class DailyTask(NTEOneTimeTask, BaseNTETask):
         # 一咖舍自动化页面 OCR 仅匹配简体中文; 在非 zh_CN 下不向用户暴露自动化选项.
         if self.get_app_locale() == "zh_CN":
             coffee_options.append(self.COFFEE_MODE_AUTO)
-        self.config_type[self.CONF_COFFEE_TASK] = {
-            "type": "drop_down",
-            "options": coffee_options,
-        }
+        self.config_type.update(
+            {
+                self.CONF_COFFEE_TASK: {
+                    "type": "drop_down",
+                    "options": coffee_options,
+                },
+                self.CONF_CINEMA_DATE: {
+                    "sub_configs": {
+                        True: [
+                            self.CINEMA_DATE_TARGET,
+                        ]
+                    },
+                },
+            }
+        )
+
         self.current_task_key = None
         self.add_exit_after_config()
 
@@ -101,6 +118,11 @@ class DailyTask(NTEOneTimeTask, BaseNTETask):
                 self.CONF_CLAIM_BP,
                 self._task_enabled(self.CONF_CLAIM_BP, True),
                 self.claim_battle_pass_rewards,
+            ),
+            (
+                self.CONF_CINEMA_DATE,
+                self._task_enabled(self.CONF_CINEMA_DATE, False),
+                lambda: self.run_cinema_date(self.config.get(self.CINEMA_DATE_TARGET, "")),
             ),
         ]
 
@@ -160,7 +182,13 @@ class DailyTask(NTEOneTimeTask, BaseNTETask):
 
         self.ensure_main()
 
-        result = func()
+        try:
+            result = func()
+        except TaskDisabledException:
+            raise
+        except Exception as e:
+            self.log_error(f"任务: {key} 运行失败", e)
+            result = False
 
         if result is False:
             self.task_status["failed"].append(key)
