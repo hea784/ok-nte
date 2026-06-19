@@ -1,3 +1,4 @@
+import time
 
 from qfluentwidgets import FluentIcon
 
@@ -47,15 +48,19 @@ class WhirlwindTask(NTEOneTimeTask, BaseCombatTask):
         self.wait_until(self.find_interac)
         self.send_key_up("w")
         self.wait_until(
-            lambda: not self.is_in_team(), pre_action=lambda: self.send_interac(handle_claim=False)
+            lambda: not self.is_in_team(),
+            pre_action=lambda: self.send_interac(handle_claim=False),
+            time_out=20,
         )
         self.wait_until(
-            self.is_in_team, pre_action=lambda: self.operate_click(0.701, 0.542, interval=2)
+            self.is_in_team,
+            pre_action=lambda: self.operate_click(0.701, 0.542, interval=2),
+            settle_time=1,
+            time_out=60,
         )
 
     def start_combat(self):
         if not self.is_boss():
-            self.wait_in_team(settle_time=1)
             self.send_key_down("w")
             self.sleep(0.2)
             self.send_key("lshift")
@@ -75,14 +80,25 @@ class WhirlwindTask(NTEOneTimeTask, BaseCombatTask):
         self.sleep(1)
 
     def navigate(self):
+        self.wait_in_team()
+        failed_time = 0
         try:
             while True:
                 ret = self.check_mini_map_arrow()
                 if not ret:
-                    return False
+                    if failed_time == 0:
+                        failed_time = time.time()
+                else:
+                    failed_time = 0
 
                 angle = ret[0].get("angle")
                 if angle is None:
+                    if failed_time == 0:
+                        failed_time = time.time()
+                else:
+                    failed_time = 0
+
+                if failed_time != 0 and time.time() - failed_time > 4:
                     return False
 
                 error = self._normalize_angle(self.TARGET_NAVIGATION_ANGLE - angle)
@@ -103,7 +119,6 @@ class WhirlwindTask(NTEOneTimeTask, BaseCombatTask):
             self.sleep(0.2)
             return
         else:
-
             try:
                 self.send_key_down(side_key)
                 self.send_key("w")
