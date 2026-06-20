@@ -112,6 +112,10 @@ class YOLO26OpenVINOAsyncDetector:
             else:
                 self._active_queue_jobs.pop(queue_id, None)
 
+    def _clear_queue_jobs(self, infer_queue):
+        with self._state_lock:
+            self._active_queue_jobs.pop(id(infer_queue), None)
+
     def _queue_has_active_jobs(self, infer_queue):
         with self._state_lock:
             return self._active_queue_jobs.get(id(infer_queue), 0) > 0
@@ -124,12 +128,14 @@ class YOLO26OpenVINOAsyncDetector:
             logger.error("openvino cancel queue requests failed", e)
 
     def _retire_queue(self, infer_queue, cancel=True):
+        retired_at = time.monotonic()
         if cancel:
             self._cancel_queue_requests(infer_queue)
+            self._clear_queue_jobs(infer_queue)
         self._retired_infer_queues.append(
             {
                 "queue": infer_queue,
-                "retired_at": time.monotonic(),
+                "retired_at": retired_at,
             }
         )
 

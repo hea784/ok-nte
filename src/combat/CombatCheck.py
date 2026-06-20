@@ -276,7 +276,6 @@ class CombatCheck(BaseNTETask):
         self.log_info("CombatDetect UNCERTAIN")
         self.combat_detect_state.uncertain_until = deadline
         if self.middle_click():
-            self.openvino_clear_cache()
             self.combat_detect_state.retarget_ready_at = (
                 time.time() + self.combat_detect_policy.retarget_settle_seconds
             )
@@ -416,7 +415,7 @@ class CombatCheck(BaseNTETask):
                         if 0.75 < aspect_ratio < 1.33 and 0.35 < extent < 0.65:
                             is_valid = True
                 if not is_valid:
-                    self.log_info("find_target cause contour analysis failed")
+                    self.log_info("find_target is false cause contour analysis failed")
                     target = is_valid
                 else:
                     target = box

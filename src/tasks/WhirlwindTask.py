@@ -91,10 +91,16 @@ class WhirlwindTask(NTEOneTimeTask, BaseCombatTask):
             self.sleep(0.2)
             self.send_key("lshift")
             self.wait_until(self.is_boss)
+            self.sleep(1)
             self.send_key_up("w")
         with self.skip_sleep_checks() as skip:
-            skip.check_combat = True
-            self.sleep(4)
+            skip.all = True
+            self.sleep(1.10)
+            self.send_key(self.get_skill_key())
+            self.sleep(1.25)
+            self.send_key(self.get_skill_key())
+            self.sleep(0.10)
+            skip.sound_combat_context = False
             while True:
                 self.click()
                 self.sleep(0.15)
