@@ -76,6 +76,8 @@ class CombatCheck(BaseNTETask):
         self._target_match_templates = None
         self._bg_ocr_lock = threading.Lock()
         self._find_lv_latency = 0
+        self._find_lv_async_started_at = 0
+        self._last_combat_detect_pending_log = 0
         self._turn_on_retarget = False
 
     @contextmanager
@@ -428,6 +430,7 @@ class CombatCheck(BaseNTETask):
             if frame is None:
                 frame = self.frame
             now = time.time()
+            self._find_lv_async_started_at = now
             self.find_lv_future = self.thread_pool_executor.submit(self.find_lv, frame=frame)
 
             def callback(f):
@@ -436,7 +439,8 @@ class CombatCheck(BaseNTETask):
                     return
                 try:
                     self._lv_async = bool(f.result())
-                except Exception:
+                except Exception as e:
+                    logger.error("find_lv_async failed", e)
                     self._lv_async = None
 
                 if self.find_lv_future is f:
@@ -468,9 +472,65 @@ class CombatCheck(BaseNTETask):
 
         target_pending = target and (exhaustive or is_lv_false) and target_ret is None
         if lv_ret is None or target_pending:
+            self._log_async_combat_detect_pending(
+                lv_ret=lv_ret,
+                target_ret=target_ret,
+                target_pending=target_pending,
+                exhaustive=exhaustive,
+                force=force,
+            )
             return None
 
         return False
+
+    def _log_async_combat_detect_pending(
+        self,
+        lv_ret,
+        target_ret,
+        target_pending: bool,
+        exhaustive: bool,
+        force: bool,
+    ):
+        now = time.time()
+        if now - self._last_combat_detect_pending_log < 1:
+            return
+        self._last_combat_detect_pending_log = now
+        logger.warning(
+            "CombatDetect pending None: "
+            f"lv_ret={lv_ret}, lv_future={self._lv_future_debug_state(now)}, "
+            f"target_pending={target_pending}, target_ret={target_ret}, "
+            f"exhaustive={exhaustive}, force={force}, "
+            f"{self._openvino_debug_state()}"
+        )
+
+    def _lv_future_debug_state(self, now: float):
+        future = self.find_lv_future
+        if future is None:
+            return f"none(latency={self._find_lv_latency:.3f})"
+        if future.cancelled():
+            state = "cancelled"
+        elif future.running():
+            state = "running"
+        elif future.done():
+            state = "done"
+        else:
+            state = "pending"
+        age = now - self._find_lv_async_started_at if self._find_lv_async_started_at else -1
+        return f"{state}(age={age:.3f}, latency={self._find_lv_latency:.3f})"
+
+    def _openvino_debug_state(self):
+        try:
+            from ok import og
+
+            detector = getattr(getattr(og, "my_app", None), "_openvino_model_async", None)
+            if detector is None:
+                return "openvino=uninitialized"
+            debug_state = getattr(detector, "debug_state", None)
+            if callable(debug_state):
+                return debug_state()
+            return "openvino=debug_unavailable"
+        except Exception as e:
+            return f"openvino=debug_failed({e})"
 
     def find_lv(self, frame=None, threshold=0.7):
         if not self._init_lv_templates():

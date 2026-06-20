@@ -120,8 +120,8 @@ class YOLO26OpenVINOAsyncDetector:
         try:
             for req in infer_queue:
                 req.cancel()
-        except Exception:
-            logger.debug("openvino cancel queue requests failed", exc_info=True)
+        except Exception as e:
+            logger.error("openvino cancel queue requests failed", e)
 
     def _retire_queue(self, infer_queue, cancel=True):
         if cancel:
@@ -206,14 +206,28 @@ class YOLO26OpenVINOAsyncDetector:
 
             self.latest_results = tmp_results
             self.latest_image = user_data.get("image")
-        except Exception:
-            logger.debug("openvino callback ignored failed/cancelled task", exc_info=True)
+        except Exception as e:
+            logger.error("openvino callback ignored failed/cancelled task", e)
         finally:
             if queue_id is not None:
                 self._mark_queue_job_finished(queue_id)
             done_event = user_data.get("done_event")
             if done_event is not None:
                 done_event.set()
+
+    def debug_state(self):
+        with self._state_lock:
+            active_jobs = sum(self._active_queue_jobs.values())
+            active_retired = self._get_active_retired_count()
+            retired = len(self._retired_infer_queues)
+            queue_ready = self.infer_queue.is_ready()
+            latest_count = None if self.latest_results is None else len(self.latest_results)
+            return (
+                f"openvino(queue_ready={queue_ready}, active_jobs={active_jobs}, "
+                f"retired={retired}, active_retired={active_retired}, "
+                f"latest_count={latest_count}, latency={self.latency:.3f}, "
+                f"force_next={self._force_next_submit}, job_id={self.job_id})"
+            )
 
     def _detect(
         self,
