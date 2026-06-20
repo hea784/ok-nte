@@ -994,3 +994,6 @@ msgstr ""
 
 msgid "可交互「小旋风」下按开始"
 msgstr ""
+
+msgid "难度选项"
+msgstr ""

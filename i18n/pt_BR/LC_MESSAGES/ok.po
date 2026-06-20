@@ -758,3 +758,6 @@ msgstr "Redemoinho Automático"
 
 msgid "可交互「小旋风」下按开始"
 msgstr "Pressione iniciar sob o 'Redemoinho' interativo"
+
+msgid "难度选项"
+msgstr "Opção de Dificuldade"

@@ -1011,3 +1011,6 @@ msgstr "Torbellino automático"
 
 msgid "可交互「小旋风」下按开始"
 msgstr "Presione iniciar debajo del 'Torbellino' interactivo"
+
+msgid "难度选项"
+msgstr "Opción de dificultad"
