@@ -1,5 +1,6 @@
 import threading
 import time
+from concurrent.futures import CancelledError
 from contextlib import contextmanager
 from dataclasses import dataclass
 from enum import Enum
@@ -426,7 +427,9 @@ class CombatCheck(BaseNTETask):
         ret = self._lv_async
         if force or self.find_lv_future is None:
             if self.find_lv_future is not None:
-                self.find_lv_future.cancel()
+                old_future = self.find_lv_future
+                self.find_lv_future = None
+                old_future.cancel()
             if frame is None:
                 frame = self.frame
             now = time.time()
@@ -439,6 +442,8 @@ class CombatCheck(BaseNTETask):
                     return
                 try:
                     self._lv_async = bool(f.result())
+                except CancelledError:
+                    return
                 except Exception as e:
                     logger.error("find_lv_async failed", e)
                     self._lv_async = None
