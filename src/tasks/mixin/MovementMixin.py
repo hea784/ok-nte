@@ -1,0 +1,107 @@
+import time
+
+from ok import BaseTask, Logger
+
+logger = Logger.get_logger(__name__)
+
+
+class MovementMixin(BaseTask):
+    def walk_to_box(
+        self, find_function, time_out=30, end_condition=None, y_offset=0.05, x_threshold=0.07
+    ):
+        start = time.time()
+        while time.time() - start < time_out:
+            if ended := self._do_walk_to_box(
+                find_function,
+                time_out=time_out - (time.time() - start),
+                end_condition=end_condition,
+                y_offset=y_offset,
+                x_threshold=x_threshold,
+            ):
+                return ended
+
+    @staticmethod
+    def _resolve_target(result):
+        """将 find_function 的返回值统一为单个目标或 None"""
+        if isinstance(result, list):
+            return result[0] if result else None
+        return result
+
+    def _calc_walk_direction(self, last_target, last_direction, y_offset, x_threshold, centered):
+        """根据目标位置计算下一步移动方向，返回 (direction, centered)"""
+        if last_target is None:
+            return self._opposite_direction(last_direction), centered
+
+        x, y = last_target.center()
+        y = max(0, y - self.height_of_screen(y_offset))
+        x_abs = abs(x - self.width_of_screen(0.5))
+        threshold = 0.04 if not last_direction else x_threshold
+        centered = x_abs <= self.width_of_screen(threshold)
+
+        if not centered:
+            direction = "d" if x > self.width_of_screen(0.5) else "a"
+        else:
+            if last_direction == "s":
+                v_center = 0.45
+            elif last_direction == "w":
+                v_center = 0.6
+            else:
+                v_center = 0.5
+            direction = "s" if y > self.height_of_screen(v_center) else "w"
+        return direction, centered
+
+    def _do_walk_to_box(
+        self, find_function, time_out=30, end_condition=None, y_offset=0.05, x_threshold=0.07
+    ):
+        if find_function:
+            self.wait_until(
+                lambda: (not end_condition or end_condition()) or find_function(),
+                raise_if_not_found=True,
+                time_out=time_out,
+            )
+        last_direction = None
+        start = time.time()
+        ended = False
+        last_target = None
+        centered = False
+        try:
+            while time.time() - start < time_out:
+                self.next_frame()
+                if end_condition:
+                    ended = end_condition()
+                    if ended:
+                        logger.info(f"_do_walk_to_box ended {ended}")
+                        break
+                target = self._resolve_target(find_function())
+                if target:
+                    last_target = target
+                if last_target is None:
+                    self.log_info("find_function not found, change to opposite direction")
+                next_direction, centered = self._calc_walk_direction(
+                    last_target, last_direction, y_offset, x_threshold, centered
+                )
+                if next_direction != last_direction:
+                    if last_direction:
+                        self.send_key_up(last_direction)
+                        self.sleep(0.001)
+                    last_direction = next_direction
+                    if next_direction:
+                        self.send_key_down(next_direction)
+        finally:
+            if last_direction:
+                self.send_key_up(last_direction)
+                self.sleep(0.001)
+        return ended if end_condition else last_direction is not None
+
+    @staticmethod
+    def _opposite_direction(direction):
+        if direction == "w":
+            return "s"
+        elif direction == "s":
+            return "w"
+        elif direction == "a":
+            return "d"
+        elif direction == "d":
+            return "a"
+        else:
+            return "w"

@@ -1014,3 +1014,6 @@ msgstr "可交互「小旋風」下按開始"
 
 msgid "难度选项"
 msgstr "難度選項"
+
+msgid "异象家具"
+msgstr "異象家具"

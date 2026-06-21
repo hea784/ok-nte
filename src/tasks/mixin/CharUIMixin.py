@@ -1,23 +1,13 @@
 import time
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
 
 import cv2
 import numpy as np
 
-from ok import Box
+from ok import BaseTask, Box
 from src.Labels import Labels
 from src.utils import game_filters as gf
 from src.utils import image_utils as iu
-
-if TYPE_CHECKING:
-    from ok import BaseTask
-
-    _TaskProxy = BaseTask
-else:
-
-    class _TaskProxy:
-        pass
 
 
 @dataclass
@@ -32,16 +22,21 @@ class _CurrentCharDetection:
     core_scores: list[float] | None
 
 
-class CharUIMixin(_TaskProxy):
-    CURRENT_CHAR_REJECT_SCORE = 0.75
-    CURRENT_CHAR_ACCEPT_SCORE = 0.45
-    CURRENT_CHAR_RAW_CANDIDATE_SCORE = 0.85
-    CURRENT_CHAR_RAW_CANDIDATE_MARGIN = 0.06
-    CURRENT_CHAR_RAW_STRONG_SCORE = 0.45
-    CURRENT_CHAR_RAW_STRONG_MARGIN = 0.15
-    CURRENT_CHAR_CORE_STRONG_SCORE = 0.70
-    CURRENT_CHAR_CORE_STRONG_MARGIN = 0.08
-    CURRENT_CHAR_STICKY_SECONDS = 0.8
+@dataclass(frozen=True)
+class _CurrentCharConfig:
+    reject_score: float = 0.75
+    accept_score: float = 0.45
+    raw_candidate_score: float = 0.85
+    raw_candidate_margin: float = 0.06
+    raw_strong_score: float = 0.45
+    raw_strong_margin: float = 0.15
+    core_strong_score: float = 0.70
+    core_strong_margin: float = 0.08
+    sticky_seconds: float = 0.8
+
+
+class CharUIMixin(BaseTask):
+    _CURRENT_CHAR = _CurrentCharConfig()
 
     def _init_char_ui_state(self):
         self._char_ui_offset = False
@@ -85,7 +80,7 @@ class CharUIMixin(_TaskProxy):
             or self._char_template_cache.get("height") != self.height
         ):
             feature = self.get_feature_by_name(Labels.is_current_char)
-            mat = feature.mat
+            mat: np.ndarray = feature.mat
             if len(mat.shape) == 3 and mat.shape[2] != 2:
                 mat = gf.current_char_filter(mat)
             self._char_template_cache = {
@@ -96,7 +91,7 @@ class CharUIMixin(_TaskProxy):
 
         return self._char_template_cache["mat"]
 
-    def _match_current_char_feature(self, current_mat, template_mat):
+    def _match_current_char_feature(self, current_mat: np.ndarray, template_mat: np.ndarray):
         th, tw = template_mat.shape[:2]
         ch, cw = current_mat.shape[:2]
         if ch < th or cw < tw:
@@ -129,9 +124,9 @@ class CharUIMixin(_TaskProxy):
         return scores
 
     def _build_current_char_scores(self, index, score, accepted):
-        scores = [self.CURRENT_CHAR_REJECT_SCORE] * 4
+        scores = [self._CURRENT_CHAR.reject_score] * 4
         if accepted and 0 <= index < len(scores):
-            scores[index] = min(score, self.CURRENT_CHAR_ACCEPT_SCORE)
+            scores[index] = min(score, self._CURRENT_CHAR.accept_score)
         return scores
 
     def _rank_current_char_scores(self, scores):
@@ -155,7 +150,7 @@ class CharUIMixin(_TaskProxy):
             return _CurrentCharDetection(
                 index=-1,
                 score=1.0,
-                scores=[self.CURRENT_CHAR_REJECT_SCORE] * 4,
+                scores=[self._CURRENT_CHAR.reject_score] * 4,
                 accepted=False,
                 strong=False,
                 reason="empty_frame",
@@ -181,17 +176,17 @@ class CharUIMixin(_TaskProxy):
         reason = "rejected"
 
         raw_candidate = (
-            raw_score <= self.CURRENT_CHAR_RAW_CANDIDATE_SCORE
-            and raw_margin >= self.CURRENT_CHAR_RAW_CANDIDATE_MARGIN
+            raw_score <= self._CURRENT_CHAR.raw_candidate_score
+            and raw_margin >= self._CURRENT_CHAR.raw_candidate_margin
         )
         raw_strong = (
-            raw_score <= self.CURRENT_CHAR_RAW_STRONG_SCORE
-            and raw_margin >= self.CURRENT_CHAR_RAW_STRONG_MARGIN
+            raw_score <= self._CURRENT_CHAR.raw_strong_score
+            and raw_margin >= self._CURRENT_CHAR.raw_strong_margin
         )
         core_strong = (
             core_scores is not None
-            and core_score <= self.CURRENT_CHAR_CORE_STRONG_SCORE
-            and core_margin >= self.CURRENT_CHAR_CORE_STRONG_MARGIN
+            and core_score <= self._CURRENT_CHAR.core_strong_score
+            and core_margin >= self._CURRENT_CHAR.core_strong_margin
         )
 
         if core_scores is not None and raw_idx == core_idx and raw_candidate:
@@ -202,18 +197,18 @@ class CharUIMixin(_TaskProxy):
             reason = "raw_core_agree"
         elif core_strong:
             raw_support = (
-                raw_scores[core_idx] <= self.CURRENT_CHAR_RAW_CANDIDATE_SCORE
+                raw_scores[core_idx] <= self._CURRENT_CHAR.raw_candidate_score
                 or raw_scores[core_idx] <= raw_score + 0.20
             )
             if raw_support:
                 index = core_idx
                 score = max(0.0, core_score - core_margin)
                 accepted = True
-                strong = core_margin >= self.CURRENT_CHAR_RAW_CANDIDATE_MARGIN
+                strong = core_margin >= self._CURRENT_CHAR.raw_candidate_margin
                 reason = "core_strong"
         elif raw_strong:
             index = raw_idx
-            score = max(0.0, raw_score - min(raw_margin, self.CURRENT_CHAR_RAW_STRONG_MARGIN))
+            score = max(0.0, raw_score - min(raw_margin, self._CURRENT_CHAR.raw_strong_margin))
             accepted = True
             strong = True
             reason = "raw_strong"
@@ -233,7 +228,7 @@ class CharUIMixin(_TaskProxy):
             core_scores=core_scores,
         )
 
-    def _apply_current_char_tracker(self, detection):
+    def _apply_current_char_tracker(self, detection: _CurrentCharDetection):
         now = time.time()
         tracker = self._current_char_tracker
         if detection.accepted:
@@ -243,9 +238,9 @@ class CharUIMixin(_TaskProxy):
             tracker["reason"] = detection.reason
             return detection
 
-        if tracker["index"] != -1 and now - tracker["time"] <= self.CURRENT_CHAR_STICKY_SECONDS:
+        if tracker["index"] != -1 and now - tracker["time"] <= self._CURRENT_CHAR.sticky_seconds:
             index = tracker["index"]
-            score = max(tracker["score"], self.CURRENT_CHAR_ACCEPT_SCORE)
+            score = max(tracker["score"], self._CURRENT_CHAR.accept_score)
             scores = self._build_current_char_scores(index, score, accepted=True)
             return _CurrentCharDetection(
                 index=index,
@@ -269,15 +264,6 @@ class CharUIMixin(_TaskProxy):
     def _get_char_match_scores(self, frame=None):
         """Return four slot scores; lower means the slot is the current char."""
         return self._get_current_char_detection(frame=frame).scores
-
-    def is_char_at_index(self, index, threshold=0.5, frame=None):
-        detection = self._get_current_char_detection(frame=frame)
-        score = detection.scores[index]
-        new = f"idx {index} conf {score:.3f} {detection.reason}"
-        if detection.accepted and detection.index == index and score < threshold:
-            self.info_set("current char", new)
-            return True
-        self.run_with_interval(lambda: self.info_set("current char", new), 0.5)
 
     def get_current_char_index(self):
         # frame = self.frame

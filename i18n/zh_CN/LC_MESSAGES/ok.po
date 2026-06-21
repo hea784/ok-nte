@@ -997,3 +997,6 @@ msgstr ""
 
 msgid "难度选项"
 msgstr ""
+
+msgid "异象家具"
+msgstr ""

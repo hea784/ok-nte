@@ -761,3 +761,6 @@ msgstr "Pressione iniciar sob o 'Redemoinho' interativo"
 
 msgid "难度选项"
 msgstr "Opção de Dificuldade"
+
+msgid "异象家具"
+msgstr "Móveis de Anomalia"

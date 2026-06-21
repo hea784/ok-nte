@@ -254,7 +254,7 @@ class FishingTask(NTEOneTimeTask, BaseNTETask):
 
     def run_restock_state_machine(self):
         state_order = [RestockState.SELL_FISH, RestockState.BUY_BAIT]
-        retry_by_state = {state: 0 for state in state_order}
+        retry_by_state = dict.fromkeys(state_order, 0)
         state_index = 0
 
         while state_index < len(state_order):
@@ -398,12 +398,15 @@ class FishingTask(NTEOneTimeTask, BaseNTETask):
             return True
         return False
 
-    def wait_click_confirm(self, action=None, range=None, settle_time=1.0, raise_if_not_found=True):
+    def wait_click_confirm(
+        self, action=None, range=None, time_out=10, settle_time=1.0, raise_if_not_found=True
+    ):
         if range is None:
             range = (0.641, 0.610, 0.713, 0.698)
         return super().wait_click_confirm(
             action=action,
             range=range,
+            time_out=time_out,
             settle_time=settle_time,
             raise_if_not_found=raise_if_not_found,
         )

@@ -79,6 +79,7 @@ class Globals(QObject):
             "callable",
             getattr(func, "__module__", None),
             getattr(func, "__qualname__", func_name),
+            None,
         )
 
     def _get_periodic_task_name(self, task):

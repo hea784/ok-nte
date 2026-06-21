@@ -1014,3 +1014,6 @@ msgstr "Presione iniciar debajo del 'Torbellino' interactivo"
 
 msgid "难度选项"
 msgstr "Opción de dificultad"
+
+msgid "异象家具"
+msgstr "Muebles de anomalía"

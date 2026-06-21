@@ -135,7 +135,7 @@ class AutoHeistTask(NTEOneTimeTask, BaseCombatTask):
     AVOID_METHOD_ATTACK = "长按攻击"
     LOCK_PICK_MATCH_THRESHOLD = 0.75
     DEFAULT_SLEEP_CHECK_INTERVAL = 1
-    SLEEP_CHECK_INTERVAL = 0.1
+    FAST_SLEEP_CHECK_INTERVAL = 0.1
     SWITCH_CHECK_DURATION = 1
     QUICK_PICK_START_DELAY = 0.3
     QUICK_PICK_INTERVAL = 0.2
@@ -323,7 +323,7 @@ class AutoHeistTask(NTEOneTimeTask, BaseCombatTask):
             self._interaction_watch_active and not self._interaction_watch_found
         ) or self._switch_state is not None
         self.sleep_check_interval = (
-            self.SLEEP_CHECK_INTERVAL if needs_fast_poll else self.DEFAULT_SLEEP_CHECK_INTERVAL
+            self.FAST_SLEEP_CHECK_INTERVAL if needs_fast_poll else self.DEFAULT_SLEEP_CHECK_INTERVAL
         )
 
     def start_interaction_watch(self):
@@ -342,7 +342,7 @@ class AutoHeistTask(NTEOneTimeTask, BaseCombatTask):
         """结束后台交互点监视，并在未发现交互点时中断本轮路径。"""
         if not self._interaction_watch_active and not self._interaction_watch_found:
             self.log_warning("stop interaction watch ignored: not started")
-            return True
+            return False
 
         found = self._interaction_watch_found
         self._interaction_watch_active = False
@@ -352,7 +352,7 @@ class AutoHeistTask(NTEOneTimeTask, BaseCombatTask):
 
         if not found:
             raise AbortException("not found interac")
-        return True
+        return found
 
     def _poll_interaction_watch(self):
         if not self._interaction_watch_active or self._interaction_watch_found:
@@ -644,7 +644,7 @@ class AutoHeistTask(NTEOneTimeTask, BaseCombatTask):
             return
 
         if self._quick_pick_event.is_set() and time.time() >= self._quick_pick_ready_at:
-            if self.check_action_interval("quick_pick", self.QUICK_PICK_INTERVAL):
+            if self._check_action_interval("quick_pick", self.QUICK_PICK_INTERVAL):
                 interaction = self.executor.interaction
                 if interaction is not None:
                     interaction.send_key("f", 0.002)
@@ -916,17 +916,16 @@ class AutoHeistTask(NTEOneTimeTask, BaseCombatTask):
 
     def is_lock_pick_active(self):
         """检查撬锁转盘 UI 是否正在显示。"""
-        feature = self.get_feature_by_name(Labels.heist_lock_pick).mat
         box = self.get_box_by_name(Labels.heist_lock_pick).scale(1.5)
         self.draw_boxes(boxes=box, color="blue")
         cropped = box.crop_frame(self.frame)
         cropped = iu.create_color_mask(cropped, text_white_color)
+        # feature = self.get_feature_by_name(Labels.heist_lock_pick).mat
         # iu.show_images([feature, cropped], ["feature", "cropped"])
         res, _ = self._find_rotated_template(
-            feature,
+            Labels.heist_lock_pick,
             cropped,
             threshold=self.LOCK_PICK_MATCH_THRESHOLD,
-            cache_key=Labels.heist_lock_pick,
         )
         return len(res) >= 1
 

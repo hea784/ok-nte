@@ -1014,3 +1014,6 @@ msgstr "Press start under interactive 'Whirlwind'"
 
 msgid "难度选项"
 msgstr "Difficulty Option"
+
+msgid "异象家具"
+msgstr "Anomaly Furniture"
