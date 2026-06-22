@@ -430,7 +430,11 @@ class DailyTask(NTEOneTimeTask, CinemaDateMixin, BaseNTETask):
         self.sleep(1)
 
         # 提取收益
-        self.operate_click(0.188, 0.877)
+        self.wait_until(
+            lambda: not self.find_one(Labels.f5_coffee_panel),
+            pre_action=lambda: self.operate_click(0.188, 0.877, interval=1),
+            time_out=10,
+        )
         self.sleep(1)
         self.wait_until(
             lambda: self.find_one(Labels.f5_coffee_panel),

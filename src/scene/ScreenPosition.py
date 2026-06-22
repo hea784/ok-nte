@@ -1,4 +1,9 @@
+from typing import TYPE_CHECKING
+
 from ok import Box
+
+if TYPE_CHECKING:
+    from src.tasks.BaseNTETask import BaseNTETask
 
 
 class ScreenPosition:
@@ -11,7 +16,7 @@ class ScreenPosition:
     使用 to_x / to_y 参数。
     """
 
-    def __init__(self, parent):
+    def __init__(self, parent: "BaseNTETask"):
         self.parent = parent  # parent 必须有 .width 和 .height
 
     # ---------- 固定位置 ----------
@@ -77,6 +82,12 @@ class ScreenPosition:
             to_x=int((x + w) * scale_x),
             to_y=int((y + h) * scale_y),
         )
+
+    @property
+    def box_of_screen(self):
+        if not hasattr(self.parent, "box_of_screen"):
+            raise AttributeError(f"'{type(self).__name__}' has no attribute 'box_of_screen'")
+        return self.parent.box_of_screen
 
     @property
     def dialog_icon_box(self) -> Box:
