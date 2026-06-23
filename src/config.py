@@ -10,7 +10,7 @@ from src.process_feature import process_feature
 if "PATH" not in os.environ:
     os.environ["PATH"] = ""
 
-version = "v1.1.23"
+version = "v1.1.24"
 # 不需要修改version, Github Action打包会自动修改
 
 key_config_option = ConfigOption(
@@ -182,9 +182,6 @@ config = {
         ["src.tasks.DarkTask", "DarkTask"],
         ["src.tasks.BagelAITools", "BagelAITools"],
         ["src.tasks.WhirlwindTask", "WhirlwindTask"],
-        # ["src.tasks.MyOneTimeWithAGroup", "MyOneTimeWithAGroup"],
-        # ["src.tasks.MyOneTimeWithAGroup2", "MyOneTimeWithAGroup2"],
-        # ["src.tasks.MyOneTimeWithBGroup", "MyOneTimeWithBGroup"],
         ["ok", "DiagnosisTask"],
         # ["src.tasks.custom.TeamScannerTask", "TeamScannerTask"],
         # ["src.tasks.DebugCharTask", "DebugCharTask"],

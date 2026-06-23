@@ -110,11 +110,24 @@ class CoffeeRuntime:
     COFFEE_SUPPLY_CLICK_DOWN_TIME = 0.04
     COFFEE_KEY_SETTLE_SECONDS = 1.0
     COFFEE_SUPPLY_BLOCKER_TEXTS = (
-        "库存提示", "缺少", "方斯不足", "不足", "失败", "无法", "已满", "上限",
+        "库存提示",
+        "缺少",
+        "方斯不足",
+        "不足",
+        "失败",
+        "无法",
+        "已满",
+        "上限",
     )
     PRODUCT_CATEGORIES = ("主食", "饮料", "甜品")
     TYCOON_TEXT_MARKERS = (
-        "都市大亨", "大亨等级", "一咖舍", "咖舍", "猎人交易所", "车辆赛事", "都市闲趣",
+        "都市大亨",
+        "大亨等级",
+        "一咖舍",
+        "咖舍",
+        "猎人交易所",
+        "车辆赛事",
+        "都市闲趣",
     )
     TYCOON_ASCII_MARKERS = ("CITYTYCOON", "CTYTYCOON", "TYCOON")
     # 可能性的回溯通过 possessive (``++`` / ``?+``) 量词消除, 由 Python 3.11+ 支持.
@@ -452,7 +465,9 @@ class CoffeeRuntime:
         self._click(supply_target, "open_supply")
         if self.wait_for_supply_popup():
             return True
-        self._click_ui(*self.COFFEE_SUPPLY_BUTTON_POSITION, "open_supply_fallback_button", move=True)
+        self._click_ui(
+            *self.COFFEE_SUPPLY_BUTTON_POSITION, "open_supply_fallback_button", move=True
+        )
         return bool(self.wait_for_supply_popup())
 
     def open_product_editor(self, entry_slot):
@@ -524,7 +539,11 @@ class CoffeeRuntime:
             page_options = self._dedupe_food_options(self.collect_product_options())
             options = self._dedupe_food_options([*options, *page_options])
             signature = self._product_page_signature(page_options)
-            if signature and last_signature and self._page_signature_overlap(signature, last_signature) >= 0.9:
+            if (
+                signature
+                and last_signature
+                and self._page_signature_overlap(signature, last_signature) >= 0.9
+            ):
                 stable_price_pages += 1
             else:
                 stable_price_pages = 0
@@ -562,12 +581,17 @@ class CoffeeRuntime:
         allow_buy_retry=True,
     ):
         self._sleep(1.0)
-        home_delivery = self.wait_for_button_text_box("送货上门", self.COFFEE_CONFIRM_REGION, timeout=8)
+        home_delivery = self.wait_for_button_text_box(
+            "送货上门", self.COFFEE_CONFIRM_REGION, timeout=8
+        )
         if home_delivery is None:
             blocker = self.wait_for_supply_blocker_text(timeout=2)
             if blocker:
                 return f"补货确认后出现库存或材料限制: {blocker}"
-            if allow_buy_retry and self.find_text_box("原料库存", self.COFFEE_SUPPLY_POPUP_REGION) is not None:
+            if (
+                allow_buy_retry
+                and self.find_text_box("原料库存", self.COFFEE_SUPPLY_POPUP_REGION) is not None
+            ):
                 buy_target = self.wait_for_supply_buy_button(timeout=2)
                 if buy_target is not None:
                     self._click_supply_button(buy_target, "buy_supply_retry_after_no_prompt")
@@ -768,8 +792,7 @@ class CoffeeRuntime:
         current_prices = [
             int(slot.options[0].price_value)
             for slot in slots
-            if getattr(slot, "options", None)
-            and slot.options[0].price_value is not None
+            if getattr(slot, "options", None) and slot.options[0].price_value is not None
         ]
         lowest_current_price = min(current_prices, default=None)
         for slot in slots:
@@ -850,11 +873,15 @@ class CoffeeRuntime:
             candidates.append(option)
         return candidates
 
-    def _fill_product_candidates(self, options, current_options, trend_category, conflict_options=None):
+    def _fill_product_candidates(
+        self, options, current_options, trend_category, conflict_options=None
+    ):
         candidates = []
         conflict_options = list(conflict_options or current_options or [])
         for option in self._rank_product_options(options, trend_category):
-            if self._option_matches_any(option, current_options) or self._option_matches_any(option, candidates):
+            if self._option_matches_any(option, current_options) or self._option_matches_any(
+                option, candidates
+            ):
                 continue
             if self._same_price_current_conflict(option, conflict_options):
                 self.actions.append(f"product_fill_same_price_conflict:{option.identity}")
@@ -1108,8 +1135,7 @@ class CoffeeRuntime:
         current = [
             f"{slot.current_food_identity or slot.identity}:{slot.options[0].price_value}"
             for slot in slots
-            if getattr(slot, "options", None)
-            and slot.options[0].price_value is not None
+            if getattr(slot, "options", None) and slot.options[0].price_value is not None
         ]
         best_count = max(1, int(target_count or 0), len(slots))
         ranked = [
@@ -1184,11 +1210,7 @@ class CoffeeRuntime:
         return (self._identity_key(option.identity), option.price_value)
 
     def _product_page_signature(self, options):
-        return tuple(
-            option.price_value
-            for option in options
-            if option.price_value is not None
-        )
+        return tuple(option.price_value for option in options if option.price_value is not None)
 
     @staticmethod
     def _page_signature_overlap(current, previous):
@@ -1200,7 +1222,9 @@ class CoffeeRuntime:
         previous_counts = {}
         for value in previous:
             previous_counts[value] = previous_counts.get(value, 0) + 1
-        overlap = sum(min(count, previous_counts.get(value, 0)) for value, count in current_counts.items())
+        overlap = sum(
+            min(count, previous_counts.get(value, 0)) for value, count in current_counts.items()
+        )
         return overlap / max(1, min(len(current), len(previous)))
 
     @classmethod
@@ -1258,7 +1282,9 @@ class CoffeeRuntime:
             action="reset_product_options_scroll",
         )
 
-    def _scroll_product_options(self, options=None, steps=None, wheel_count=None, action="scroll_product_options"):
+    def _scroll_product_options(
+        self, options=None, steps=None, wheel_count=None, action="scroll_product_options"
+    ):
         scrolls = self._product_scrolls() if steps is None else max(0, int(steps or 0))
         if scrolls <= 0:
             return
@@ -1278,13 +1304,20 @@ class CoffeeRuntime:
     def _product_list_scroll_point(self, options=None):
         boxes = self._safe_product_option_boxes(options)
         if boxes:
-            popup_left, popup_top, popup_right, popup_bottom = self._region_pixel_bounds(self.COFFEE_PRODUCT_POPUP_REGION)
+            popup_left, popup_top, popup_right, popup_bottom = self._region_pixel_bounds(
+                self.COFFEE_PRODUCT_POPUP_REGION
+            )
             popup_width = max(1, popup_right - popup_left)
             popup_height = max(1, popup_bottom - popup_top)
             left = min(int(getattr(box, "x", 0) or 0) for box in boxes)
-            right = max(int(getattr(box, "x", 0) or 0) + int(getattr(box, "width", 0) or 0) for box in boxes)
+            right = max(
+                int(getattr(box, "x", 0) or 0) + int(getattr(box, "width", 0) or 0) for box in boxes
+            )
             top = min(int(getattr(box, "y", 0) or 0) for box in boxes)
-            bottom = max(int(getattr(box, "y", 0) or 0) + int(getattr(box, "height", 0) or 0) for box in boxes)
+            bottom = max(
+                int(getattr(box, "y", 0) or 0) + int(getattr(box, "height", 0) or 0)
+                for box in boxes
+            )
 
             safe_left = popup_left + popup_width * self.COFFEE_PRODUCT_SCROLL_EDGE_MARGIN
             safe_right = popup_right - popup_width * self.COFFEE_PRODUCT_SCROLL_EDGE_MARGIN
@@ -1304,7 +1337,9 @@ class CoffeeRuntime:
             height = int(getattr(box, "height", 0) or 0)
             if width <= 0 or height <= 0:
                 continue
-            if self._box_center_in_region(box, self.COFFEE_PRODUCT_POPUP_REGION, self.COFFEE_PRODUCT_SCROLL_EDGE_MARGIN):
+            if self._box_center_in_region(
+                box, self.COFFEE_PRODUCT_POPUP_REGION, self.COFFEE_PRODUCT_SCROLL_EDGE_MARGIN
+            ):
                 boxes.append(box)
         return boxes
 
@@ -1349,10 +1384,14 @@ class CoffeeRuntime:
         return self.wait_for(self.is_coffee_shop_panel, timeout=timeout)
 
     def wait_for_product_popup(self):
-        return self.wait_for(lambda: self.find_text_box("商品列表", self.COFFEE_PRODUCT_POPUP_REGION), timeout=3)
+        return self.wait_for(
+            lambda: self.find_text_box("商品列表", self.COFFEE_PRODUCT_POPUP_REGION), timeout=3
+        )
 
     def wait_for_supply_popup(self):
-        return self.wait_for(lambda: self.find_text_box("原料库存", self.COFFEE_SUPPLY_POPUP_REGION), timeout=3)
+        return self.wait_for(
+            lambda: self.find_text_box("原料库存", self.COFFEE_SUPPLY_POPUP_REGION), timeout=3
+        )
 
     def is_coffee_shop_panel(self):
         texts = [self.box_text(box) for box in self.ocr_region(self.COFFEE_PANEL_REGION)]
@@ -1394,7 +1433,9 @@ class CoffeeRuntime:
 
     def pending_supply_delivery_present(self):
         texts = [self.box_text(box) for box in self.ocr_region(self.COFFEE_CONFIRM_REGION)]
-        if not any("送货上门" in text or "确认花费" in text or "库存提示" in text for text in texts):
+        if not any(
+            "送货上门" in text or "确认花费" in text or "库存提示" in text for text in texts
+        ):
             return False
         return any("送货上门" in text or "确认" in text for text in texts)
 
@@ -1430,14 +1471,15 @@ class CoffeeRuntime:
             return False
         has_revenue_goal = any("营业额" in text for text in texts)
         has_timed_goal = any(
-            ("分钟内" in text) or (("分" in text) and ("秒" in text))
-            for text in texts
+            ("分钟内" in text) or (("分" in text) and ("秒" in text)) for text in texts
         )
         return has_revenue_goal and has_timed_goal and not self.is_coffee_shop_panel()
 
     @staticmethod
     def _has_income_report_text(texts):
-        return any("营收报告" in text or "收入明细" in text or "店内总营收额" in text for text in texts)
+        return any(
+            "营收报告" in text or "收入明细" in text or "店内总营收额" in text for text in texts
+        )
 
     def is_tycoon_panel(self):
         if self.is_coffee_shop_panel():
@@ -1593,7 +1635,9 @@ class CoffeeRuntime:
 
     def _click_detected_box(self, target, action):
         if all(hasattr(target, attr) for attr in ("x", "y", "width", "height")):
-            self._click_screen_point(self._center_x(target), self._center_y(target), action, move=True)
+            self._click_screen_point(
+                self._center_x(target), self._center_y(target), action, move=True
+            )
             return
         self._click(target, action)
 
@@ -1618,7 +1662,9 @@ class CoffeeRuntime:
             click = lambda: click_ui(x, y, after_sleep=1, move=move, down_time=0.01)
         else:
             px, py = self._ui_point(x, y)
-            click = lambda: self.task.click(int(px), int(py), after_sleep=1, move=move, down_time=0.01)
+            click = lambda: self.task.click(
+                int(px), int(py), after_sleep=1, move=move, down_time=0.01
+            )
         self._operate_click(click)
 
     def _click_screen_point(self, x, y, action, move=False):
@@ -1677,7 +1723,10 @@ class CoffeeRuntime:
         try:
             return max(
                 0.0,
-                float(self._config_get("coffee_key_settle_seconds", self.COFFEE_KEY_SETTLE_SECONDS) or 0.0),
+                float(
+                    self._config_get("coffee_key_settle_seconds", self.COFFEE_KEY_SETTLE_SECONDS)
+                    or 0.0
+                ),
             )
         except (TypeError, ValueError):
             return self.COFFEE_KEY_SETTLE_SECONDS
@@ -1761,4 +1810,7 @@ class CoffeeRuntime:
         return [duration, *shorter]
 
     def _price_table_disabled(self):
-        return str(self._config_get("coffee_price_table", "auto") or "auto").strip().lower() == "disabled"
+        return (
+            str(self._config_get("coffee_price_table", "auto") or "auto").strip().lower()
+            == "disabled"
+        )

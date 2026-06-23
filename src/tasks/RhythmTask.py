@@ -2,9 +2,9 @@ import threading
 import time
 from collections import deque
 
-from ok import TaskDisabledException
 from qfluentwidgets import FluentIcon
 
+from ok import TaskDisabledException
 from src.Labels import Labels
 from src.tasks.BaseNTETask import BaseNTETask
 from src.tasks.NTEOneTimeTask import NTEOneTimeTask

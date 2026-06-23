@@ -29,7 +29,7 @@ class SoundListener:
     used_sr = CAPTURE_SAMPLE_RATE
     sample_len = 0.2
     detection_interval = 0.025
-    log_interval = 20
+    log_interval = 20.0
     default_process_name = "HTGame.exe"
 
     degree = 4
@@ -166,7 +166,7 @@ class SoundListener:
         try:
             logger.info(f"Initializing WASAPI process audio capture for {self.process_name}...")
 
-            check_count = 0
+            last_log = 0
             max_samples = int(self.used_sr * self.sample_len)
             samples_per_check = max(1, int(self.used_sr * self.detection_interval))
             ring_buffer = np.zeros(max_samples * 2, dtype=np.float64)
@@ -247,8 +247,9 @@ class SoundListener:
 
                 # self._draw_debug_visual(dodge_score, counter_score)
 
-                check_count += 1
-                if check_count % self.log_interval == 0:
+                now = time.time()
+                if now - last_log > self.log_interval:
+                    last_log = now
                     logger.info(
                         "Audio monitoring - dodge_score: {:.4f} (threshold: {}), "
                         "counter_score: {:.4f} (threshold: {})".format(

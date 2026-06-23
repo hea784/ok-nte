@@ -29,19 +29,35 @@ from src.sound_trigger.capture.process_resolver import (
 logger = Logger.get_logger(__name__)
 
 CAPTURE_CHANNELS = 2
+# Windows process loopback is documented for Windows 10 Build 20348+, but it is
+# available on many 20H1/19041 systems in practice. Keep the broader gate and let
+# activation fail with a searchable HRESULT on machines where the API is absent.
+# https://learn.microsoft.com/windows/win32/api/audioclientactivationparams/ns-audioclientactivationparams-audioclient_activation_params
 MIN_PROCESS_LOOPBACK_BUILD = 19041
 PROCESS_WAIT_INTERVAL = 0.5
 PROCESS_CHECK_INTERVAL = 1.0
 MAX_ACTIVATION_FAILURES = 5
 
+# Windows SDK: audioclientactivationparams.h
+# https://learn.microsoft.com/windows/win32/api/audioclientactivationparams/ne-audioclientactivationparams-audioclient_activation_type
 AUDIOCLIENT_ACTIVATION_TYPE_PROCESS_LOOPBACK = 1
+# Windows SDK: PROCESS_LOOPBACK_MODE. The enum values are declared in order, so
+# INCLUDE_TARGET_PROCESS_TREE is 0 and EXCLUDE_TARGET_PROCESS_TREE is 1.
+# https://learn.microsoft.com/windows/win32/api/audioclientactivationparams/ne-audioclientactivationparams-process_loopback_mode
 PROCESS_LOOPBACK_MODE_INCLUDE_TARGET_PROCESS_TREE = 0
 PROCESS_LOOPBACK_MODE_EXCLUDE_TARGET_PROCESS_TREE = 1
 
+# Windows PROPVARIANT VT_BLOB, used by ActivateAudioInterfaceAsync to receive an
+# AUDIOCLIENT_ACTIVATION_PARAMS blob.
 VT_BLOB = 65
 VIRTUAL_AUDIO_DEVICE_PROCESS_LOOPBACK = "VAD\\Process_Loopback"
 
 AUDCLNT_SHAREMODE_SHARED = 0
+# Windows SDK: Audiosessiontypes.h AUDCLNT_STREAMFLAGS_XXX constants.
+# LOOPBACK opens a capture buffer for rendered audio, EVENTCALLBACK lets WASAPI
+# signal us when packets are ready, and AUTOCONVERTPCM lets the audio engine
+# convert from the device mix format to our requested PCM format.
+# https://learn.microsoft.com/windows/win32/coreaudio/audclnt-streamflags-xxx-constants
 AUDCLNT_STREAMFLAGS_LOOPBACK = 0x00020000
 AUDCLNT_STREAMFLAGS_EVENTCALLBACK = 0x00040000
 AUDCLNT_STREAMFLAGS_AUTOCONVERTPCM = 0x80000000
@@ -53,16 +69,21 @@ INIT_STREAM_FLAGS = (
 
 AUDCLNT_BUFFERFLAGS_SILENT = 0x2
 
+# Windows SDK: mmreg.h wave format tags.
+# https://learn.microsoft.com/windows/win32/api/mmreg/ns-mmreg-waveformatex
 WAVE_FORMAT_PCM = 0x0001
 WAVE_FORMAT_IEEE_FLOAT = 0x0003
 WAVE_FORMAT_EXTENSIBLE = 0xFFFE
 
+# REFERENCE_TIME is in 100 ns units. 50,000 = 5 ms, 200,000 = 20 ms.
 LOW_LATENCY_BUFFER_HNS = 50_000
 FALLBACK_BUFFER_HNS = 200_000
 
 REFERENCE_TIME = ctypes.c_longlong
 
 
+# Windows SDK: AUDIOCLIENT_PROCESS_LOOPBACK_PARAMS.
+# https://learn.microsoft.com/windows/win32/api/audioclientactivationparams/ns-audioclientactivationparams-audioclient_process_loopback_params
 class AUDIOCLIENT_PROCESS_LOOPBACK_PARAMS(ctypes.Structure):
     _fields_ = [
         ("TargetProcessId", wintypes.DWORD),
@@ -74,6 +95,10 @@ class _APUnion(ctypes.Union):
     _fields_ = [("ProcessLoopbackParams", AUDIOCLIENT_PROCESS_LOOPBACK_PARAMS)]
 
 
+# Windows SDK: AUDIOCLIENT_ACTIVATION_PARAMS.
+# The C struct contains an activation type plus a union. Currently the union only
+# carries process-loopback params for our use case.
+# https://learn.microsoft.com/windows/win32/api/audioclientactivationparams/ns-audioclientactivationparams-audioclient_activation_params
 class AUDIOCLIENT_ACTIVATION_PARAMS(ctypes.Structure):
     _anonymous_ = ("u",)
     _fields_ = [
@@ -96,6 +121,8 @@ class PROPVARIANT_BLOB(ctypes.Structure):
     ]
 
 
+# Windows SDK: WAVEFORMATEX. _pack_=1 matches the 18-byte C layout.
+# https://learn.microsoft.com/windows/win32/api/mmreg/ns-mmreg-waveformatex
 class WAVEFORMATEX(ctypes.Structure):
     _pack_ = 1
     _fields_ = [
@@ -109,6 +136,9 @@ class WAVEFORMATEX(ctypes.Structure):
     ]
 
 
+# Windows SDK: WAVEFORMATEXTENSIBLE. Used first because it precisely describes
+# stereo float32 with an explicit channel mask.
+# https://learn.microsoft.com/windows/win32/api/mmreg/ns-mmreg-waveformatextensible
 class WAVEFORMATEXTENSIBLE(ctypes.Structure):
     _pack_ = 1
     _fields_ = [
@@ -120,6 +150,7 @@ class WAVEFORMATEXTENSIBLE(ctypes.Structure):
 
 
 KSDATAFORMAT_SUBTYPE_IEEE_FLOAT = GUID("{00000003-0000-0010-8000-00AA00389B71}")
+# SPEAKER_FRONT_LEFT | SPEAKER_FRONT_RIGHT.
 SPEAKER_FRONT_LEFT_RIGHT = 0x3
 
 
@@ -279,6 +310,26 @@ _CloseHandle = _kernel32.CloseHandle
 _CloseHandle.argtypes = [wintypes.HANDLE]
 
 
+def _hresult_hex(value: int) -> str:
+    return f"0x{int(value) & 0xFFFFFFFF:08X}"
+
+
+def _exception_hresult(exc: BaseException) -> Optional[int]:
+    value = getattr(exc, "hresult", None)
+    if isinstance(value, int):
+        return value
+    if exc.args and isinstance(exc.args[0], int):
+        return exc.args[0]
+    return None
+
+
+def _describe_exception(exc: BaseException) -> str:
+    hresult = _exception_hresult(exc)
+    if hresult is None:
+        return f"{type(exc).__name__}: {exc}"
+    return f"{type(exc).__name__} HRESULT={_hresult_hex(hresult)}: {exc}"
+
+
 class _ActivateHandler(COMObject):
     _com_interfaces_ = [IActivateAudioInterfaceCompletionHandler, IAgileObject]
 
@@ -330,13 +381,13 @@ def _activate_audio_client(pid: int, include_tree: bool, timeout_s: float = 5.0)
         ctypes.byref(operation),
     )
     if hr < 0:
-        raise OSError(f"ActivateAudioInterfaceAsync failed: 0x{hr & 0xFFFFFFFF:08X}")
+        raise OSError(f"ActivateAudioInterfaceAsync failed: {_hresult_hex(hr)}")
 
     if not handler.completed.wait(timeout_s):
         raise TimeoutError("ActivateCompleted did not fire within timeout")
     if handler.activate_hr is None or handler.activate_hr < 0:
-        code = (handler.activate_hr or 0) & 0xFFFFFFFF
-        raise OSError(f"process-loopback activation failed: 0x{code:08X}")
+        code = handler.activate_hr or 0
+        raise OSError(f"process-loopback activation failed: {_hresult_hex(code)}")
     if handler.audio_client is None:
         raise OSError("activation returned no IAudioClient")
     _ = params
@@ -434,7 +485,7 @@ class ProcessLoopbackSource(AudioCaptureSource):
                 pid = resolve_target_pid(self.process_name)
                 if pid is None:
                     now = time.time()
-                    if now - last_missing_log >= 5.0:
+                    if now - last_missing_log >= 30.0:
                         logger.info(f"Waiting for audio process {self.process_name}...")
                         last_missing_log = now
                     if self._stop.wait(PROCESS_WAIT_INTERVAL):
@@ -540,8 +591,14 @@ class ProcessLoopbackSource(AudioCaptureSource):
                     return audio_client, block_align, is_float
                 except Exception as exc:
                     last_error = exc
+                    logger.debug(
+                        "IAudioClient.Initialize failed for "
+                        f"{'float' if is_float else 'pcm16'} "
+                        f"buffer={buffer_hns // 10_000}ms: {_describe_exception(exc)}"
+                    )
                     del audio_client
-        raise OSError(f"IAudioClient.Initialize failed for all formats: {last_error}")
+        detail = _describe_exception(last_error) if last_error else "no error detail"
+        raise OSError(f"IAudioClient.Initialize failed for all formats: {detail}")
 
 
 def _capability_available() -> bool:

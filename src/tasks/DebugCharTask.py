@@ -1,7 +1,7 @@
 
-from ok import TaskDisabledException
 from qfluentwidgets import FluentIcon
 
+from ok import TaskDisabledException
 from src.char.CharFactory import char_dict
 from src.combat.BaseCombatTask import BaseCombatTask
 
@@ -41,9 +41,9 @@ class DebugCharTask(BaseCombatTask):
             self.sleep(0.1)
 
     def init_char(self):
-        self.current_char = self.config["char"]
+        self.current_char = self.config["char"] # type: ignore
         char_class = char_dict.get(self.current_char).get("cls")
-        self.char = char_class(self, 0, char_name=self.current_char, confidence=1)
+        self.char = char_class(self, 0, char_name=self.current_char, confidence=1) # type: ignore
 
     def __getattr__(self, name):
         """
@@ -51,7 +51,7 @@ class DebugCharTask(BaseCombatTask):
         name 是调用的名子（字符串）。
         """
         try:
-            if self.char is None or self.current_char != self.config["char"]:
+            if self.char is None or self.current_char != self.config["char"]: # type: ignore
                 self.is_char_loaded = False
                 self.init_char()
             if hasattr(self.char, name):

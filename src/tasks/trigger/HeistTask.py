@@ -2,8 +2,8 @@ import time
 
 import win32api
 import win32con
-from ok import Logger, TriggerTask
 
+from ok import Logger, TriggerTask
 from src.tasks.BaseNTETask import BaseNTETask
 
 logger = Logger.get_logger(__name__)

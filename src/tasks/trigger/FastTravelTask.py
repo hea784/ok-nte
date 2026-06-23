@@ -1,5 +1,4 @@
 from ok import Logger, TriggerTask
-
 from src import text_black_color
 from src.Labels import Labels
 from src.tasks.BaseNTETask import BaseNTETask

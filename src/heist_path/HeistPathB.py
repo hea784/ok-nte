@@ -1,5 +1,5 @@
-import time, re
-from src.heist_path.HeistPath import HeistPath
+import re
+
 from src.heist_path.HeistPathA import HeistPathA
 
 

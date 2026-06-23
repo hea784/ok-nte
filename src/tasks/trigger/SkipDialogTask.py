@@ -7,7 +7,7 @@ from src.tasks.BaseNTETask import BaseNTETask
 logger = Logger.get_logger(__name__)
 
 
-class SkipDialogTask(TriggerTask, BaseNTETask):
+class SkipDialogTask(TriggerTask, BaseNTETask): # type: ignore
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

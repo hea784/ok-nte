@@ -18,6 +18,19 @@ from src.Labels import Labels
 from src.tasks.BaseNTETask import BaseNTETask
 
 
+def _exe_name_list(exe_names):
+    if isinstance(exe_names, (list, tuple, set)):
+        return [str(exe_name) for exe_name in exe_names if exe_name]
+    if exe_names:
+        return [str(exe_names)]
+    return []
+
+
+def _format_exe_names(exe_names):
+    names = _exe_name_list(exe_names)
+    return ", ".join(names) if names else "<empty>"
+
+
 class DynamicConfig(dict):
     @property
     def GAME_CAPTURE_CONFIG(self):
@@ -92,7 +105,7 @@ class LauncherTask(BaseNTETask):
         if not launcher_path:
             self.log_error("Launcher path was not found in config or registry")
             raise TaskDisabledException(
-                "Launcher path not found. Please set Launcher Path to NTEGame.exe"
+                "Launcher path not found. Please set Launcher Path to a launcher executable"
             )
 
         self.log_info(f"Starting launcher from configured path: {launcher_path}")
@@ -177,7 +190,7 @@ class LauncherTask(BaseNTETask):
                         deadline = self._extend_deadline_for_update(deadline, loop_start)
                     continue
 
-            box = self.box_of_screen(0.660, 0.306, 0.691, 0.378)
+            box = self.box_of_screen(0.644, 0.306, 0.691, 0.378)
             if btn := self.find_one(Labels.launcher_popup_close, box=box):
                 self.click(btn, after_sleep=2)
                 continue
@@ -331,8 +344,9 @@ class LauncherTask(BaseNTETask):
             raise TaskDisabledException(f"Resolution Error: {resolution_error}")
 
     def _wait_for_process(self, exe_name, time_out=120, settle_window=False):
+        exe_label = _format_exe_names(exe_name)
         self.log_info(
-            f"Waiting for process and window {exe_name} for up to {time_out}s "
+            f"Waiting for process and window {exe_label} for up to {time_out}s "
             f"(settle_window={settle_window})"
         )
         start = time.time()
@@ -348,7 +362,7 @@ class LauncherTask(BaseNTETask):
                         elapsed = int(time.time() - start)
                         if elapsed != last_log_second and elapsed > 0 and elapsed % 10 == 0:
                             self.log_info(
-                                f"Window for {exe_name} exists but is too small; "
+                                f"Window for {exe_label} exists but is too small; "
                                 f"hwnd={hwnd}, size={size[0]}x{size[1]}, elapsed={elapsed}s"
                             )
                             last_log_second = elapsed
@@ -357,13 +371,13 @@ class LauncherTask(BaseNTETask):
 
                     if settle_window:
                         if not self._wait_for_window_size_to_settle(
-                            hwnd, exe_name, start, time_out
+                            hwnd, exe_label, start, time_out
                         ):
                             return False
                         size = self._get_window_size(hwnd)
 
                     self.log_info(
-                        f"Found process and window {exe_name}: "
+                        f"Found process and window {exe_label}: "
                         f"{self._format_process(proc)}, hwnd={hwnd}, size={size[0]}x{size[1]}"
                     )
                     return True
@@ -372,21 +386,23 @@ class LauncherTask(BaseNTETask):
             if elapsed != last_log_second and elapsed > 0 and elapsed % 10 == 0:
                 if proc:
                     self.log_info(
-                        f"Process {exe_name} exists, waiting for window; elapsed={elapsed}s"
+                        f"Process {exe_label} exists, waiting for window; elapsed={elapsed}s"
                     )
                 else:
-                    self.log_info(f"Still waiting for {exe_name}; elapsed={elapsed}s")
+                    self.log_info(f"Still waiting for {exe_label}; elapsed={elapsed}s")
                 last_log_second = elapsed
             self.sleep(1)
-        self.log_warning(f"Process/window {exe_name} was not found within {time_out}s")
+        self.log_warning(f"Process/window {exe_label} was not found within {time_out}s")
         return False
 
     def _find_process(self, exe_name):
-        exe_name = exe_name.lower()
+        exe_names = {name.lower() for name in _exe_name_list(exe_name)}
+        if not exe_names:
+            return None
         for proc in psutil.process_iter(["pid", "name", "exe"]):
             try:
                 name = proc.info.get("name") or ""
-                if name.lower() == exe_name:
+                if name.lower() in exe_names:
                     return proc.info
             except (psutil.NoSuchProcess, psutil.AccessDenied):
                 continue
@@ -476,7 +492,9 @@ class LauncherTask(BaseNTETask):
 
     def _restore_window_if_minimized(self, hwnd, exe_name):
         if win32gui.IsIconic(hwnd):
-            self.log_info(f"Window for {exe_name} is minimized; restoring hwnd={hwnd}")
+            self.log_info(
+                f"Window for {_format_exe_names(exe_name)} is minimized; restoring hwnd={hwnd}"
+            )
             win32gui.ShowWindow(hwnd, win32con.SW_RESTORE)
 
     def _get_launcher_path(self):
@@ -506,7 +524,7 @@ class LauncherTask(BaseNTETask):
         return ""
 
     def _update_launcher_path(self, path):
-        if path and os.path.basename(path).lower() == LAUNCHER_EXE.lower() and os.path.exists(path):
+        if path and self._is_launcher_exe_path(path):
             old_path = self.config.get(self.CONF_PATH, "")
             if old_path != path:
                 self.log_info(f"Updating Launcher Path config: {path}")
@@ -528,9 +546,12 @@ class LauncherTask(BaseNTETask):
         if "client" in lowered:
             client_index = lowered.index("client")
             root = os.sep.join(parts[:client_index])
-            launcher_path = os.path.join(root, "NTELauncher", LAUNCHER_EXE)
-            self.log_info(f"Derived launcher path candidate: {launcher_path}")
-            self._update_launcher_path(launcher_path)
+            launcher_path = self._launcher_path_from_install_root(root)
+            if launcher_path:
+                self.log_info(f"Derived launcher path candidate: {launcher_path}")
+                self._update_launcher_path(launcher_path)
+            else:
+                self.log_warning(f"Could not derive launcher path from game path: {path}")
         else:
             self.log_warning(f"Could not derive launcher path from game path: {path}")
 
@@ -606,12 +627,13 @@ class LauncherTask(BaseNTETask):
         if not value:
             return ""
 
-        match = re.search(r'"?([a-zA-Z]:\\[^"]*?NTEGame\.exe)"?', value)
+        launcher_pattern = "|".join(re.escape(name) for name in _exe_name_list(LAUNCHER_EXE))
+        match = re.search(rf'"?([a-zA-Z]:\\[^"]*?(?:{launcher_pattern}))"?', value)
         if match and os.path.exists(match.group(1)):
             return match.group(1)
 
         path = value.strip().strip('"')
-        if os.path.basename(path).lower() == LAUNCHER_EXE.lower() and os.path.exists(path):
+        if self._is_launcher_exe_path(path):
             return path
 
         return self._launcher_path_from_install_root(path)
@@ -619,14 +641,25 @@ class LauncherTask(BaseNTETask):
     def _launcher_path_from_install_root(self, path):
         if not path:
             return ""
-        candidates = [
-            os.path.join(path, "NTELauncher", LAUNCHER_EXE),
-            os.path.join(path, LAUNCHER_EXE),
-        ]
+        candidates = []
+        for exe_name in _exe_name_list(LAUNCHER_EXE):
+            candidates.extend(
+                [
+                    os.path.join(path, "NTELauncher", exe_name),
+                    os.path.join(path, exe_name),
+                ]
+            )
         for candidate in candidates:
             if os.path.exists(candidate):
                 return candidate
         return ""
+
+    def _is_launcher_exe_path(self, path):
+        launcher_names = {name.lower() for name in _exe_name_list(LAUNCHER_EXE)}
+        return (
+            os.path.basename(path).lower() in launcher_names
+            and os.path.exists(path)
+        )
 
     def _format_process(self, proc_info):
         if not proc_info:

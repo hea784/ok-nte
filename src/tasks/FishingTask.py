@@ -3,9 +3,9 @@ from enum import Enum
 
 import cv2
 import numpy as np
-from ok import TaskDisabledException, WaitFailedException
 from qfluentwidgets import FluentIcon
 
+from ok import TaskDisabledException, WaitFailedException
 from src import text_white_color
 from src.Labels import Labels
 from src.tasks.BaseNTETask import BaseNTETask
