@@ -1158,20 +1158,10 @@ class BagelAITools(NTEOneTimeTask, BaseNTETask):
     # 回复生成模块
     def generate_reply_content(self, title_text="帖子", author_name="呗主"):
         """生成回复内容（含降级机制与动态名字拼接）"""
-        temp_img_path = ""
         cropped_frame = self.get_frame_by_ratio(0.015, 0.14, 0.98, 0.82)
-        if cropped_frame is not None:
-            # 将 NumPy 矩阵保存为本地临时图片
-            # 如果大模型认出来的颜色很怪，说明截图框架出来的是 RGB，而 OpenCV 默认写出是 BGR
-            # 此时可以用这行转换颜色：cropped_frame = cv2.cvtColor(cropped_frame, cv2.COLOR_RGB2BGR)
-
-            temp_img_path = "vlm_input_temp.jpg"
-            cv2.imwrite(temp_img_path, cropped_frame)
-        else:
-            temp_img_path = False
 
         # 如果配置了大模型，图片存在，优先走大模型
-        if temp_img_path and self.config.get(self.CONF_MODEL, False):
+        if cropped_frame is not None and self.config.get(self.CONF_MODEL, False):
             try:
                 reply_prompt = self.config.get(
                     self.CONF_PROMPT_REPLY,
@@ -1180,7 +1170,7 @@ class BagelAITools(NTEOneTimeTask, BaseNTETask):
                 if reply_prompt == "" or reply_prompt in self.def_prompt:
                     reply_prompt = self.model_prompt.get("REPLY", "")
                 model_reply = self.get_vlm_response(
-                    reply_prompt, temp_img_path, post_title=title_text, author=author_name
+                    reply_prompt, cropped_frame, post_title=title_text, author=author_name
                 )
                 self.log_info(f"模型生成 | 为帖子【{title_text}】生成回复: '{model_reply}'")
                 return model_reply
@@ -1200,7 +1190,6 @@ class BagelAITools(NTEOneTimeTask, BaseNTETask):
     # 贴文生成模块
     def generate_post_content(self, generate_type="title"):
         """生成发帖内容（含降级机制）"""
-        temp_img_path = ""
         action = ""
         cropped_frame = None
         if generate_type == "title":
@@ -1209,16 +1198,8 @@ class BagelAITools(NTEOneTimeTask, BaseNTETask):
         else:
             action = "发帖文案"
             cropped_frame = self.get_frame_by_ratio(0.015, 0.10, 0.980, 0.82)
-        if cropped_frame is not None:
-            # 将 NumPy 矩阵保存为本地临时图片
-            # 如果大模型认出来的颜色很怪，说明截图框架出来的是 RGB，而 OpenCV 默认写出是 BGR
-            # 此时可以用这行转换颜色：cropped_frame = cv2.cvtColor(cropped_frame, cv2.COLOR_RGB2BGR)
-            temp_img_path = "vlm_input_temp.jpg"
-            cv2.imwrite(temp_img_path, cropped_frame)
-        else:
-            temp_img_path = False
         # 如果配置了大模型，图片存在，优先走大模型
-        if temp_img_path and self.config.get(self.CONF_MODEL, False):
+        if cropped_frame is not None and self.config.get(self.CONF_MODEL, False):
             try:
                 post_prompt = ""
                 if generate_type == "title":
@@ -1235,7 +1216,7 @@ class BagelAITools(NTEOneTimeTask, BaseNTETask):
                     )
                     if post_prompt == "" or post_prompt in self.def_prompt:
                         post_prompt = self.model_prompt.get("POST_CONTENT", "")
-                model_post = self.get_vlm_response(post_prompt, temp_img_path)
+                model_post = self.get_vlm_response(post_prompt, cropped_frame)
                 self.log_info(f"模型生成 | 为所选图片生成{action}: '{model_post}'")
                 if generate_type == "title":
                     self.nowview_post = model_post
@@ -1250,7 +1231,7 @@ class BagelAITools(NTEOneTimeTask, BaseNTETask):
         return base_post
 
     # 模型调用模块
-    def get_vlm_response(self, prompt, post_img_path, post_title=None, author=None):
+    def get_vlm_response(self, prompt, post_img_frame, post_title=None, author=None):
         """
         使用原生 requests 调用 VLM 模型（支持从 /v1/models 自动抓取真名，完美兼容 llama.cpp/LM Studio）
         """
@@ -1302,8 +1283,10 @@ class BagelAITools(NTEOneTimeTask, BaseNTETask):
                 final_prompt += f"\n发帖者: {author}"
 
         # 转图片 Base64
-        with open(post_img_path, "rb") as image_file:
-            base64_image = base64.b64encode(image_file.read()).decode("utf-8")
+        success, buffer = cv2.imencode(".jpg", post_img_frame)
+        if not success:
+            raise RuntimeError("Failed to encode image in memory")
+        base64_image = base64.b64encode(buffer.tobytes()).decode("utf-8")
 
         # 组装完整的 Payload
         payload = {

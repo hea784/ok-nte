@@ -634,13 +634,7 @@ class BaseChar:
         if self.ultimate_available():
             if self.task.combat_detect_uncertain:
                 self.logger.info("click_ultimate blocked by combat_detect_uncertain")
-                blocked_start = time.time()
-                next_blocked_warning = blocked_start + 2
                 while self.task.combat_detect_uncertain:
-                    now = time.time()
-                    if now >= next_blocked_warning:
-                        self._log_combat_detect_uncertain_wait(blocked_start, now)
-                        next_blocked_warning = now + 2
                     self.click_with_interval()
                     self.sleep(0.1)
                 self.logger.info("click_ultimate unblocked")
@@ -668,71 +662,6 @@ class BaseChar:
             }
 
         return self._finish_ultimate_action(result, send_click)
-
-    def _log_combat_detect_uncertain_wait(self, blocked_start, now):
-        task = self.task
-        state = getattr(task, "combat_detect_state", None)
-        skip = getattr(task, "sleep_check_skip", None)
-        scene = getattr(task, "scene", None)
-        executor = getattr(task, "executor", None)
-
-        def remaining(timestamp):
-            if timestamp is None:
-                return None
-            return timestamp - now
-
-        try:
-            scene_in_combat = scene.in_combat() if scene is not None else None
-        except Exception as e:
-            scene_in_combat = f"error:{e}"
-
-        try:
-            from src.sound_trigger.SoundCombatContext import SoundCombatContext
-
-            sound_interrupt = SoundCombatContext.should_interrupt_combat()
-        except Exception as e:
-            sound_interrupt = f"error:{e}"
-
-        try:
-            openvino_state = task._openvino_debug_state()
-        except Exception as e:
-            openvino_state = f"openvino=debug_failed({e})"
-
-        last_sleep_check_time = getattr(task, "last_sleep_check_time", 0) or 0
-        last_sleep_check_age = now - last_sleep_check_time if last_sleep_check_time else None
-        current_task = getattr(executor, "current_task", None)
-        interaction = getattr(executor, "interaction", None)
-        try:
-            should_capture = interaction.should_capture() if interaction is not None else None
-        except Exception as e:
-            should_capture = f"error:{e}"
-
-        message = (
-            "click_ultimate still blocked by combat_detect_uncertain: "
-            f"elapsed={now - blocked_start:.3f}, char={self}, char_name={self.char_name}, "
-            f"in_sleep_check={getattr(task, 'in_sleep_check', None)}, "
-            f"last_sleep_check_age={last_sleep_check_age}, "
-            f"sleep_check_interval={getattr(task, 'sleep_check_interval', None)}, "
-            f"skip_sound={getattr(skip, 'sound_combat_context', None)}, "
-            f"skip_check_combat={getattr(skip, 'check_combat', None)}, "
-            f"in_animation={getattr(task, 'in_animation', None)}, "
-            f"sound_interrupt={sound_interrupt}, scene_in_combat={scene_in_combat}, "
-            f"uncertain_until={getattr(state, 'uncertain_until', None)}, "
-            f"uncertain_remaining={remaining(getattr(state, 'uncertain_until', None))}, "
-            f"miss_count={getattr(state, 'miss_count', None)}, "
-            f"retarget_ready_at={getattr(state, 'retarget_ready_at', None)}, "
-            f"retarget_remaining={remaining(getattr(state, 'retarget_ready_at', None))}, "
-            f"retarget_detect_requested={getattr(state, 'retarget_detect_requested', None)}, "
-            f"executor_paused={getattr(executor, 'paused', None)}, "
-            f"task_paused={getattr(task, 'paused', None)}, "
-            f"is_current_task={current_task is task}, "
-            f"should_capture={should_capture}, {openvino_state}"
-        )
-        log_warning = getattr(task, "log_warning", None)
-        if callable(log_warning):
-            log_warning(message)
-        else:
-            self.logger.warning(message)
 
     def _finish_ultimate_action(self, result, send_click):
         if result.get("timed_out"):

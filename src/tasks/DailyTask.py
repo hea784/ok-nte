@@ -6,16 +6,16 @@ from qfluentwidgets import FluentIcon
 
 from ok import CannotFindException, TaskDisabledException, find_color_rectangles
 from src import text_white_color
+from src.combat.BaseCombatTask import BaseCombatTask
 from src.Labels import Labels
 from src.tasks.AnomalyTask import AnomalyTask
-from src.tasks.BaseNTETask import BaseNTETask
 from src.tasks.CoffeeTask import CoffeeTask
 from src.tasks.mixin.CinemaDateMixin import CinemaDateMixin
 from src.tasks.NTEOneTimeTask import NTEOneTimeTask
 from src.utils import image_utils as iu
 
 
-class DailyTask(NTEOneTimeTask, CinemaDateMixin, BaseNTETask):
+class DailyTask(NTEOneTimeTask, CinemaDateMixin, BaseCombatTask):
     """日常任务执行器"""
 
     # --- 配置项键名 ---

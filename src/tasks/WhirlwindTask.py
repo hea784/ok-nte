@@ -26,7 +26,6 @@ class WhirlwindTask(NTEOneTimeTask, BaseCombatTask):
         self.name = "自动小旋风"
         self.description = "可交互「小旋风」下按开始"
         self.icon = FluentIcon.FLAG
-        self.group_name = "都市闲趣"
         self.default_config.update(
             {
                 self.CONFIG_DIFF_OPTION: 1,
