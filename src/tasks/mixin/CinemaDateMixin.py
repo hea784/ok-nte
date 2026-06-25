@@ -2,6 +2,7 @@ import re
 import time
 
 from ok import Box
+
 from src.Labels import Labels
 from src.tasks.BaseNTETask import BaseNTETask
 from src.utils import image_utils as iu

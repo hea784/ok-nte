@@ -3,6 +3,7 @@ import time
 from typing import TYPE_CHECKING, Callable, Optional
 
 from ok import Logger
+
 from src.sound_trigger.DodgeCounterTrigger import DodgeCounterTrigger
 
 if TYPE_CHECKING:

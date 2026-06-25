@@ -2,8 +2,8 @@ from src.char.BaseChar import BaseChar
 from src.combat.planner import (
     ActionTag,
     CombatContext,
-    EntryChainPolicy,
     FieldPreference,
+    Planner,
     Role,
     RoleProfile,
 )
@@ -23,7 +23,7 @@ class Jiuyuan(BaseChar):
     def combat_intents(self, context):
         return self.intents(
             self.click_ultimate_action(),
-            self.click_skill_action(chain_policy=EntryChainPolicy.STOP_ON_SUCCESS),
+            self.click_skill_action(chain_policy=Planner.EntryChainPolicy.STOP_ON_SUCCESS),
             self.planner_action(
                 tags=ActionTag.DEFAULT_ACTION,
                 execute=self.fire_bullets,

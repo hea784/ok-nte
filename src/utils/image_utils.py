@@ -4,7 +4,6 @@ from typing import Tuple
 
 import cv2
 import numpy as np
-
 from ok import Box, color_range_to_bound
 from ok.gui.Communicate import communicate
 

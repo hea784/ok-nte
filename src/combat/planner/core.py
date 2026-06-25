@@ -36,6 +36,9 @@ from .types import (
     FieldClaimLevel,
     FieldPreference,
     FollowupStep,
+    Planner,
+    RequestHandle,
+    RequestStatus,
     Role,
     RoleProfile,
     SwitchDecision,
@@ -68,6 +71,9 @@ __all__ = [
     "FieldClaimLevel",
     "FieldPreference",
     "FollowupStep",
+    "Planner",
+    "RequestHandle",
+    "RequestStatus",
     "Role",
     "RoleProfile",
     "SwitchDecision",
@@ -509,10 +515,7 @@ class CombatPlanner:
             return None
         actions = self._actions_for(char, context)
         route_action = self._strict_route_action(char, actions, context)
-        if (
-            route_action is not None
-            and route_action.identity_key() not in excluded_action_names
-        ):
+        if route_action is not None and route_action.identity_key() not in excluded_action_names:
             return route_action
         route_wait = self._strict_route_wait_action(char, context)
         if route_wait is not None and route_wait.identity_key() not in excluded_action_names:
@@ -595,9 +598,7 @@ class CombatPlanner:
         if not step.wants(current_char, action):
             return False
 
-        logger.info(
-            f"strict route skips failed optional step: {request.reason} / {step.reason}"
-        )
+        logger.info(f"strict route skips failed optional step: {request.reason} / {step.reason}")
         if not request.skip_current_step():
             return False
         if request.fulfilled():
@@ -692,20 +693,23 @@ class CombatPlanner:
             target = request_switch_target(request, context.chars)
             if target is None:
                 if request_is_switch(request):
-                    request.notify_expired()
+                    request.finish(RequestStatus.EXPIRED)
+                    request.close()
                     logger.info(f"switch request target missing: {request.reason}")
                     continue
                 active_requests.append(request)
                 continue
             if not self._can_switch_to(target):
                 if request_is_switch(request):
-                    request.notify_expired()
+                    request.finish(RequestStatus.EXPIRED)
+                    request.close()
                     logger.info(f"switch request target dead: {request.reason}")
                     continue
                 active_requests.append(request)
                 continue
             if target == current_char:
-                request.notify_fulfilled()
+                request.finish(RequestStatus.FULFILLED)
+                request.close()
                 logger.info(f"switch request already current: {request.reason}")
                 continue
             if decision is None:
@@ -859,8 +863,7 @@ class CombatPlanner:
                 return
             actions = self._actions_for(target, context)
             if any(
-                step.wants(target, action)
-                and self._action_priority_ready(target, action, context)
+                step.wants(target, action) and self._action_priority_ready(target, action, context)
                 for action in actions
             ):
                 return
@@ -936,7 +939,8 @@ class CombatPlanner:
             logger.warning(
                 f"strict route target dead, route unlocked: {request.reason} / {step.reason}"
             )
-            request.notify_expired()
+            request.finish(RequestStatus.EXPIRED)
+            request.close()
             context._state.locked_route = None
             return None
 
@@ -993,7 +997,9 @@ class CombatPlanner:
         matching_chars = [
             char for char in context.chars if char is not None and step.matches_char(char)
         ]
-        return bool(matching_chars) and all(not self._can_switch_to(char) for char in matching_chars)
+        return bool(matching_chars) and all(
+            not self._can_switch_to(char) for char in matching_chars
+        )
 
     def _can_switch_to(self, char: "BaseChar | None") -> bool:
         """返回 planner 是否允许把目标角色作为切人候选。"""
@@ -1002,9 +1008,7 @@ class CombatPlanner:
 
     def _log_switch_decision(self, current_char: "BaseChar", decision: SwitchDecision):
         breakdown = (
-            f", score_breakdown [{decision.score_breakdown}]"
-            if decision.score_breakdown
-            else ""
+            f", score_breakdown [{decision.score_breakdown}]" if decision.score_breakdown else ""
         )
         if decision.target == current_char:
             self._log_info_throttled(

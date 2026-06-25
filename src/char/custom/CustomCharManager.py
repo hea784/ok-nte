@@ -764,7 +764,7 @@ class CustomCharManager:
                         mask = mask[:ch, :cw]
 
                 # 裁切掉边缘的几个像素，给予 matchTemplate 在 new_image_mat 内部滑动的冗余空间
-                # 这样可以解决跨分辨率时因为引擎级渲染和坐标四舍五入造成的 1-2 像素错位导致的断崖式掉率
+                # 解决跨分辨率时因为引擎级渲染和坐标四舍五入造成的 1-2 像素错位导致的断崖式掉率
                 margin = 2
                 if cached_mat.shape[0] > margin * 2 and cached_mat.shape[1] > margin * 2:
                     cached_mat = cached_mat[margin:-margin, margin:-margin]

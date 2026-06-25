@@ -5,8 +5,6 @@ import time
 import win32api
 import win32con
 import win32gui
-from win32api import GetCursorPos, SetCursorPos
-
 from ok import og
 from ok.device.intercation import (
     INPUT,
@@ -15,6 +13,8 @@ from ok.device.intercation import (
     SendInput,
 )
 from ok.util.logger import Logger
+from win32api import GetCursorPos, SetCursorPos
+
 from src.interaction.keyboard_layout import QwertyPhysicalKeyMapper
 
 logger = Logger.get_logger(__name__)

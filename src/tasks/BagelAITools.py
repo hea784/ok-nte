@@ -6,9 +6,9 @@ from functools import cached_property
 
 import cv2
 import requests
+from ok import TaskDisabledException, get_path_relative_to_exe
 from qfluentwidgets import FluentIcon
 
-from ok import TaskDisabledException, get_path_relative_to_exe
 from src.tasks.BaseNTETask import BaseNTETask
 from src.tasks.NTEOneTimeTask import NTEOneTimeTask
 
@@ -789,7 +789,8 @@ class BagelAITools(NTEOneTimeTask, BaseNTETask):
             photo_total = int(photo_total)
         except (ValueError, TypeError):
             self.log_info(
-                f"接收到非法的 photo_total: {photo_total} (类型: {type(photo_total).__name__})，已强制启用安全默认值 1"
+                f"接收到非法的 photo_total: {photo_total} (类型: {type(photo_total).__name__})，"
+                "已强制启用安全默认值 1"
             )
             photo_total = 1
         # 越界输入归正
@@ -1233,7 +1234,8 @@ class BagelAITools(NTEOneTimeTask, BaseNTETask):
     # 模型调用模块
     def get_vlm_response(self, prompt, post_img_frame, post_title=None, author=None):
         """
-        使用原生 requests 调用 VLM 模型（支持从 /v1/models 自动抓取真名，完美兼容 llama.cpp/LM Studio）
+        使用原生 requests 调用 VLM 模型
+        （支持从 /v1/models 自动抓取真名，完美兼容 llama.cpp/LM Studio）
         """
         base_url = self.config.get(self.CONF_MODEL_URL, "http://127.0.0.1:1234").rstrip("/")
         api_key = self.config.get(self.CONF_MODEL_API, "")

@@ -2,10 +2,9 @@ import threading
 import time
 
 import numpy as np
+from ok import Box, Logger
 from openvino import AsyncInferQueue, Core, Layout, PartialShape, Type
 from openvino.preprocess import ColorFormat, PrePostProcessor, ResizeAlgorithm
-
-from ok import Box, Logger
 
 logger = Logger.get_logger(__name__)
 

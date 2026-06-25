@@ -17,8 +17,8 @@ import comtypes
 import numpy as np
 from comtypes import COMMETHOD, GUID, COMObject, IUnknown
 from comtypes.hresult import S_OK
-
 from ok import Logger
+
 from src.sound_trigger.capture.base import CAPTURE_SAMPLE_RATE, AudioCaptureSource, PushFn
 from src.sound_trigger.capture.process_resolver import (
     name_set,

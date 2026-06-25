@@ -1,21 +1,24 @@
 import re
+from contextlib import contextmanager
 from datetime import datetime
-from typing import Callable, List, Optional, Tuple
-
-from qfluentwidgets import FluentIcon
+from typing import Callable, Iterator, List, Optional, Tuple, Type, TypeVar, cast
 
 from ok import CannotFindException, TaskDisabledException, find_color_rectangles
+from qfluentwidgets import FluentIcon
+
 from src import text_white_color
-from src.combat.BaseCombatTask import BaseCombatTask
 from src.Labels import Labels
 from src.tasks.AnomalyTask import AnomalyTask
+from src.tasks.BaseNTETask import BaseNTETask
 from src.tasks.CoffeeTask import CoffeeTask
 from src.tasks.mixin.CinemaDateMixin import CinemaDateMixin
 from src.tasks.NTEOneTimeTask import NTEOneTimeTask
 from src.utils import image_utils as iu
 
+WorkingTaskT = TypeVar("WorkingTaskT", bound=BaseNTETask)
 
-class DailyTask(NTEOneTimeTask, CinemaDateMixin, BaseCombatTask):
+
+class DailyTask(NTEOneTimeTask, CinemaDateMixin, BaseNTETask):
     """日常任务执行器"""
 
     # --- 配置项键名 ---
@@ -44,6 +47,7 @@ class DailyTask(NTEOneTimeTask, CinemaDateMixin, BaseCombatTask):
         self.group_icon = FluentIcon.CALENDAR
         self.support_schedule_task = True
         self.task_status = {"success": [], "failed": [], "skipped": [], "pending": []}
+        self.working_task: Optional[BaseNTETask] = None
 
         AnomalyTask.setup_config(self)
         self.default_config.update(
@@ -279,11 +283,29 @@ class DailyTask(NTEOneTimeTask, CinemaDateMixin, BaseCombatTask):
         must_use = self.config.get(self.DAILY_STAMINA_TARGET, 180) - used_stamina
         self.info_set("must use stamina", must_use)
 
-        task: AnomalyTask = self.get_task_by_class(AnomalyTask)
-        ret = task.do_run(self.config, stamina_target=must_use)
-        if ret:
-            self.shift_idx(task)
+        with self.set_working_task(AnomalyTask) as task:
+            ret = task.do_run(self.config, stamina_target=must_use)
+            if ret:
+                self.shift_idx(task)
         return ret
+    
+    @contextmanager
+    def set_working_task(self, cls: Type[WorkingTaskT]) -> Iterator[WorkingTaskT]:
+        old_working_task = self.working_task
+        old_sleep_check_interval = self.sleep_check_interval
+        working_task = cast(WorkingTaskT, self.get_task_by_class(cls))
+        self.working_task = working_task
+        self.sleep_check_interval = working_task.sleep_check_interval
+        try:
+            yield working_task
+        finally:
+            self.working_task = old_working_task
+            self.sleep_check_interval = old_sleep_check_interval
+    
+    def sleep_check(self):
+        if self.working_task:
+            return self.working_task.sleep_check()
+        return super().sleep_check()
 
     def shift_idx(self, task):
         """切换任务索引"""
@@ -610,5 +632,5 @@ class DailyTask(NTEOneTimeTask, CinemaDateMixin, BaseCombatTask):
                 ),
                 block=True,
             )
-
+            self.sleep(2)
             self.ensure_main()

@@ -8,6 +8,8 @@ import zipfile
 from pathlib import Path
 
 import requests
+from ok import og
+from ok.gui.widget.CustomTab import CustomTab
 from PySide6.QtCore import QEvent, Qt, QTimer, Signal, Slot
 from PySide6.QtWidgets import (
     QFileDialog,
@@ -40,8 +42,6 @@ from qfluentwidgets import (
     isDarkTheme,
 )
 
-from ok import og
-from ok.gui.widget.CustomTab import CustomTab
 from src.char.custom.CustomCharManager import CustomCharManager
 from src.ui.common import (
     COMBO,
@@ -456,7 +456,7 @@ class CharManagerTab(CustomTab):
         self.combo_select.blockSignals(True)
         self.combo_select.clear()
         for label, combo_ref in self.manager.get_all_combo_items():
-            self.combo_select.addItem(label, user_data=combo_ref)
+            self.combo_select.addItem(label, userData=combo_ref)
         self.combo_select.setCurrentIndex(-1)
         self.combo_select.blockSignals(False)
 

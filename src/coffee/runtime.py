@@ -1030,7 +1030,7 @@ class CoffeeRuntime:
     def find_empty_product_slot(self):
         frame = self._fresh_frame()
         shape = getattr(frame, "shape", None)
-        if shape is None or len(shape) < 2:
+        if frame is None or shape is None or len(shape) < 2:
             return None
         try:
             import cv2
@@ -1645,40 +1645,37 @@ class CoffeeRuntime:
         self.actions.append(action)
         if self._dry_run() or target is None:
             return
-        click = lambda: self.task.click(
-            target,
-            move=True,
-            down_time=self.COFFEE_SUPPLY_CLICK_DOWN_TIME,
-            after_sleep=self.COFFEE_SUPPLY_CLICK_SETTLE_SECONDS,
+        self._operate_click(
+            lambda: self.task.click(
+                target,
+                move=True,
+                down_time=self.COFFEE_SUPPLY_CLICK_DOWN_TIME,
+                after_sleep=self.COFFEE_SUPPLY_CLICK_SETTLE_SECONDS,
+            )
         )
-        self._operate_click(click)
 
     def _click_ui(self, x, y, action, move=False):
         self.actions.append(action)
         if self._dry_run():
             return
-        click_ui = getattr(self.task, "click_ui", None)
-        if callable(click_ui):
-            click = lambda: click_ui(x, y, after_sleep=1, move=move, down_time=0.01)
-        else:
-            px, py = self._ui_point(x, y)
-            click = lambda: self.task.click(
-                int(px), int(py), after_sleep=1, move=move, down_time=0.01
-            )
-        self._operate_click(click)
+        px, py = self._ui_point(x, y)
+        self._operate_click(
+            lambda: self.task.click(int(px), int(py), after_sleep=1, move=move, down_time=0.01)
+        )
 
     def _click_screen_point(self, x, y, action, move=False):
         self.actions.append(action)
         if self._dry_run():
             return
-        click = lambda: self.task.click(
-            int(x),
-            int(y),
-            after_sleep=1,
-            move=move,
-            down_time=0.01,
+        self._operate_click(
+            lambda: self.task.click(
+                int(x),
+                int(y),
+                after_sleep=1,
+                move=move,
+                down_time=0.01,
+            )
         )
-        self._operate_click(click)
 
     def _send_key(self, key, action):
         self.actions.append(action)
@@ -1732,24 +1729,6 @@ class CoffeeRuntime:
             return self.COFFEE_KEY_SETTLE_SECONDS
 
     def _ui_point(self, x, y):
-        viewport_getter = getattr(self.task, "get_ui_viewport", None)
-        if callable(viewport_getter):
-            viewport = viewport_getter()
-            converter = getattr(viewport, "ui_point_to_screen_pixel", None)
-            if callable(converter):
-                converted = converter(x, y)
-                if (
-                    isinstance(converted, (tuple, list))
-                    and len(converted) == 2
-                    and all(isinstance(value, (int, float)) for value in converted)
-                ):
-                    return int(converted[0]), int(converted[1])
-        point = getattr(self.task, "ui_point", None)
-        if callable(point):
-            px, py = point(x, y)
-            if abs(px) <= 1 and abs(py) <= 1:
-                return int(self._screen_width() * px), int(self._screen_height() * py)
-            return px, py
         return int(self._screen_width() * x), int(self._screen_height() * y)
 
     def _screen_width(self):

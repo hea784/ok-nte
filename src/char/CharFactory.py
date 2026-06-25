@@ -16,8 +16,8 @@ from src.char.Zero import Zero
 
 if TYPE_CHECKING:
     import numpy as np
-
     from ok import Box
+
     from src.char.custom.CustomCharManager import CustomCharManager
     from src.combat.BaseCombatTask import BaseCombatTask
 

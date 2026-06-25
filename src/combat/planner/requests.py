@@ -10,6 +10,8 @@ from .types import (
     ActionResult,
     ActionTag,
     FollowupStep,
+    RequestHandle,
+    RequestStatus,
     _NeverExpires,
 )
 
@@ -17,7 +19,6 @@ if TYPE_CHECKING:
     from src.char.BaseChar import BaseChar
 
 
-RequestCallback = Callable[[], None]
 RequestDeadline = Callable[[], bool]
 RequestLifetime = RequestDeadline | _NeverExpires
 
@@ -30,8 +31,8 @@ class _RequestLifetime:
     _source: int
     until: RequestLifetime | None = None
     return_to_source: bool = False
-    on_done: RequestCallback | None = None
-    on_expired: RequestCallback | None = None
+    on_finish: Callable[[], None] | None = None
+    handle: RequestHandle = field(default_factory=RequestHandle)
 
     def expired(self, now: float) -> bool:
         if self.until is None or self.until is NEVER_EXPIRES:
@@ -41,13 +42,13 @@ class _RequestLifetime:
     def fulfilled(self) -> bool:
         return False
 
-    def notify_fulfilled(self) -> None:
-        if self.on_done is not None:
-            self.on_done()
+    def finish(self, status: RequestStatus) -> None:
+        first_signal = self.handle._finish(status)
+        if first_signal and self.on_finish is not None:
+            self.on_finish()
 
-    def notify_expired(self) -> None:
-        if self.on_expired is not None:
-            self.on_expired()
+    def close(self) -> None:
+        self.handle._close()
 
 
 @dataclass(slots=True)
@@ -160,6 +161,12 @@ def request_fulfilled(request: _Request) -> bool:
     return False
 
 
+def request_has_expiration(request: _Request) -> bool:
+    """判断请求 fulfilled 后是否仍需要等待生命周期过期信号。"""
+
+    return request.until is not None and request.until is not NEVER_EXPIRES
+
+
 def request_current_step(request: _Request) -> FollowupStep | None:
     """返回请求当前步骤；只有 route 有步骤。"""
 
@@ -239,7 +246,9 @@ def request_counts_as_active(request: _Request) -> bool:
     提供动作许可限制和下一次普通切人偏好。
     """
 
-    return isinstance(request, (_RouteRequest, _TagRequest))
+    return isinstance(request, (_RouteRequest, _TagRequest)) and (
+        not request_fulfilled(request) or request.return_to_source
+    )
 
 
 def request_blocks_entry_chain(request: _Request) -> bool:

@@ -1,6 +1,6 @@
 
 from src.char.BaseChar import BaseChar
-from src.combat.planner import EntryChainPolicy, FieldPreference, Role, RoleProfile
+from src.combat.planner import FieldPreference, Planner, Role, RoleProfile
 
 
 class Fadia(BaseChar):
@@ -15,6 +15,6 @@ class Fadia(BaseChar):
 
     def combat_intents(self, context):
         return self.intents(
-            self.click_ultimate_action(chain_policy=EntryChainPolicy.STOP_ON_SUCCESS),
+            self.click_ultimate_action(chain_policy=Planner.EntryChainPolicy.STOP_ON_SUCCESS),
             self.click_skill_action(),
         )

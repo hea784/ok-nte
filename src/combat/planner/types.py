@@ -10,85 +10,114 @@ if TYPE_CHECKING:
     from .context import CombatContext
 
 
-class Role(StrEnum):
-    """角色战斗定位。
+class _NeverExpires:
+    """`reserve_actions(until=NEVER_EXPIRES)` 使用的永久生命周期 sentinel。"""
 
-    `RoleProfile.role` 使用此枚举描述角色的大方向；实际站场偏好由
-    `FieldPreference` 进一步控制。
-    """
-
-    SUB_DPS = "Sub DPS"
-    MAIN_DPS = "Main DPS"
-    SUPPORT = "Support"
+    def __repr__(self) -> str:
+        return "NEVER_EXPIRES"
 
 
-class ActionTag(StrEnum):
-    """动作意义标签。
+class Planner:
+    """PyQt-style public namespace for planner enum groups."""
 
-    `ActionIntent.tags` 使用这些标签让 `CombatPlanner` 进行通用评分。
-    标签只表达“动作价值和性质”，不要用它描述某个角色的专属机制。
-    同一个 action 的 tags 是 set，重复标签不会重复加分。
-    """
+    NEVER_EXPIRES = _NeverExpires()
 
-    DEFAULT_ACTION = "default_action"
-    DAMAGE = "damage"
-    ULTIMATE_ACTION = "ultimate_action"
-    ARC_ACTION = "arc_action"
-    SUPPORT = "support"
-    COORDINATION = "coordination"
-    SKILL_ACTION = "skill_action"
-    FIELD_TIME = "field_time"
-    LEGACY_COMBO = "legacy_combo"
-    COORDINATION_FINISHER = "coordination_finisher"
+    class Role(StrEnum):
+        """角色战斗定位。
+
+        `RoleProfile.role` 使用此枚举描述角色的大方向；实际站场偏好由
+        `FieldPreference` 进一步控制。
+        """
+
+        SUB_DPS = "Sub DPS"
+        MAIN_DPS = "Main DPS"
+        SUPPORT = "Support"
+
+    class ActionTag(StrEnum):
+        """动作意义标签。
+
+        `ActionIntent.tags` 使用这些标签让 `CombatPlanner` 进行通用评分。
+        标签只表达“动作价值和性质”，不要用它描述某个角色的专属机制。
+        同一个 action 的 tags 是 set，重复标签不会重复加分。
+        """
+
+        DEFAULT_ACTION = "default_action"
+        DAMAGE = "damage"
+        ULTIMATE_ACTION = "ultimate_action"
+        ARC_ACTION = "arc_action"
+        SUPPORT = "support"
+        COORDINATION = "coordination"
+        SKILL_ACTION = "skill_action"
+        FIELD_TIME = "field_time"
+        LEGACY_COMBO = "legacy_combo"
+        COORDINATION_FINISHER = "coordination_finisher"
+
+    class EntryChainPolicy(StrEnum):
+        """动作执行后，本次入场是否继续尝试后续动作。"""
+
+        CONTINUE = "continue"
+        STOP_ON_SUCCESS = "stop_on_success"
+        STOP = "stop"
+
+    class ActionSlot(StrEnum):
+        """游戏动作槽位。
+
+        `FollowupStep` 和 `ActionReservation` 优先使用槽位协调队友动作，
+        例如请求某角色释放 `SKILL`，而不是依赖具体 action name 字符串。
+        """
+
+        SKILL = "skill"
+        ULTIMATE = "ultimate"
+        ARC = "arc"
+        ENTRY_REACTION = "entry_reaction"
+        FIELD_TIME = "field_time"
+        LEGACY_COMBO = "legacy_combo"
+        CUSTOM = "custom"
+
+    class FieldPreference(StrEnum):
+        """Planner 用于站场评分的角色偏好。
+
+        `RoleProfile.field_preference` 使用此枚举决定没有协作请求时谁更该站场。
+        """
+
+        MAIN_DPS = "main_dps"
+        SUB_DPS = "sub_dps"
+        SUPPORT = "support"
+        SETUP_ONLY = "setup_only"
+
+    class FieldClaimLevel(StrEnum):
+        """角色请求入场的强度等级。
+
+        `FieldClaim` 使用此枚举表达“这次入场诉求有多强”。具体机制原因放在
+        `FieldClaim.reason` 中，避免等级名称绑定某个角色机制。
+        """
+
+        LOW = "low"
+        NORMAL = "normal"
+        HIGH = "high"
+        CRITICAL = "critical"
+
+    class RequestStatus(StrEnum):
+        """Planner request 的生命周期状态。
+
+        `PENDING` 表示请求仍在进行；`FULFILLED` 表示请求已被成功满足；
+        `EXPIRED` 表示请求因为 deadline、目标失效或被替换而结束。对 route
+        这类有进度又有窗口生命周期的请求，`FULFILLED` 和 `EXPIRED` 可以先后发生。
+        """
+
+        PENDING = "pending"
+        FULFILLED = "fulfilled"
+        EXPIRED = "expired"
 
 
-class EntryChainPolicy(StrEnum):
-    """动作执行后，本次入场是否继续尝试后续动作。"""
-
-    CONTINUE = "continue"
-    STOP_ON_SUCCESS = "stop_on_success"
-    STOP = "stop"
-
-
-class ActionSlot(StrEnum):
-    """游戏动作槽位。
-
-    `FollowupStep` 和 `ActionReservation` 优先使用槽位协调队友动作，
-    例如请求某角色释放 `SKILL`，而不是依赖具体 action name 字符串。
-    """
-
-    SKILL = "skill"
-    ULTIMATE = "ultimate"
-    ARC = "arc"
-    ENTRY_REACTION = "entry_reaction"
-    FIELD_TIME = "field_time"
-    LEGACY_COMBO = "legacy_combo"
-    CUSTOM = "custom"
-
-
-class FieldPreference(StrEnum):
-    """Planner 用于站场评分的角色偏好。
-
-    `RoleProfile.field_preference` 使用此枚举决定没有协作请求时谁更该站场。
-    """
-
-    MAIN_DPS = "main_dps"
-    SUB_DPS = "sub_dps"
-    SUPPORT = "support"
-    SETUP_ONLY = "setup_only"
-
-
-class FieldClaimLevel(StrEnum):
-    """角色请求入场的强度等级。
-
-    `FieldClaim` 使用此枚举表达“这次入场诉求有多强”。具体机制原因放在
-    `FieldClaim.reason` 中，避免等级名称绑定某个角色机制。
-    """
-
-    LOW = "low"
-    NORMAL = "normal"
-    HIGH = "high"
-    CRITICAL = "critical"
+Role = Planner.Role
+ActionTag = Planner.ActionTag
+EntryChainPolicy = Planner.EntryChainPolicy
+ActionSlot = Planner.ActionSlot
+FieldPreference = Planner.FieldPreference
+FieldClaimLevel = Planner.FieldClaimLevel
+RequestStatus = Planner.RequestStatus
+NEVER_EXPIRES = Planner.NEVER_EXPIRES
 
 
 ACTION_TAG_SCORES = {
@@ -113,14 +142,198 @@ FIELD_CLAIM_SCORES = {
 }
 
 
-class _NeverExpires:
-    """`reserve_actions(until=NEVER_EXPIRES)` 使用的永久生命周期 sentinel。"""
+@dataclass(slots=True)
+class RequestHandle:
+    """角色代码可用来观察 request 生命周期的轻量句柄。
 
-    def __repr__(self) -> str:
-        return "NEVER_EXPIRES"
+    `request_route()`、`reserve_actions()`、`request_switch()` 和
+    `request_tags()` 会返回此对象。它不控制 request 本身，只让角色代码查询
+    request 当前是否仍在进行，以及把 request 的生命周期信号组合成其他 request 的
+    `until` 条件。
+    """
+
+    _fulfilled: bool = False
+    _expired: bool = False
+    _closed: bool = False
+    _on_finish: list[Callable[[], None]] = field(default_factory=list)
+    _on_fulfilled: list[Callable[[], None]] = field(default_factory=list)
+    _on_expired: list[Callable[[], None]] = field(default_factory=list)
+
+    @property
+    def status(self) -> RequestStatus:
+        """当前摘要状态。
+
+        普通场景优先使用 `is_pending`、`is_fulfilled`、`is_expired`、
+        `is_closed` 或 `when.*`。如果请求先 fulfilled 后 expired，此属性
+        返回 `EXPIRED`，但 `is_fulfilled` 仍会保持 True。`closed` 是独立的
+        planner 影响面信号，不由 `RequestStatus` 表达。
+        """
+
+        if self._expired:
+            return RequestStatus.EXPIRED
+        if self._fulfilled:
+            return RequestStatus.FULFILLED
+        return RequestStatus.PENDING
+
+    @property
+    def is_pending(self) -> bool:
+        """请求是否尚未出现 fulfilled、expired 或 closed 信号。
+
+        `True` 表示 request 还没有成功完成，没有过期/失效，也还没有从
+        planner 影响面中移除。
+        """
+
+        return not self._fulfilled and not self._expired and not self._closed
+
+    @property
+    def is_fulfilled(self) -> bool:
+        """请求是否已被成功满足。
+
+        例如 route 的所有步骤都完成、switch request 已切到目标、tag request
+        已收到足够动作。fulfilled 不会阻止后续 expired 信号发生。
+        """
+
+        return self._fulfilled
+
+    @property
+    def is_expired(self) -> bool:
+        """请求是否已过期或失效。
+
+        例如 `until()` 返回 True、目标角色失效，或旧 strict route 被新的
+        strict route 覆盖。expired 不会清除已经发生的 fulfilled 信号。
+        """
+
+        return self._expired
+
+    @property
+    def is_closed(self) -> bool:
+        """请求是否已经不再影响 planner。
+
+        closed 表示 request 已经离开 strict route 锁、active request 列表，
+        不再影响切人、动作许可或 return-to-source。closed 不代表生命周期
+        deadline 已经过期；例如 route fulfilled 后可能先 closed，再等窗口
+        until 触发 expired。
+        """
+
+        return self._closed
+
+    @property
+    def when(self) -> "RequestWhenPredicates":
+        """返回可直接传给 `until=` 的生命周期条件集合。
+
+        `when` 不是一个状态；它是 predicate namespace：
+        `when.fulfilled` 表示“成功完成时结束”，`when.expired` 表示
+        “过期时结束”，`when.closed` 表示“不再影响 planner 时结束”，
+        `when.any` 表示“任一生命周期信号出现就结束”。
+        """
+
+        return RequestWhenPredicates(self)
+
+    def on_finish(self, callback: Callable[[], None]) -> "RequestHandle":
+        """注册首次结束信号回调。
+
+        request 首次进入 `FULFILLED` 或 `EXPIRED` 时调用一次。若注册时 request
+        已经出现过任一信号，callback 会立即执行一次。需要分别处理成功和过期时，
+        使用 `on_fulfilled()` / `on_expired()`。
+        """
+
+        if self.is_pending:
+            self._on_finish.append(callback)
+        else:
+            callback()
+        return self
+
+    def on_fulfilled(self, callback: Callable[[], None]) -> "RequestHandle":
+        """注册成功完成回调。
+
+        只在 request 进入 `FULFILLED` 时调用。若注册时已经 fulfilled，callback
+        会立即执行。
+        """
+
+        if self.is_fulfilled:
+            callback()
+        else:
+            self._on_fulfilled.append(callback)
+        return self
+
+    def on_expired(self, callback: Callable[[], None]) -> "RequestHandle":
+        """注册过期/失效回调。
+
+        只在 request 进入 `EXPIRED` 时调用。若注册时已经 expired，callback
+        会立即执行。即使 request 已经 fulfilled，也可以继续等待后续 expired。
+        """
+
+        if self.is_expired:
+            callback()
+        else:
+            self._on_expired.append(callback)
+        return self
+
+    def _finish(self, status: RequestStatus) -> bool:
+        first_signal = self.is_pending
+        callbacks = []
+        if status is RequestStatus.FULFILLED:
+            if self._fulfilled:
+                return False
+            self._fulfilled = True
+            callbacks.extend(self._on_fulfilled)
+            self._on_fulfilled.clear()
+        elif status is RequestStatus.EXPIRED:
+            if self._expired:
+                return False
+            self._expired = True
+            callbacks.extend(self._on_expired)
+            self._on_expired.clear()
+        else:
+            return False
+        if first_signal:
+            callbacks = list(self._on_finish) + callbacks
+            self._on_finish.clear()
+        for callback in callbacks:
+            callback()
+        return first_signal
+
+    def _close(self) -> bool:
+        if self._closed:
+            return False
+        self._closed = True
+        return True
 
 
-NEVER_EXPIRES = _NeverExpires()
+@dataclass(frozen=True, slots=True)
+class RequestWhenPredicates:
+    """`RequestHandle.when` 下的生命周期 predicate 集合。
+
+    这些属性返回 `Callable[[], bool]`，用于传给另一个 request 的 `until=...`。
+    """
+
+    _handle: RequestHandle
+
+    @property
+    def any(self) -> Callable[[], bool]:
+        """返回“request fulfilled、expired 或 closed 后为 True”的条件。"""
+
+        return lambda: (
+            self._handle.is_fulfilled or self._handle.is_expired or self._handle.is_closed
+        )
+
+    @property
+    def fulfilled(self) -> Callable[[], bool]:
+        """返回“request 成功完成时为 True”的条件。"""
+
+        return lambda: self._handle.is_fulfilled
+
+    @property
+    def expired(self) -> Callable[[], bool]:
+        """返回“request 过期或失效时为 True”的条件。"""
+
+        return lambda: self._handle.is_expired
+
+    @property
+    def closed(self) -> Callable[[], bool]:
+        """返回“request 不再影响 planner 时为 True”的条件。"""
+
+        return lambda: self._handle.is_closed
 
 
 @dataclass(slots=True)

@@ -9,8 +9,8 @@ from typing import TYPE_CHECKING, Optional
 
 import cv2
 import numpy as np
-
 from ok import Box, Logger, TaskDisabledException, find_color_rectangles
+
 from src.Labels import Labels
 from src.tasks.BaseNTETask import BaseNTETask
 from src.utils import game_filters as gf
@@ -109,8 +109,6 @@ class CombatCheck(BaseNTETask):
     @in_animation.setter
     def in_animation(self, value):
         self._in_animation = value
-        if value:
-            self._last_ultimate = time.time()
 
     def on_combat_check(self):
         return True

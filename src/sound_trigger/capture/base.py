@@ -13,7 +13,6 @@ from abc import ABC, abstractmethod
 from typing import Callable, Optional
 
 import numpy as np
-
 from ok import Logger
 
 logger = Logger.get_logger(__name__)

@@ -3,9 +3,9 @@ import time
 from dataclasses import dataclass
 from threading import Event
 
+from ok import TaskDisabledException
 from qfluentwidgets import FluentIcon
 
-from ok import TaskDisabledException
 from src import text_white_color
 from src.combat.BaseCombatTask import BaseCombatTask
 from src.heist_path.HeistEntrancePath import HeistEntrancePath

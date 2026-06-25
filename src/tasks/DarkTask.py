@@ -1,9 +1,9 @@
 import re
 import time
 
+from ok import TaskDisabledException
 from qfluentwidgets import FluentIcon
 
-from ok import TaskDisabledException
 from src.tasks.NTEOneTimeTask import NTEOneTimeTask
 from src.tasks.RecordTask import RecordTask
 

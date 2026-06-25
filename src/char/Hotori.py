@@ -5,7 +5,6 @@ import numpy as np
 
 from src.char.BaseChar import BaseChar
 from src.combat.planner import (
-    NEVER_EXPIRES,
     ActionReservation,
     ActionSlot,
     ActionTag,
@@ -13,6 +12,7 @@ from src.combat.planner import (
     FieldClaim,
     FieldPreference,
     FollowupStep,
+    Planner,
     Role,
     RoleProfile,
 )
@@ -79,7 +79,7 @@ class Hotori(BaseChar):
         context.reserve_actions(
             plan.combat_reservations,
             reason="hotori reserves Zero skill for combat",
-            until=NEVER_EXPIRES,
+            until=Planner.NEVER_EXPIRES,
         )
 
     def combat_intents(self, context):
@@ -87,10 +87,10 @@ class Hotori(BaseChar):
             return self.intents(self.click_ultimate_action())
 
         claims = []
-        if self.records_status() is None:
+        if self.records_status() is None or self._should_record():
             claims.append(
                 FieldClaim.high(
-                    reason="check Hotori team records and wait ultimate",
+                    reason="check Hotori team records or try start record",
                 )
             )
 
@@ -119,7 +119,7 @@ class Hotori(BaseChar):
         )
     
     def _should_record(self):
-        cond1 = self.time_elapsed_accounting_for_freeze(self.last_ultimate) > 5
+        cond1 = self.time_elapsed_accounting_for_freeze(self.last_ultimate_time) > 5
         cond2 = self.records_status() is False
         return cond1 and cond2
 
@@ -129,25 +129,26 @@ class Hotori(BaseChar):
             self.start_records()
             if context is not None:
                 plan = self._team_record_plan()
-                context.request_route_window(
+                route = context.request_route(
                     plan.steps,
-                    plan.record_window_holds,
                     reason="hotori team skill record window",
                     until=self.is_record_expire,
-                    on_done=self._record_route_done,
-                    on_expired=self._record_window_expired,
-                    on_holds_expired=self._record_window_reservation_expired,
+                    on_finish=self._record_route_finish,
                 )
+                if route:
+                    context.reserve_actions(
+                        plan.record_window_holds,
+                        reason="hotori team skill record window",
+                        until=route.when.expired,
+                        on_finish=self._record_window_reservation_finish,
+                    )
             return True
         return False
 
-    def _record_route_done(self):
+    def _record_route_finish(self):
         self.records_ready = None
 
-    def _record_window_expired(self):
-        self.records_ready = None
-
-    def _record_window_reservation_expired(self):
+    def _record_window_reservation_finish(self):
         self.record_window_start = 0
 
     def is_record_expire(self):

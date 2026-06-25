@@ -1,8 +1,8 @@
 import time
 
+from ok import Logger, TriggerTask
 from qfluentwidgets import FluentIcon
 
-from ok import Logger, TriggerTask
 from src.combat.BaseCombatTask import BaseCombatTask, CharDeadException, NotInCombatException
 
 logger = Logger.get_logger(__name__)

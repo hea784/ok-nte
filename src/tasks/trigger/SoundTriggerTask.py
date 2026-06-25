@@ -1,4 +1,5 @@
 from ok import Logger, TriggerTask
+
 from src.sound_trigger.SoundCombatContext import SoundCombatContext
 from src.tasks.BaseNTETask import BaseNTETask
 

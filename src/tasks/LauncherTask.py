@@ -7,11 +7,11 @@ import psutil
 import win32con
 import win32gui
 import win32process
-from qfluentwidgets import FluentIcon
-
 from ok import TaskDisabledException, og
 from ok.gui.Communicate import communicate
 from ok.util.process import execute, is_admin
+from qfluentwidgets import FluentIcon
+
 from src import GAME_EXE, LAUNCHER_EXE
 from src.interaction.NTEInteraction import NTEInteraction
 from src.Labels import Labels

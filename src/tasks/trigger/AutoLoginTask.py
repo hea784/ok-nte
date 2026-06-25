@@ -1,6 +1,6 @@
+from ok import Logger, TriggerTask
 from qfluentwidgets import FluentIcon
 
-from ok import Logger, TriggerTask
 from src.tasks.BaseNTETask import BaseNTETask
 
 logger = Logger.get_logger(__name__)

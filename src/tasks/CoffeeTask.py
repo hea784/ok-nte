@@ -12,7 +12,8 @@ class CoffeeTask(NTEOneTimeTask, BaseNTETask):
     覆盖领取收益、商品优化、补货购买. 默认开启领取收益和补货购买,
     商品优化默认关闭以避免未明确选择就替换商品.
     """
-    DEFAULT_MOVE=True
+
+    DEFAULT_MOVE = True
 
     CONF_COLLECT_INCOME = "领取收益"
     CONF_RESTOCK_GOODS = "补货货物"
@@ -77,7 +78,7 @@ class CoffeeTask(NTEOneTimeTask, BaseNTETask):
     def run(self):
         super().run()
         try:
-            return self.do_run()
+            self.do_run()
         except TaskDisabledException:
             pass
         except Exception as e:
@@ -111,7 +112,9 @@ class CoffeeTask(NTEOneTimeTask, BaseNTETask):
         runtime 通过 ``self._config_get`` 读取 task.config 上的键, 使用统一前缀
         减少与 task 级别配置项命名冲突.
         """
-        slots = str(self.config.get(self.CONF_PRODUCT_SLOTS, self.AUTO) or self.AUTO).strip().lower()
+        slots = (
+            str(self.config.get(self.CONF_PRODUCT_SLOTS, self.AUTO) or self.AUTO).strip().lower()
+        )
         try:
             slots_value = 0 if slots == self.AUTO else max(1, min(5, int(slots)))
         except (TypeError, ValueError):
@@ -119,14 +122,24 @@ class CoffeeTask(NTEOneTimeTask, BaseNTETask):
         duration = str(self.config.get(self.CONF_RESTOCK_DURATION, self.AUTO) or self.AUTO).strip()
         if duration.lower() == self.AUTO:
             duration = "24小时"
-        self.config["coffee_product_target_slots"] = slots_value
-        self.config["coffee_max_supply_slots"] = slots_value
-        self.config["coffee_supply_duration"] = duration
-        self.config["coffee_price_table"] = str(self.config.get(self.CONF_PRICE_TABLE, self.AUTO) or self.AUTO)
-        self.config["coffee_allow_pending_supply_completion"] = self._supply_requested()
-        self.config["coffee_action_collect_income"] = bool(self.config.get(self.CONF_COLLECT_INCOME, False))
-        self.config["coffee_action_optimize_products"] = bool(self.config.get(self.CONF_OPTIMIZE_PRODUCTS, False))
-        self.config["coffee_action_replenish_supply"] = self._supply_requested()
+        self.config.update(
+            {
+                "coffee_product_target_slots": slots_value,
+                "coffee_max_supply_slots": slots_value,
+                "coffee_supply_duration": duration,
+                "coffee_price_table": str(
+                    self.config.get(self.CONF_PRICE_TABLE, self.AUTO) or self.AUTO
+                ),
+                "coffee_allow_pending_supply_completion": self._supply_requested(),
+                "coffee_action_collect_income": bool(
+                    self.config.get(self.CONF_COLLECT_INCOME, False)
+                ),
+                "coffee_action_optimize_products": bool(
+                    self.config.get(self.CONF_OPTIMIZE_PRODUCTS, False)
+                ),
+                "coffee_action_replenish_supply": self._supply_requested(),
+            }
+        )
 
     def _actions_requested(self):
         return [

@@ -1,6 +1,6 @@
+from ok import TaskDisabledException, og
 from qfluentwidgets import FluentIcon
 
-from ok import TaskDisabledException, og
 from src.combat.BaseCombatTask import BaseCombatTask
 from src.Labels import Labels
 from src.tasks.BaseNTETask import BaseNTETask
@@ -207,7 +207,9 @@ class AnomalyTask(NTEOneTimeTask, BaseCombatTask):
 
     def exit_anomaly(self):
         self.wait_click_confirm(
-            lambda: self.send_key("esc", interval=2), range=(0.661, 0.6167, 0.701, 0.6965)
+            lambda: self.send_key("esc", interval=2),
+            range=(0.619, 0.609, 0.709, 0.708),
+            settle_time=0.4,
         )
         self.wait_in_team_and_world()
 

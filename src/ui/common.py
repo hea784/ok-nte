@@ -88,10 +88,10 @@ class SearchableComboBox(EditableComboBox):
         self.setCompleter(completer)
 
     def addItem(
-        self, text: str, icon: QIcon | str | FluentIconBase | None = None, user_data: Any = None
+        self, text: str, icon: QIcon | str | FluentIconBase | None = None, userData: Any = None
     ):
         """重写以同步更新搜寻清单"""
-        super().addItem(text, icon, user_data)
+        super().addItem(text, icon, userData)
         self.search_items.append(text)
         self._sync_completer_model()
 

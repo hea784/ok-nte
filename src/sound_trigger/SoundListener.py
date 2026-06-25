@@ -13,10 +13,10 @@ from typing import Optional, cast
 
 import librosa
 import numpy as np
+from ok import Logger
 from scipy.signal import butter, correlate, filtfilt
 from sklearn.preprocessing import scale
 
-from ok import Logger
 from src.sound_trigger.capture import MODE_PROCESS, AudioCaptureSource, create_capture_source
 from src.sound_trigger.capture.base import CAPTURE_SAMPLE_RATE
 

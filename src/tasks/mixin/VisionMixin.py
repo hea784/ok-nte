@@ -3,8 +3,11 @@ from typing import NamedTuple
 
 import cv2
 import numpy as np
-
 from ok import BaseTask, Box
+from ok.feature.Feature import Feature
+from ok.feature.FeatureSet import read_from_json
+
+from src.Labels import Labels
 
 
 class RotatedTemplateCacheKey(NamedTuple):
@@ -30,6 +33,18 @@ class SiftTemplateCacheKey(NamedTuple):
 type SiftTemplateCacheValue = tuple[tuple[cv2.KeyPoint, ...], np.ndarray | None]
 
 
+class OriginalFeatureCacheKey(NamedTuple):
+    coco_json: str
+    feature_name: object
+
+
+class SiftAttempt(NamedTuple):
+    name: str
+    scene_scale: float
+    ratio: float
+    min_match_count: int
+
+
 class VisionMixin(BaseTask):
     # cache_id/mask fingerprint/angle options -> [(angle, rotated mask), ...]
     _rotated_template_cache: dict[RotatedTemplateCacheKey, RotatedTemplateCacheValue] = {}
@@ -37,18 +52,26 @@ class VisionMixin(BaseTask):
     # feature/template fingerprint/SIFT options -> (template keypoints, template descriptors)
     _sift_template_cache: dict[SiftTemplateCacheKey, SiftTemplateCacheValue] = {}
 
+    # coco json path/feature name -> original, unscaled feature
+    _original_feature_cache: dict[OriginalFeatureCacheKey, Feature] = {}
+
     def find_sift_feature(
         self,
         feature_name,
         box: Box | str | None = None,
         frame: np.ndarray | None = None,
-        threshold=0.45,
+        threshold=0.5,
         min_match_count=8,
         ratio=0.75,
         nfeatures=0,
+        small_target_retry=True,
+        small_target_scene_scale=2.0,
+        small_target_min_match_count=8,
+        small_target_ratio=0.85,
+        trim_template=-1.0,
     ) -> Box | None:
         """
-        使用 SIFT 在指定区域内查找特征，适合模板和画面存在缩放差异的场景。
+        使用 SIFT 在指定区域内查找原始 COCO crop 特征，适合模板和画面存在缩放差异的场景。
 
         :param feature_name: ok feature 名称。
         :param box: 搜索区域；None 表示整张图，也可传 box 名称。
@@ -57,42 +80,31 @@ class VisionMixin(BaseTask):
         :param min_match_count: 通过 Lowe ratio 过滤后的最少匹配点数量。
         :param ratio: Lowe ratio test 阈值，越低越严格。
         :param nfeatures: 传给 cv2.SIFT_create 的最大特征数，0 表示不限。
+        :param small_target_retry: 原尺寸失败后，放大搜索区域再尝试一次，适合小图标。
+        :param small_target_scene_scale: 小目标重试时搜索区域的放大倍率。
+        :param small_target_min_match_count: 小目标重试时的最少匹配点数量。
+        :param small_target_ratio: 小目标重试时的 Lowe ratio 阈值。
+        :param trim_template: >= 0 时按该比例裁掉模板外圈背景；-1 表示不裁剪。
         :return: 匹配到的 Box；未找到时返回 None。Box 上额外带有 scale/match_count/inlier_count。
         """
-        return self._find_sift_feature(
-            feature_name=feature_name,
-            box=box,
-            frame=frame,
-            threshold=threshold,
-            min_match_count=min_match_count,
-            ratio=ratio,
-            nfeatures=nfeatures,
-        )
-
-    def _find_sift_feature(
-        self,
-        feature_name,
-        box: Box | str | None = None,
-        frame: np.ndarray | None = None,
-        threshold=0.45,
-        min_match_count=8,
-        ratio=0.75,
-        nfeatures=0,
-    ) -> Box | None:
         start_time = time.time()
+        diagnostics = {}
 
         def finish(result: Box | None, reason=None):
             cost_ms = (time.time() - start_time) * 1000
             if cost_ms > 100:
+                detail = " ".join(f"{key}={value}" for key, value in diagnostics.items())
                 if result is None:
                     self.log_debug(
                         f"find_sift_feature {feature_name} not found"
-                        f" reason={reason} cost={cost_ms:.2f}ms"
+                        f" reason={reason} {detail} cost={cost_ms:.2f}ms"
                     )
                 else:
                     self.log_debug(
                         f"find_sift_feature {feature_name} found {result}"
+                        f" attempt={getattr(result, 'sift_attempt', None)}"
                         f" scale={getattr(result, 'scale', None)}"
+                        f" scene_scale={getattr(result, 'sift_scene_scale', None)}"
                         f" matches={getattr(result, 'match_count', None)}"
                         f" inliers={getattr(result, 'inlier_count', None)}"
                         f" cost={cost_ms:.2f}ms"
@@ -112,88 +124,249 @@ class VisionMixin(BaseTask):
         else:
             search_x, search_y = box.x, box.y
             scene = box.crop_frame(frame)
-            self.draw_boxes(feature_name, boxes=box, color="blue")
+            if isinstance(feature_name, Labels):
+                feature_name = feature_name.name
+            box.name = "search_" + feature_name
+            self.draw_boxes(boxes=box, color="blue")
 
         if scene is None or scene.size == 0:
             return finish(None, "empty_scene")
 
-        template = self.get_feature_by_name(feature_name).mat
+        feature = self.get_original_feature_by_name(feature_name)
+        if feature is None:
+            return finish(None, "missing_original_template")
+
+        template = feature.mat
+        if trim_template >= 0:
+            template = self._trim_sift_template(template, padding=trim_template)
+        diagnostics["template_shape"] = template.shape[:2]
+        diagnostics["scene_shape"] = scene.shape[:2]
         sift = cv2.SIFT_create(nfeatures=nfeatures)
         template_keypoints, template_descriptors = self._get_sift_template_data(
             feature_name, template, sift, nfeatures
         )
-        if template_descriptors is None or len(template_keypoints) < min_match_count:
-            return finish(None, "not_enough_template_keypoints")
 
-        scene_gray = self._to_sift_gray(scene)
-        scene_keypoints, scene_descriptors = sift.detectAndCompute(scene_gray, None)
-        if scene_descriptors is None or len(scene_keypoints) < min_match_count:
-            return finish(None, "not_enough_scene_keypoints")
+        def build_attempts():
+            attempts = [SiftAttempt("normal", 1.0, ratio, min_match_count)]
+            if small_target_retry and small_target_scene_scale not in (0, 1.0):
+                attempts.append(
+                    SiftAttempt(
+                        "small_target",
+                        small_target_scene_scale,
+                        max(ratio, small_target_ratio),
+                        min(min_match_count, small_target_min_match_count),
+                    )
+                )
+            return attempts
+
+        attempts = build_attempts()
+
+        required_template_keypoints = min(attempt.min_match_count for attempt in attempts)
+        if template_descriptors is None or len(template_keypoints) < required_template_keypoints:
+            return finish(
+                None,
+                f"not_enough_template_keypoints "
+                f"template_kp={len(template_keypoints)} required={required_template_keypoints}",
+            )
+        diagnostics["template_kp"] = len(template_keypoints)
 
         matcher = cv2.BFMatcher(cv2.NORM_L2)
-        raw_matches = matcher.knnMatch(template_descriptors, scene_descriptors, k=2)
-        good_matches = []
-        for candidates in raw_matches:
-            if len(candidates) < 2:
-                continue
-            first, second = candidates
-            if first.distance < ratio * second.distance:
-                good_matches.append(first)
-
-        if len(good_matches) < min_match_count:
-            return finish(None, "not_enough_good_matches")
-
-        template_points = np.float32(
-            [template_keypoints[match.queryIdx].pt for match in good_matches]
-        ).reshape(-1, 1, 2)
-        scene_points = np.float32(
-            [scene_keypoints[match.trainIdx].pt for match in good_matches]
-        ).reshape(-1, 1, 2)
-
-        homography, inlier_mask = cv2.findHomography(
-            template_points, scene_points, cv2.RANSAC, 5.0
-        )
-        if homography is None or inlier_mask is None:
-            return finish(None, "homography_failed")
-
-        inlier_count = int(inlier_mask.ravel().sum())
-        confidence = inlier_count / len(good_matches)
-        if inlier_count < min_match_count or confidence < threshold:
-            return finish(None, "low_inlier_confidence")
-
         template_height, template_width = template.shape[:2]
         corners = np.float32(
             [[0, 0], [template_width, 0], [template_width, template_height], [0, template_height]]
         ).reshape(-1, 1, 2)
-        projected = cv2.perspectiveTransform(corners, homography).reshape(-1, 2)
-        if not np.isfinite(projected).all():
-            return finish(None, "invalid_projection")
 
-        x, y, width, height = cv2.boundingRect(projected.astype(np.float32))
-        if width <= 0 or height <= 0:
-            return finish(None, "invalid_projected_box")
+        def _get_attempt_scene(attempt: SiftAttempt):
+            scene_for_sift = scene
+            if attempt.scene_scale != 1.0:
+                scene_for_sift = cv2.resize(
+                    scene,
+                    None,
+                    fx=attempt.scene_scale,
+                    fy=attempt.scene_scale,
+                    interpolation=cv2.INTER_CUBIC,
+                )
+            return scene_for_sift
 
-        scene_height, scene_width = scene.shape[:2]
-        x = max(0, min(x, scene_width - 1))
-        y = max(0, min(y, scene_height - 1))
-        width = min(width, scene_width - x)
-        height = min(height, scene_height - y)
-        if width <= 0 or height <= 0:
-            return finish(None, "projected_box_outside_scene")
+        def _get_good_matches(raw_matches, attempt: SiftAttempt):
+            good_matches = []
+            for candidates in raw_matches:
+                if len(candidates) < 2:
+                    continue
+                first, second = candidates
+                if first.distance < attempt.ratio * second.distance:
+                    good_matches.append(first)
+            return good_matches
 
-        matched_box = Box(
-            x + search_x,
-            y + search_y,
-            width,
-            height,
-            confidence=round(confidence, 3),
-            name=feature_name,
+        def _make_box_from_homography(homography, attempt: SiftAttempt):
+            projected = cv2.perspectiveTransform(corners, homography).reshape(-1, 2)
+            if attempt.scene_scale != 1.0:
+                projected = projected / attempt.scene_scale
+            if not np.isfinite(projected).all():
+                return None, f"{attempt.name}:invalid_projection"
+
+            x, y, width, height = cv2.boundingRect(projected.astype(np.float32))
+            if width <= 0 or height <= 0:
+                return None, f"{attempt.name}:invalid_projected_box"
+
+            scene_height, scene_width = scene.shape[:2]
+            x = max(0, min(x, scene_width - 1))
+            y = max(0, min(y, scene_height - 1))
+            width = min(width, scene_width - x)
+            height = min(height, scene_height - y)
+            if width <= 0 or height <= 0:
+                return None, f"{attempt.name}:projected_box_outside_scene"
+
+            matched_box = Box(
+                x + search_x,
+                y + search_y,
+                width,
+                height,
+                name=feature_name,
+            )
+            matched_box.scale = round(
+                (width * height / (template_width * template_height)) ** 0.5, 3
+            )
+            matched_box.sift_attempt = attempt.name
+            matched_box.sift_scene_scale = attempt.scene_scale
+            return matched_box, None
+
+        def match_attempt(attempt: SiftAttempt):
+            scene_for_sift = _get_attempt_scene(attempt)
+            scene_gray = self._to_sift_gray(scene_for_sift)
+            scene_keypoints, scene_descriptors = sift.detectAndCompute(scene_gray, None)
+            diagnostics[f"{attempt.name}_scene_kp"] = len(scene_keypoints)
+            if scene_descriptors is None or len(scene_keypoints) < attempt.min_match_count:
+                return (
+                    None,
+                    f"{attempt.name}:not_enough_scene_keypoints "
+                    f"scene_kp={len(scene_keypoints)} required={attempt.min_match_count}",
+                )
+
+            raw_matches = matcher.knnMatch(template_descriptors, scene_descriptors, k=2)
+            good_matches = _get_good_matches(raw_matches, attempt)
+
+            diagnostics[f"{attempt.name}_raw"] = len(raw_matches)
+            diagnostics[f"{attempt.name}_good"] = len(good_matches)
+            if len(good_matches) < attempt.min_match_count:
+                return (
+                    None,
+                    f"{attempt.name}:not_enough_good_matches "
+                    f"good={len(good_matches)} required={attempt.min_match_count}",
+                )
+
+            template_points = np.float32(
+                [template_keypoints[match.queryIdx].pt for match in good_matches]
+            ).reshape(-1, 1, 2)
+            scene_points = np.float32(
+                [scene_keypoints[match.trainIdx].pt for match in good_matches]
+            ).reshape(-1, 1, 2)
+
+            homography, inlier_mask = cv2.findHomography(
+                template_points, scene_points, cv2.RANSAC, 5.0 * attempt.scene_scale
+            )
+            if homography is None or inlier_mask is None:
+                return None, f"{attempt.name}:homography_failed good={len(good_matches)}"
+
+            inlier_count = int(inlier_mask.ravel().sum())
+            confidence = inlier_count / len(good_matches)
+            diagnostics[f"{attempt.name}_inliers"] = inlier_count
+            diagnostics[f"{attempt.name}_confidence"] = round(confidence, 3)
+            if inlier_count < attempt.min_match_count or confidence < threshold:
+                return (
+                    None,
+                    f"{attempt.name}:low_inlier_confidence "
+                    f"inliers={inlier_count} good={len(good_matches)} conf={confidence:.3f}",
+                )
+
+            matched_box, reason = _make_box_from_homography(homography, attempt)
+            if matched_box is None:
+                return None, reason
+            matched_box.confidence = round(confidence, 3)
+            matched_box.match_count = len(good_matches)
+            matched_box.inlier_count = inlier_count
+            return matched_box, None
+
+        last_reason = "no_attempts"
+        for attempt in attempts:
+            matched_box, reason = match_attempt(attempt)
+            if matched_box is None:
+                last_reason = reason
+                continue
+
+            self.draw_boxes(boxes=matched_box, color="red")
+            return finish(matched_box)
+
+        return finish(None, last_reason)
+
+    def get_original_feature_by_name(self, feature_name) -> Feature | None:
+        """读取 COCO 标注中的原始 crop，不按当前游戏分辨率缩放。"""
+        feature_set = getattr(getattr(self, "executor", None), "feature_set", None)
+        coco_json = getattr(feature_set, "coco_json", None)
+        if not coco_json:
+            return None
+
+        cache_key = OriginalFeatureCacheKey(coco_json=coco_json, feature_name=feature_name)
+        cached = self._original_feature_cache.get(cache_key)
+        if cached is not None:
+            return cached
+
+        try:
+            features, _, _, load_success, _ = read_from_json(
+                coco_json,
+                adjust=False,
+                target_category_name=feature_name,
+            )
+        except Exception as e:
+            self.log_debug(f"load original feature {feature_name} failed: {e}")
+            return None
+
+        if not load_success:
+            return None
+
+        feature = features.get(feature_name)
+        if feature is None:
+            return None
+
+        self._original_feature_cache[cache_key] = feature
+        return feature
+
+    @staticmethod
+    def _trim_sift_template(template: np.ndarray, padding=0.04):
+        height, width = template.shape[:2]
+        if height < 12 or width < 12:
+            return template
+
+        padding_px = max(1, round(min(width, height) * padding))
+        sample = max(2, min(12, height // 8, width // 8))
+        pixels = template[:, :, :3] if template.ndim == 3 else template[:, :, None]
+        corners = np.concatenate(
+            [
+                pixels[:sample, :sample].reshape(-1, pixels.shape[2]),
+                pixels[:sample, -sample:].reshape(-1, pixels.shape[2]),
+                pixels[-sample:, :sample].reshape(-1, pixels.shape[2]),
+                pixels[-sample:, -sample:].reshape(-1, pixels.shape[2]),
+            ],
+            axis=0,
         )
-        matched_box.scale = round((width * height / (template_width * template_height)) ** 0.5, 3)
-        matched_box.match_count = len(good_matches)
-        matched_box.inlier_count = inlier_count
-        self.draw_boxes(feature_name, boxes=matched_box, color="red")
-        return finish(matched_box)
+        background = np.median(corners.astype(np.float32), axis=0)
+        diff = np.max(np.abs(pixels.astype(np.float32) - background), axis=2)
+        foreground = diff > 18
+        if np.count_nonzero(foreground) < 20:
+            return template
+
+        ys, xs = np.where(foreground)
+        x1 = max(0, int(xs.min()) - padding_px)
+        y1 = max(0, int(ys.min()) - padding_px)
+        x2 = min(width, int(xs.max()) + padding_px + 1)
+        y2 = min(height, int(ys.max()) + padding_px + 1)
+        trimmed_width = x2 - x1
+        trimmed_height = y2 - y1
+        if trimmed_width < 8 or trimmed_height < 8:
+            return template
+        if trimmed_width > width * 0.95 and trimmed_height > height * 0.95:
+            return template
+        return template[y1:y2, x1:x2]
 
     def _get_sift_template_data(self, feature_name, template: np.ndarray, sift, nfeatures=0):
         template_key = SiftTemplateCacheKey(

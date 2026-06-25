@@ -1,7 +1,7 @@
 
+from ok import TaskDisabledException
 from qfluentwidgets import FluentIcon
 
-from ok import TaskDisabledException
 from src.char.CharFactory import char_dict
 from src.combat.BaseCombatTask import BaseCombatTask
 

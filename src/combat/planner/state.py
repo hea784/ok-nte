@@ -13,12 +13,14 @@ from .requests import (
     request_complete_entry_reaction,
     request_complete_switch,
     request_fulfilled,
+    request_has_expiration,
 )
 from .types import (
     ActionIntent,
     ActionResult,
     ExpectedEntry,
     FieldClaim,
+    RequestStatus,
     _display_result_name,
 )
 
@@ -39,14 +41,22 @@ class CombatState:
 
     chars: list["BaseChar"] = field(default_factory=list)
     active_requests: list[_Request] = field(default_factory=list)
+    lifecycle_requests: list[_Request] = field(default_factory=list)
     locked_route: _RouteRequest | None = None
     pending_entry_expectations: dict[int, ExpectedEntry] = field(default_factory=dict)
 
     def reset(self, chars: Iterable["BaseChar"]) -> None:
         """用当前队伍重置 planner 状态。"""
 
+        for request in self.active_requests:
+            request.close()
+        for request in self.lifecycle_requests:
+            request.close()
+        if self.locked_route is not None:
+            self.locked_route.close()
         self.chars = [char for char in chars if char is not None]
         self.active_requests.clear()
+        self.lifecycle_requests.clear()
         self.locked_route = None
         self.pending_entry_expectations.clear()
 
@@ -54,13 +64,6 @@ class CombatState:
         """清理过期请求，并处理 strict route 的过期锁定行为。"""
 
         now = time.time()
-        active_requests = []
-        for request in self.active_requests:
-            if request.expired(now):
-                request.notify_expired()
-                continue
-            active_requests.append(request)
-        self.active_requests = active_requests
         if self.locked_route is not None and self.locked_route.expired(now):
             step = self.locked_route.current_step()
             step_reason = step.reason if step is not None else "route completed"
@@ -68,16 +71,41 @@ class CombatState:
                 f"strict route deadline expired, route unlocked: "
                 f"{self.locked_route.reason} / {step_reason}"
             )
-            self.locked_route.notify_expired()
+            self.locked_route.finish(RequestStatus.EXPIRED)
+            self.locked_route.close()
             self.locked_route = None
+        active_requests = []
+        for request in self.active_requests:
+            if request.expired(now):
+                request.finish(RequestStatus.EXPIRED)
+                request.close()
+                continue
+            active_requests.append(request)
+        self.active_requests = active_requests
+        lifecycle_requests = []
+        for request in self.lifecycle_requests:
+            if request.expired(now):
+                request.finish(RequestStatus.EXPIRED)
+                request.close()
+                continue
+            lifecycle_requests.append(request)
+        self.lifecycle_requests = lifecycle_requests
 
     def add_requests(self, requests: Iterable[_Request]) -> None:
         """加入角色新发布的协作请求。"""
 
         for request in requests:
             if request_fulfilled(request) and not request.return_to_source:
+                request.finish(RequestStatus.FULFILLED)
+                request.close()
+                if request_has_expiration(request):
+                    self.lifecycle_requests.append(request)
                 continue
             if isinstance(request, _RouteRequest) and request.steps:
+                if self.locked_route is not None:
+                    logger.info(f"strict route replaced: {self.locked_route.reason}")
+                    self.locked_route.finish(RequestStatus.EXPIRED)
+                    self.locked_route.close()
                 self.locked_route = request
                 step = request.current_step()
                 step_reason = step.reason if step is not None else "no step"
@@ -90,12 +118,9 @@ class CombatState:
 
         for request in self.active_requests:
             request_complete_action(request, char, result)
-        self.active_requests = [
-            request
-            for request in self.active_requests
-            if not request_fulfilled(request)
-            or (request.return_to_source and char.index != request._source)
-        ]
+            if request_fulfilled(request):
+                request.finish(RequestStatus.FULFILLED)
+        self.active_requests = self._keep_active_after_progress(char.index)
         if self.locked_route is None:
             return
 
@@ -115,6 +140,9 @@ class CombatState:
 
         for request in self.active_requests:
             request_complete_entry_reaction(request, source_char, target_char)
+            if request_fulfilled(request):
+                request.finish(RequestStatus.FULFILLED)
+        self.active_requests = self._keep_active_after_progress(target_char.index)
         if self.locked_route is None:
             return
 
@@ -134,7 +162,8 @@ class CombatState:
         active_requests = []
         for request in self.active_requests:
             if request_complete_switch(request, target_char):
-                request.notify_fulfilled()
+                request.finish(RequestStatus.FULFILLED)
+                request.close()
                 logger.info(f"switch request fulfilled: {request.reason}")
                 continue
             active_requests.append(request)
@@ -145,14 +174,33 @@ class CombatState:
 
         if self.locked_route is None:
             return
-        self.locked_route.notify_fulfilled()
+        self.locked_route.finish(RequestStatus.FULFILLED)
         if not self.locked_route.return_to_source:
             logger.info(f"strict route fulfilled: {self.locked_route.reason}")
+            self.locked_route.close()
+            if request_has_expiration(self.locked_route):
+                self.lifecycle_requests.append(self.locked_route)
             self.locked_route = None
             return
         self.active_requests.append(self.locked_route)
         logger.info(f"strict route fulfilled: {self.locked_route.reason}")
         self.locked_route = None
+
+    def _keep_active_after_progress(self, actor_index: int) -> list[_Request]:
+        active_requests = []
+        for request in self.active_requests:
+            if not request_fulfilled(request):
+                active_requests.append(request)
+                continue
+            if request.return_to_source and actor_index != request._source:
+                active_requests.append(request)
+                continue
+            if request_has_expiration(request):
+                if request.return_to_source and actor_index == request._source:
+                    request.return_to_source = False
+                self.lifecycle_requests.append(request)
+            request.close()
+        return active_requests
 
     def char_by_index(self, index: int) -> "BaseChar | None":
         """按队伍 index 查找角色。"""
