@@ -106,18 +106,22 @@ class Hotori(BaseChar):
                 can_execute=lambda _: self.ready_for_ultimate(),
                 reason="team skill records ready",
                 priority_ready=lambda _: self.ready_for_ultimate(),
+                chain_policy=Planner.EntryChainPolicy.STOP_ON_SUCCESS,
             ),
             self.planner_action(
                 name="hotori_team_record_setup",
                 tags={ActionTag.COORDINATION, ActionTag.SUPPORT},
                 execute=self._execute_hotori_setup,
                 reason="open team skill record window",
-                can_execute=lambda _: self.count_team_skill_records() < 1,
+                can_execute=lambda _: self._can_start_record_setup(),
                 priority_ready=lambda _: self._should_record(),
             ),
             *claims,
         )
     
+    def _can_start_record_setup(self):
+        return self.count_team_skill_records() < 1 and self._should_record()
+
     def _should_record(self):
         cond1 = self.time_elapsed_accounting_for_freeze(self.last_ultimate_time) > 5
         cond2 = self.records_status() is False

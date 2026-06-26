@@ -764,3 +764,6 @@ msgstr "Opção de Dificuldade"
 
 msgid "异象家具"
 msgstr "Móveis de Anomalia"
+
+msgid "每2小时重新登入"
+msgstr "Fazer login novamente a cada 2 horas"

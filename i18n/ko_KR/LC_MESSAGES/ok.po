@@ -1017,3 +1017,6 @@ msgstr "난이도 옵션"
 
 msgid "异象家具"
 msgstr "아노말리 가구"
+
+msgid "每2小时重新登入"
+msgstr "2시간마다 재로그인"

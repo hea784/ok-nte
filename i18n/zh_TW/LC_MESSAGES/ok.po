@@ -1017,3 +1017,6 @@ msgstr "難度選項"
 
 msgid "异象家具"
 msgstr "異象家具"
+
+msgid "每2小时重新登入"
+msgstr "每2小時重新登入"

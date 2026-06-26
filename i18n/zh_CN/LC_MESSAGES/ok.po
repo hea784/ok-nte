@@ -1000,3 +1000,6 @@ msgstr ""
 
 msgid "异象家具"
 msgstr ""
+
+msgid "每2小时重新登入"
+msgstr ""

@@ -34,5 +34,10 @@ class Zero(BaseChar):
     def click_skill(self, *args, **kwargs):
         ret = super().click_skill(*args, **kwargs)
         if ret:
-            self.task.wait_until(self.is_cycle_full)
+            if not self.task.wait_until(
+                self.is_cycle_full,
+                time_out=1.25,
+                raise_if_not_found=False,
+            ):
+                self.logger.info("cycle not full after Zero skill")
         return ret

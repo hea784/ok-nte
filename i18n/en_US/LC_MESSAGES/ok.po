@@ -1017,3 +1017,6 @@ msgstr "Difficulty Option"
 
 msgid "异象家具"
 msgstr "Anomaly Furniture"
+
+msgid "每2小时重新登入"
+msgstr "Re-login every 2 hours"
