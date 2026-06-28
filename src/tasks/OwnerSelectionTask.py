@@ -106,9 +106,9 @@ class OwnerSelectionTask(NTEOneTimeTask, RecordTask):
             raise_if_not_found=True,
             settle_time=0.25,
         )
-        self.sleep(0.5)
+        self.sleep(1)
         self.record_or_replay_operations(2, instruction_text=self.tr(RECORD_INS))
-        self.sleep(0.5)
+        self.sleep(1)
         # 步骤2：点击开始玩法
         self.info_set("当前阶段", "开始玩法")
         self.wait_click_confirm(range=(0.922, 0.889, 0.969, 0.972))

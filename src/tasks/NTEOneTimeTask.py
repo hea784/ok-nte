@@ -10,4 +10,5 @@ class NTEOneTimeTask:
         elif isinstance(self.executor.interaction, PynputInteraction):
             self.bring_to_front()
         self.sleep(0.5)
+        self.set_check_monthly_card()
         return super().run(*args, **kwargs)

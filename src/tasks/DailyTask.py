@@ -280,7 +280,14 @@ class DailyTask(NTEOneTimeTask, CinemaDateMixin, BaseNTETask):
             return True
 
         used_stamina = self.info_get("used stamina")
-        must_use = self.config.get(self.DAILY_STAMINA_TARGET, 180) - used_stamina
+        target_stamina = self.config.get(self.DAILY_STAMINA_TARGET, 180)
+        must_use = target_stamina - used_stamina
+        if must_use <= 0:
+            self.log_info(
+                f"当前体力消耗: {used_stamina}, {self.DAILY_STAMINA_TARGET}: {target_stamina}"
+            )
+            self.log_info("目标已达成，跳过每日活跃度任务")
+            return True
         self.info_set("must use stamina", must_use)
 
         with self.set_working_task(AnomalyTask) as task:
@@ -288,7 +295,7 @@ class DailyTask(NTEOneTimeTask, CinemaDateMixin, BaseNTETask):
             if ret:
                 self.shift_idx(task)
         return ret
-    
+
     @contextmanager
     def set_working_task(self, cls: Type[WorkingTaskT]) -> Iterator[WorkingTaskT]:
         old_working_task = self.working_task
@@ -304,7 +311,7 @@ class DailyTask(NTEOneTimeTask, CinemaDateMixin, BaseNTETask):
             self.working_task.info = old_task_info
             self.working_task = old_working_task
             self.sleep_check_interval = old_sleep_check_interval
-    
+
     def sleep_check(self):
         if self.working_task:
             return self.working_task.sleep_check()

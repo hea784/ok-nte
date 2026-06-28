@@ -527,8 +527,7 @@ class BaseCombatTask(CombatCheck):
         switch_to.has_intro = has_intro
         intro_replanned = False
         start_time = time.time()
-        start_frame = self.frame
-        health_snapshot = self._capture_active_health_snapshot(start_frame)
+        self.scene.clear_health_snapshot()
         switch_key_sent_at = 0
         last_index_check = 0
 
@@ -559,10 +558,11 @@ class BaseCombatTask(CombatCheck):
                     self.run_with_interval(lambda: logger.info(info), interval=1)
                     self.sleep(0.01)
                     continue
+                if self.scene.health_snapshot() is None:
+                    self.is_health_changed(frame)
 
                 detected_reason, last_index_check = self._switch_detection_reason(
                     switch_to,
-                    health_snapshot,
                     frame,
                     switch_key_sent_at,
                     current_time,
@@ -635,44 +635,9 @@ class BaseCombatTask(CombatCheck):
             return True
         return False
 
-    def _capture_active_health_snapshot(self, frame):
-        """截取当前出场角色血条颜色快照，用于快速判断切人是否已经发生。"""
-
-        box = self.is_in_team(frame=frame)
-        if box is None:
-            return
-        health_box = box.copy(x_offset=box.width, width_offset=box.width * 3)
-        cropped = health_box.crop_frame(frame)
-        snapshot = iu.create_color_mask(cropped, char_health_color, to_bgr=False)
-        return snapshot
-
-    def _active_health_changed(self, snapshot, frame):
-        """判断当前出场血条是否已经不同于切人前快照。"""
-
-        if snapshot is None:
-            return None
-
-        def frame_processor(cv):
-            return iu.create_color_mask(cv, char_health_color, to_bgr=False)
-
-        box = self.is_in_team(frame=frame)
-        if box is None:
-            return None
-        health_box = box.copy(x_offset=box.width, width_offset=box.width * 3).scale(1.1)
-        if self.find_one(
-            "health_snapshot",
-            template=snapshot,
-            box=health_box,
-            frame=frame,
-            frame_processor=frame_processor,
-        ):
-            return False
-        return True
-
     def _switch_detection_reason(
         self,
         switch_to: "BaseChar",
-        health_snapshot,
         frame,
         switch_key_sent_at,
         current_time,
@@ -681,14 +646,14 @@ class BaseCombatTask(CombatCheck):
         time_out,
     ):
         if switch_key_sent_at > 0 and current_time - switch_key_sent_at >= 0.04:
-            if self._active_health_changed(health_snapshot, frame) is True:
+            if self.is_health_changed(frame) is True:
                 return "active health change", last_index_check
 
         if current_time - last_index_check < 0.35:
             return None, last_index_check
 
         use_index_fallback = (
-            health_snapshot is None
+            self.scene.health_snapshot() is None
             or switch_key_sent_at <= 0
             or current_time - switch_key_sent_at > 0.45
             or current_time - start_time > max(time_out - 0.75, time_out * 0.8)
@@ -1140,7 +1105,7 @@ class BaseCombatTask(CombatCheck):
             self.send_key_down(direction)
             if run:
                 self.sleep(0.1)
-                self.send_key_down("lshift")
+                self.send_key("lshift")
             ret = bool(
                 self.wait_until(
                     self.in_combat,
@@ -1150,9 +1115,6 @@ class BaseCombatTask(CombatCheck):
             )
             self.sleep(delay)
         finally:
-            if run:
-                self.send_key_up("lshift")
-                self.sleep(0.1)
             self.send_key_up(direction)
         return ret
 
@@ -1251,10 +1213,3 @@ def convert_cd(text):
             return float(match.group(0))
         else:
             return 1
-
-
-char_health_color = {
-    "r": (160, 210),
-    "g": (160, 210),
-    "b": (160, 210),
-}

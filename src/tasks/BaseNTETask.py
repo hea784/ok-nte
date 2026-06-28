@@ -778,6 +778,48 @@ class BaseNTETask(CharUIMixin, MovementMixin, VisionMixin, OgMixin, BaseTask):
             time_out=10,
         )
 
+    def _get_health_box(self, frame):
+        box = self.is_in_team(frame=frame)
+        if box is None:
+            return
+        return box.copy(x_offset=box.width, width_offset=box.width * 3)
+
+    def _get_health_snapshot(self, frame):
+        """截取当前出场角色血条颜色快照，用于快速判断切人是否已经发生。"""
+
+        health_box = self._get_health_box(frame)
+        if health_box is None:
+            return None
+        cropped = health_box.crop_frame(frame)
+        snapshot = iu.create_color_mask(cropped, char_health_color, to_bgr=False)
+        return snapshot
+
+    def is_health_changed(self, frame):
+        """判断当前出场血条是否已经不同于切人前快照。"""
+
+        def frame_processor(cv):
+            return iu.create_color_mask(cv, char_health_color, to_bgr=False)
+
+        snapshot = self.scene.health_snapshot()
+        if snapshot is None:
+            snapshot = self.scene.health_snapshot(image=self._get_health_snapshot(frame))
+            return False if snapshot is not None else None
+
+        health_box = self._get_health_box(frame)
+        if health_box is None:
+            return None
+        health_box = health_box.scale(1.1)
+        if self.find_one(
+            "health_snapshot",
+            template=snapshot,
+            box=health_box,
+            frame=frame,
+            frame_processor=frame_processor,
+            threshold=0.9,
+        ):
+            return False
+        return True
+
 
 def interac_mask(image):
     mask = iu.create_color_mask(image, interac_pink_color, to_bgr=False)
@@ -789,4 +831,11 @@ interac_pink_color = {
     "r": (197, 221),
     "g": (71, 78),
     "b": (119, 133),
+}
+
+
+char_health_color = {
+    "r": (160, 210),
+    "g": (160, 210),
+    "b": (160, 210),
 }

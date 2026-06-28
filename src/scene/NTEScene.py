@@ -1,5 +1,6 @@
 import time
 
+import numpy as np
 from ok import BaseScene, Logger
 
 logger = Logger.get_logger(__name__)
@@ -14,6 +15,7 @@ class NTEScene(BaseScene):
         self._ocr_warm_up = False
         self._is_in_team_record = {"state": None, "timestamp": 0}
         self._logged_in = False
+        self._health_snapshot = None
 
     def reset(self):
         self._is_in_team = None
@@ -47,3 +49,11 @@ class NTEScene(BaseScene):
 
     def get_is_in_team_record(self):
         return self._is_in_team_record["state"], self._is_in_team_record["timestamp"]
+
+    def health_snapshot(self, image=None):
+        if isinstance(image, np.ndarray):
+            self._health_snapshot = image
+        return self._health_snapshot
+
+    def clear_health_snapshot(self):
+        self._health_snapshot = None

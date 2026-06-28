@@ -44,8 +44,8 @@ class QwertyPhysicalKeyMapper:
         char_count = self.user32.ToUnicodeEx(
             vk_code,
             scan_code,
-            keyboard_state,
-            buffer,
+            ctypes.byref(keyboard_state),
+            ctypes.byref(buffer),
             len(buffer),
             0,
             keyboard_layout,
@@ -71,8 +71,8 @@ class QwertyPhysicalKeyMapper:
         self.user32.ToUnicodeEx.argtypes = [
             ctypes.c_uint,
             ctypes.c_uint,
-            ctypes.POINTER(ctypes.c_ubyte),
-            ctypes.c_wchar_p,
+            ctypes.c_void_p,
+            ctypes.c_void_p,
             ctypes.c_int,
             ctypes.c_uint,
             ctypes.c_void_p,
