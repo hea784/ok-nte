@@ -78,6 +78,7 @@ class HeistTask(BaseNTETask, TriggerTask):
         self.suppressed_keys = set()
 
     def run(self):
+        self.start_listener()
         if not self.scene.is_in_team(self.is_in_team):
             self._loop = False
             return
@@ -289,10 +290,6 @@ class HeistTask(BaseNTETask, TriggerTask):
         self._release_key("lshift")
         self._release_key("rshift")
 
-    def enable(self):
-        self.start_listener()
-        super().enable()
-
     def disable(self):
         self.stop_listener()
         super().disable()
@@ -302,7 +299,8 @@ class HeistTask(BaseNTETask, TriggerTask):
             self.listener = keyboard.Listener(
                 win32_event_filter=self._win32_filter,
             )
-        self.physical_keys_pressed = set()
+            self.physical_keys_pressed = set()
+            self.suppressed_keys = set()
         if not self.listener.running:
             self.listener.start()
 
