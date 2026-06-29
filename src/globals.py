@@ -22,9 +22,7 @@ class Globals(QObject):
         threading.Thread(
             target=self.init_sound_context, daemon=True, name="SoundContextInit"
         ).start()
-        threading.Thread(
-            target=lambda: self.openvino_model_async, daemon=True, name="OpenVINOInit"
-        ).start()
+        threading.Thread(target=self.init_openvino, daemon=True, name="OpenVINOInit").start()
 
     def stop(self):
         self._sound_context_stop_event.set()
@@ -234,3 +232,9 @@ class Globals(QObject):
             logger.info("SoundCombatContext initialized globally")
         else:
             context.shutdown()
+
+    def init_openvino(self):
+        from src.ui.util import wait_main_window
+
+        wait_main_window()
+        self.openvino_model_async

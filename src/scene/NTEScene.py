@@ -1,6 +1,5 @@
 import time
 
-import numpy as np
 from ok import BaseScene, Logger
 
 logger = Logger.get_logger(__name__)
@@ -51,6 +50,7 @@ class NTEScene(BaseScene):
         return self._is_in_team_record["state"], self._is_in_team_record["timestamp"]
 
     def health_snapshot(self, image=None):
+        import numpy as np
         if isinstance(image, np.ndarray):
             self._health_snapshot = image
         return self._health_snapshot

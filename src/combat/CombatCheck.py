@@ -92,6 +92,7 @@ class CombatCheck(BaseNTETask):
         self._last_combat_detect_hit_log = 0
         self._last_combat_detect_source = ""
         self._turn_on_retarget = False
+        self._boss_fight = False
 
     @contextmanager
     def retarget_turn_policy(self, enable=True):
@@ -121,6 +122,7 @@ class CombatCheck(BaseNTETask):
     def do_reset_to_false(self):
         self.cds = {}
         self._in_combat = False
+        self._boss_fight = False
         self.combat_detect_state.reset()
         self.find_lv_future = None
         self._lv_async = None
@@ -328,8 +330,11 @@ class CombatCheck(BaseNTETask):
             return self.reset_to_false(reason="on_combat_check failed")
 
         if self.is_boss():
+            self._boss_fight = True
             self._reset_combat_detect_state()
             return self._set_in_combat("boss")
+        elif self._boss_fight:
+            return self._recover_or_end_combat()
 
         if self.combat_end_condition is not None and self.combat_end_condition():
             return self.reset_to_false(reason="end condition reached")
