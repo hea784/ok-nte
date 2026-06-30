@@ -30,6 +30,7 @@ class SoundListener:
     sample_len = 0.2
     detection_interval = 0.025
     log_interval = 20.0
+    restart_interval = 1.0
     default_process_name = "HTGame.exe"
 
     degree = 4
@@ -55,6 +56,8 @@ class SoundListener:
 
         self.is_computation_required = None
         self._running = False
+        self._state_lock = threading.Lock()
+        self._stop_event: Optional[threading.Event] = None
         self._listener_thread: Optional[threading.Thread] = None
         self._last_trigger_time = 0.0
         self._trigger_interval = 0.5
@@ -145,131 +148,186 @@ class SoundListener:
         return max_corr
 
     def start(self):
-        if self._running:
-            logger.warning("SoundListener already running")
-            return
-        self._running = True
-        self._listener_thread = threading.Thread(target=self._listen_loop, daemon=True)
-        self._listener_thread.start()
+        with self._state_lock:
+            if self._running:
+                logger.warning("SoundListener already running")
+                return True
+
+            self._running = True
+            self._stop_event = threading.Event()
+            self._listener_thread = threading.Thread(
+                target=self._listen_loop,
+                args=(self._stop_event,),
+                daemon=True,
+            )
+            try:
+                self._listener_thread.start()
+            except Exception:
+                self._running = False
+                self._stop_event = None
+                self._listener_thread = None
+                raise
+
         logger.info("SoundListener started successfully")
+        return True
 
     def stop(self):
         logger.info(f"SoundListener stop called, current running: {self._running}")
-        self._running = False
-        if self._capture:
-            self._capture.stop()
-        if self._listener_thread:
-            self._listener_thread.join(timeout=2.0)
+        with self._state_lock:
+            self._running = False
+            stop_event = self._stop_event
+            capture = self._capture
+            listener_thread = self._listener_thread
+
+        if stop_event:
+            stop_event.set()
+        if capture:
+            capture.stop()
+        if listener_thread and listener_thread is not threading.current_thread():
+            listener_thread.join(timeout=2.0)
         logger.info("SoundListener stopped")
 
-    def _listen_loop(self):
+    @property
+    def is_running(self):
+        stop_event = self._stop_event
+        return (
+            self._running
+            and (stop_event is None or not stop_event.is_set())
+            and self._listener_thread is not None
+            and self._listener_thread.is_alive()
+        )
+
+    def _listen_loop(self, stop_event: threading.Event):
         try:
-            logger.info(f"Initializing WASAPI process audio capture for {self.process_name}...")
-
-            last_log = 0
-            max_samples = int(self.used_sr * self.sample_len)
-            samples_per_check = max(1, int(self.used_sr * self.detection_interval))
-            ring_buffer = np.zeros(max_samples * 2, dtype=np.float64)
-            buffer_pos = 0
-            total_written = 0
-            samples_since_check = 0
-
-            while self._running:
-                if self._capture is None or not self._capture.is_alive():
-                    if self._capture is not None:
-                        logger.warning(
-                            f"WASAPI process capture stopped; restarting: {self._capture.error}"
-                        )
-                        self._capture.stop()
-                    self._capture = create_capture_source(
-                        MODE_PROCESS,
-                        process_name=self.process_name,
-                    )
-                    if not self._capture.start():
-                        logger.warning(
-                            "WASAPI process capture not ready for {}: {}".format(
-                                self.process_name,
-                                self._capture.error,
-                            )
-                        )
-                        self._capture.stop()
-                        self._capture = None
-                        time.sleep(1.0)
-                        continue
-                    logger.info(f"Using audio capture source: {self._capture.name}")
-
-                current_frame = self._capture.read(timeout=0.2)
-                if current_frame is None or current_frame.size == 0:
-                    continue
-
-                if current_frame.shape[0] >= ring_buffer.shape[0]:
-                    current_frame = current_frame[-ring_buffer.shape[0] :]
-
-                end_pos = buffer_pos + current_frame.shape[0]
-                if end_pos <= ring_buffer.shape[0]:
-                    ring_buffer[buffer_pos:end_pos] = current_frame
-                else:
-                    first_part = ring_buffer.shape[0] - buffer_pos
-                    ring_buffer[buffer_pos:] = current_frame[:first_part]
-                    ring_buffer[: end_pos - ring_buffer.shape[0]] = current_frame[first_part:]
-
-                buffer_pos = end_pos % ring_buffer.shape[0]
-                total_written += current_frame.shape[0]
-                samples_since_check += current_frame.shape[0]
-
-                if total_written < max_samples or samples_since_check < samples_per_check:
-                    continue
-
-                samples_since_check = 0
-                if buffer_pos >= max_samples:
-                    window = ring_buffer[buffer_pos - max_samples : buffer_pos]
-                else:
-                    window = np.concatenate(
-                        [
-                            ring_buffer[-(max_samples - buffer_pos) :],
-                            ring_buffer[:buffer_pos],
-                        ]
-                    )
-
-                if self.is_computation_required and not self.is_computation_required():
-                    continue
-
-                norm_window = self._prepare_stream_waveform(window)
-                dodge_score = self._match_normalized(norm_window, self._sample_waveform)
-                counter_score = 0.0
-                if self._counter_sample_waveform is not None:
-                    counter_score = self._match_normalized(
-                        norm_window,
-                        self._counter_sample_waveform,
-                    )
-
-                self._check_triggers(dodge_score, counter_score)
-
-                # self._draw_debug_visual(dodge_score, counter_score)
-
-                now = time.time()
-                if now - last_log > self.log_interval:
-                    last_log = now
-                    logger.info(
-                        "Audio monitoring - dodge_score: {:.4f} (threshold: {}), "
-                        "counter_score: {:.4f} (threshold: {})".format(
-                            dodge_score,
-                            self.threshold,
-                            counter_score,
-                            self.counter_attack_threshold,
-                        )
-                    )
-        except Exception as e:
-            logger.error("Listener error", e)
-        finally:
-            if self._capture is not None:
+            while self._should_run(stop_event):
                 try:
-                    self._capture.stop()
+                    self._listen_once(stop_event)
                 except Exception as e:
-                    logger.warning(f"Failed to stop WASAPI process capture: {e}")
-                self._capture = None
-            self._running = False
+                    logger.error("Listener error", e)
+                finally:
+                    self._stop_capture()
+
+                if self._should_run(stop_event):
+                    logger.warning(
+                        f"Audio listener loop stopped unexpectedly; restarting in "
+                        f"{self.restart_interval:.2f}s"
+                    )
+                    stop_event.wait(self.restart_interval)
+        finally:
+            with self._state_lock:
+                if self._stop_event is stop_event:
+                    self._running = False
             logger.info("Audio listener stopped")
+
+    def _should_run(self, stop_event: threading.Event) -> bool:
+        return self._running and not stop_event.is_set()
+
+    def _stop_capture(self):
+        if self._capture is None:
+            return
+        try:
+            self._capture.stop()
+        except Exception as e:
+            logger.warning(f"Failed to stop WASAPI process capture: {e}")
+        finally:
+            self._capture = None
+
+    def _listen_once(self, stop_event: threading.Event):
+        logger.info(f"Initializing WASAPI process audio capture for {self.process_name}...")
+
+        last_log = 0
+        max_samples = int(self.used_sr * self.sample_len)
+        samples_per_check = max(1, int(self.used_sr * self.detection_interval))
+        ring_buffer = np.zeros(max_samples * 2, dtype=np.float64)
+        buffer_pos = 0
+        total_written = 0
+        samples_since_check = 0
+
+        while self._should_run(stop_event):
+            if self._capture is None or not self._capture.is_alive():
+                if self._capture is not None:
+                    logger.warning(
+                        f"WASAPI process capture stopped; restarting: {self._capture.error}"
+                    )
+                    self._capture.stop()
+                self._capture = create_capture_source(
+                    MODE_PROCESS,
+                    process_name=self.process_name,
+                )
+                if not self._capture.start():
+                    logger.warning(
+                        "WASAPI process capture not ready for {}: {}".format(
+                            self.process_name,
+                            self._capture.error,
+                        )
+                    )
+                    self._capture.stop()
+                    self._capture = None
+                    stop_event.wait(1.0)
+                    continue
+                logger.info(f"Using audio capture source: {self._capture.name}")
+
+            current_frame = self._capture.read(timeout=0.2)
+            if current_frame is None or current_frame.size == 0:
+                continue
+
+            if current_frame.shape[0] >= ring_buffer.shape[0]:
+                current_frame = current_frame[-ring_buffer.shape[0] :]
+
+            end_pos = buffer_pos + current_frame.shape[0]
+            if end_pos <= ring_buffer.shape[0]:
+                ring_buffer[buffer_pos:end_pos] = current_frame
+            else:
+                first_part = ring_buffer.shape[0] - buffer_pos
+                ring_buffer[buffer_pos:] = current_frame[:first_part]
+                ring_buffer[: end_pos - ring_buffer.shape[0]] = current_frame[first_part:]
+
+            buffer_pos = end_pos % ring_buffer.shape[0]
+            total_written += current_frame.shape[0]
+            samples_since_check += current_frame.shape[0]
+
+            if total_written < max_samples or samples_since_check < samples_per_check:
+                continue
+
+            samples_since_check = 0
+            if buffer_pos >= max_samples:
+                window = ring_buffer[buffer_pos - max_samples : buffer_pos]
+            else:
+                window = np.concatenate(
+                    [
+                        ring_buffer[-(max_samples - buffer_pos) :],
+                        ring_buffer[:buffer_pos],
+                    ]
+                )
+
+            if self.is_computation_required and not self.is_computation_required():
+                continue
+
+            norm_window = self._prepare_stream_waveform(window)
+            dodge_score = self._match_normalized(norm_window, self._sample_waveform)
+            counter_score = 0.0
+            if self._counter_sample_waveform is not None:
+                counter_score = self._match_normalized(
+                    norm_window,
+                    self._counter_sample_waveform,
+                )
+
+            self._check_triggers(dodge_score, counter_score)
+
+            # self._draw_debug_visual(dodge_score, counter_score)
+
+            now = time.time()
+            if now - last_log > self.log_interval:
+                last_log = now
+                logger.info(
+                    "Audio monitoring - dodge_score: {:.4f} (threshold: {}), "
+                    "counter_score: {:.4f} (threshold: {})".format(
+                        dodge_score,
+                        self.threshold,
+                        counter_score,
+                        self.counter_attack_threshold,
+                    )
+                )
 
     def _check_triggers(self, dodge_score, counter_score):
         now = time.time()

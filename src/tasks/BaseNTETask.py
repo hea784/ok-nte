@@ -510,6 +510,7 @@ class BaseNTETask(CharUIMixin, MovementMixin, VisionMixin, OgMixin, BaseTask):
             lambda: self.is_main(esc=esc, in_world=in_world),
             time_out=time_out,
             raise_if_not_found=False,
+            settle_time=0.25,
         ):
             raise Exception("Please start in game world and in team!")
         self.sleep(0.5)

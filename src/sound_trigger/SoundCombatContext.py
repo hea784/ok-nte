@@ -12,7 +12,7 @@ if TYPE_CHECKING:
 logger = Logger.get_logger(__name__)
 
 
-_ACTION_UNSET = object()
+ACTION_UNSET = object()
 
 
 def _game_audio_process_name() -> str:
@@ -183,7 +183,8 @@ class SoundCombatContext:
             return False
 
         try:
-            self._listener.start()
+            if not self._listener.start():
+                return False
             logger.info("SoundCombatContext entered - listener started")
             return True
         except Exception as e:
@@ -252,14 +253,14 @@ class SoundCombatContext:
     def _on_counter_triggered(self):
         self._queue_action("dodge" if self._dodge_all_attacks else "counter")
 
-    def execute_pending_action(self, expected_action=_ACTION_UNSET, expected_task=_ACTION_UNSET):
+    def execute_pending_action(self, expected_action=ACTION_UNSET, expected_task=ACTION_UNSET):
         with self._context_lock:
             action = self._pending_action
-            if expected_action is not _ACTION_UNSET and action != expected_action:
+            if expected_action is not ACTION_UNSET and action != expected_action:
                 return
             trigger = self._trigger
             task = trigger.task if trigger else None
-            if expected_task is not _ACTION_UNSET and task is not expected_task:
+            if expected_task is not ACTION_UNSET and task is not expected_task:
                 return
             self._pending_action = None
 
@@ -288,8 +289,8 @@ class SoundCombatContext:
     def update_task(
         self,
         task,
-        dodge_action: Optional[Callable] | object = _ACTION_UNSET,
-        counter_action: Optional[Callable] | object = _ACTION_UNSET,
+        dodge_action: Optional[Callable] | object = ACTION_UNSET,
+        counter_action: Optional[Callable] | object = ACTION_UNSET,
     ):
         with self._context_lock:
             current_task = self._trigger.task if self._trigger else self._pending_task
@@ -299,12 +300,12 @@ class SoundCombatContext:
             if task_changed:
                 self._pending_action = None
                 self.clear_priority()
-                self._dodge_action = None if dodge_action is _ACTION_UNSET else dodge_action
-                self._counter_action = None if counter_action is _ACTION_UNSET else counter_action
+                self._dodge_action = None if dodge_action is ACTION_UNSET else dodge_action
+                self._counter_action = None if counter_action is ACTION_UNSET else counter_action
             else:
-                if dodge_action is not _ACTION_UNSET:
+                if dodge_action is not ACTION_UNSET:
                     self._dodge_action = dodge_action
-                if counter_action is not _ACTION_UNSET:
+                if counter_action is not ACTION_UNSET:
                     self._counter_action = counter_action
 
             if self._trigger:
