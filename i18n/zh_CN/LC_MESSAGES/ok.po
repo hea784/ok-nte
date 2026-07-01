@@ -318,7 +318,7 @@ msgstr ""
 msgid "运行一次测试"
 msgstr ""
 
-msgid "选择或输入{combo}名"
+msgid "下拉选择，或直接输入名称以创建新{combo}"
 msgstr ""
 
 msgid "重命名失败"
@@ -1002,4 +1002,8 @@ msgid "异象家具"
 msgstr ""
 
 msgid "每2小时重新登入"
+msgstr ""
+
+
+msgid "除了选择内建存在的<b style=\"color: #0078d7;\">{combo}</b>外，您也可以自己输入名称来建立自己的<b style=\"color: #0078d7;\">{combo}</b>。"
 msgstr ""

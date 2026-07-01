@@ -324,8 +324,8 @@ msgstr "跳過劇情"
 msgid "运行一次测试"
 msgstr "運行一次測試"
 
-msgid "选择或输入{combo}名"
-msgstr "選擇或輸入{combo}名"
+msgid "下拉选择，或直接输入名称以创建新{combo}"
+msgstr "下拉選擇，或直接輸入名稱以建立新{combo}"
 
 msgid "重命名失败"
 msgstr "重新命名失敗"
@@ -1020,3 +1020,7 @@ msgstr "異象家具"
 
 msgid "每2小时重新登入"
 msgstr "每2小時重新登入"
+
+
+msgid "除了选择内建存在的<b style=\"color: #0078d7;\">{combo}</b>外，您也可以自己输入名称来建立自己的<b style=\"color: #0078d7;\">{combo}</b>。"
+msgstr "除了選擇內建存在的<b style=\"color: #0078d7;\">{combo}</b>外，您也可以自己輸入名稱來建立自己的<b style=\"color: #0078d7;\">{combo}</b>。"

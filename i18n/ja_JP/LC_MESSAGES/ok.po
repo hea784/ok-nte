@@ -324,8 +324,8 @@ msgstr "ストーリースキップ"
 msgid "运行一次测试"
 msgstr "テストを1回実行"
 
-msgid "选择或输入{combo}名"
-msgstr "{combo}名を選択または入力"
+msgid "下拉选择，或直接输入名称以创建新{combo}"
+msgstr "ドロップダウンから選択するか、名前を直接入力して新しい{combo}を作成します"
 
 msgid "重命名失败"
 msgstr "名前変更失敗"
@@ -1020,3 +1020,7 @@ msgstr "アノマリー家具"
 
 msgid "每2小时重新登入"
 msgstr "2時間ごとに再ログイン"
+
+
+msgid "除了选择内建存在的<b style=\"color: #0078d7;\">{combo}</b>外，您也可以自己输入名称来建立自己的<b style=\"color: #0078d7;\">{combo}</b>。"
+msgstr "組み込みの<b style=\"color: #0078d7;\">{combo}</b>を選択するだけでなく、名前を入力して独自の<b style=\"color: #0078d7;\">{combo}</b>を作成することもできます。"

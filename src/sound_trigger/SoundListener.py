@@ -15,7 +15,6 @@ import librosa
 import numpy as np
 from ok import Logger
 from scipy.signal import butter, correlate, filtfilt
-from sklearn.preprocessing import scale
 
 from src.sound_trigger.capture import MODE_PROCESS, AudioCaptureSource, create_capture_source
 from src.sound_trigger.capture.base import CAPTURE_SAMPLE_RATE
@@ -122,7 +121,10 @@ class SoundListener:
 
     @staticmethod
     def _normalize_waveform(waveform: np.ndarray) -> np.ndarray:
-        return scale(waveform, with_mean=False)
+        std = np.std(waveform)
+        if std == 0:
+            return waveform
+        return waveform / std
 
     def _prepare_stream_waveform(self, stream_waveform: np.ndarray) -> np.ndarray:
         return self._normalize_waveform(self._filtering(stream_waveform))

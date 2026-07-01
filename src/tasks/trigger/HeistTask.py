@@ -193,7 +193,8 @@ class HeistTask(BaseNTETask, TriggerTask):
                 self._log_diagnostic(
                     "quick_run_listener_missed",
                     (
-                        f"heist quick run key is down by async state but missing from listener state: "
+                        f"heist quick run key is down by async state "
+                        f"but missing from listener state: "
                         f"key=shift, vk_codes={self._get_vk_codes('shift')}, "
                         f"physical_keys={sorted(self.physical_keys_pressed)}, "
                         f"listener_running={self._is_listener_running()}"

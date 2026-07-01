@@ -324,8 +324,8 @@ msgstr "Omitir historia"
 msgid "运行一次测试"
 msgstr "Ejecutar una prueba"
 
-msgid "选择或输入{combo}名"
-msgstr "Seleccionar o introducir nombre de {combo}"
+msgid "下拉选择，或直接输入名称以创建新{combo}"
+msgstr "Seleccione en el menú desplegable o ingrese directamente un nombre para crear un nuevo {combo}"
 
 msgid "重命名失败"
 msgstr "Error al renombrar"
@@ -1020,3 +1020,7 @@ msgstr "Muebles de anomalía"
 
 msgid "每2小时重新登入"
 msgstr "Reiniciar sesión cada 2 horas"
+
+
+msgid "除了选择内建存在的<b style=\"color: #0078d7;\">{combo}</b>外，您也可以自己输入名称来建立自己的<b style=\"color: #0078d7;\">{combo}</b>。"
+msgstr "Además de seleccionar un <b style=\"color: #0078d7;\">{combo}</b> integrado, también puede ingresar un nombre para crear su propio <b style=\"color: #0078d7;\">{combo}</b>."

@@ -17,6 +17,7 @@ from PySide6.QtWidgets import (
     QGraphicsDropShadowEffect,
     QHBoxLayout,
     QSizePolicy,
+    QSpacerItem,
     QVBoxLayout,
     QWidget,
 )
@@ -24,8 +25,10 @@ from qfluentwidgets import (
     CardWidget,
     FlowLayout,
     FluentIcon,
+    Flyout,
     ImageLabel,
     InfoBar,
+    InfoBarIcon,
     InfoBarPosition,
     LineEdit,
     MessageBoxBase,
@@ -97,6 +100,11 @@ class CharManagerTab(CustomTab):
             "初次使用请先至 [{team_mgmt}] 进行设置", team_mgmt=TEAM_MANAGEMENT
         )
         self.tr_delete = og.app.tr("删除")
+        self.tr_combo_tips = tr_fmt(
+            '除了选择内建存在的<b style="color: #0078d7;">{combo}</b>外，'
+            '您也可以自己输入名称来建立自己的<b style="color: #0078d7;">{combo}</b>。',
+            combo=COMBO,
+        )
         self.tr_unbound_text = tr_fmt(
             "当前未绑定任何{combo}。\n遇到此角色将默认使用基础通用脚本(BaseChar)。",
             combo=COMBO,
@@ -167,7 +175,7 @@ class CharManagerTab(CustomTab):
 
         self.char_title = TitleLabel(self.tr_choose_char)
         self.char_title.setWordWrap(True)
-        self.title_h_layout.addWidget(self.char_title, 1)
+        self.title_h_layout.addWidget(self.char_title)
 
         self.char_name_edit_btn = TransparentToolButton(FluentIcon.EDIT)
         self.char_name_edit_btn.setToolTip(self.tr_edit_char_name)
@@ -175,8 +183,10 @@ class CharManagerTab(CustomTab):
         self.char_name_edit_btn.hide()
         self.title_h_layout.addWidget(
             self.char_name_edit_btn,
-            alignment=Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignBottom,
+            alignment=Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter,
         )
+        self.title_spacer = QSpacerItem(0, 0, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum)
+        self.title_h_layout.addItem(self.title_spacer)
         self.detail_v_layout.addLayout(self.title_h_layout)
 
         self.char_subtitle = SubtitleLabel(self.tr_first_time_hint)
@@ -214,11 +224,29 @@ class CharManagerTab(CustomTab):
         self.detail_v_layout.addWidget(self.feature_scroll_card, stretch=3)
 
         # === 出招表区 ===
-        self.detail_v_layout.addWidget(SubtitleLabel(COMBO))
+        self.combo_title_layout = QHBoxLayout()
+        self.combo_title_label = SubtitleLabel(COMBO)
+        self.combo_title_layout.addWidget(self.combo_title_label)
+
+        self.combo_info_btn = TransparentToolButton(FluentIcon.INFO, self)
+        self.combo_info_btn.clicked.connect(self.show_combo_flyout)
+
+        btn_layout = QVBoxLayout()
+        btn_layout.setContentsMargins(0, 4, 0, 0)
+        btn_layout.addWidget(
+            self.combo_info_btn,
+            alignment=Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter,
+        )
+        self.combo_title_layout.addLayout(btn_layout)
+        self.combo_title_layout.addStretch(1)
+
+        self.detail_v_layout.addLayout(self.combo_title_layout)
 
         self.combo_h_layout = QHBoxLayout()
         self.combo_select = SearchableComboBox()
-        self.combo_select.setPlaceholderText(tr_fmt("选择或输入{combo}名", combo=COMBO))
+        self.combo_select.setPlaceholderText(
+            tr_fmt("下拉选择，或直接输入名称以创建新{combo}", combo=COMBO)
+        )
         self.combo_select.currentTextChanged.connect(self.on_combo_changed)
         self.combo_h_layout.addWidget(self.combo_select, 1)
 
@@ -316,6 +344,9 @@ class CharManagerTab(CustomTab):
 
         self.delete_char_btn.setEnabled(False)
         self.char_title.setText(self.tr_choose_char)
+        self.char_title.setWordWrap(True)
+        self.title_spacer.changeSize(0, 0, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum)
+        self.title_h_layout.invalidate()
         self.char_name_edit_btn.hide()
         for i in reversed(range(self.feature_grid.count())):
             layout_item = self.feature_grid.takeAt(i)  # 1. 从布局中取回 QLayoutItem
@@ -447,6 +478,10 @@ class CharManagerTab(CustomTab):
     def on_char_selected(self, item):
         if not item:
             self.current_char = None
+            self.char_title.setText(self.tr_choose_char)
+            self.char_title.setWordWrap(True)
+            self.title_spacer.changeSize(0, 0, QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Minimum)
+            self.title_h_layout.invalidate()
             self.char_name_edit_btn.hide()
             return
         self.current_char = item.text()
@@ -491,6 +526,9 @@ class CharManagerTab(CustomTab):
 
         self.delete_char_btn.setEnabled(True)
         self.char_title.setText(self.current_char)
+        self.char_title.setWordWrap(False)
+        self.title_spacer.changeSize(0, 0, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+        self.title_h_layout.invalidate()
         self.char_name_edit_btn.show()
         combo_ref = char_info.get("combo_ref", "")
         combo_label = self.manager.to_combo_label(combo_ref)
@@ -995,6 +1033,16 @@ class CharManagerTab(CustomTab):
         for token, value in literals.items():
             restored = restored.replace(token, value)
         return restored
+
+    def show_combo_flyout(self):
+        Flyout.create(
+            icon=InfoBarIcon.INFORMATION,
+            title="Tips",
+            content=self.tr_combo_tips,
+            target=self.combo_info_btn,
+            parent=self,
+            isClosable=False,
+        )
 
     def _update_feature_widget_height(self):
         layout = self.feature_grid_widget.layout()

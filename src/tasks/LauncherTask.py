@@ -173,6 +173,8 @@ class LauncherTask(BaseNTETask):
 
             mouse = Controller()
             mouse.move(50, 0)
+            time.sleep(0.2)
+            mouse.move(-50, 0)
             self.log_info("Moved mouse to dismiss screensaver")
             time.sleep(1)
             if self._is_screensaver_running():

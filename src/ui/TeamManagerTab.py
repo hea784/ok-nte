@@ -190,7 +190,10 @@ class SlotCard(CardWidget):
             self.status.setText(
                 self._status_text(self.tr_match_success.format(match_name), confidence)
             )
-            self.btn_act.setEnabled(True)
+            if confidence is not None and confidence > 0.95:
+                self.btn_act.setEnabled(False)
+            else:
+                self.btn_act.setEnabled(True)
             self.btn_act.setText(self.tr_add_match_feature_btn)
             self.btn_act.show()
         elif mat is not None:
