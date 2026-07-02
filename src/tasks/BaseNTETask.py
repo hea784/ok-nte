@@ -17,12 +17,13 @@ from src.tasks.mixin.OgMixin import OgMixin
 from src.tasks.mixin.VisionMixin import VisionMixin
 from src.utils import image_utils as iu
 from src.utils import vision_utils as vu
+from src.utils.log_gate import LogGateMixin
 
 logger = Logger.get_logger(__name__)
 stamina_re = re.compile(r"(\d+)/(\d+)")
 
 
-class BaseNTETask(CharUIMixin, MovementMixin, VisionMixin, OgMixin, BaseTask):
+class BaseNTETask(CharUIMixin, MovementMixin, VisionMixin, OgMixin, LogGateMixin, BaseTask):
     DEFAULT_MOVE = False
 
     def __init__(self, *args, **kwargs):
@@ -36,6 +37,7 @@ class BaseNTETask(CharUIMixin, MovementMixin, VisionMixin, OgMixin, BaseTask):
         self.next_monthly_card_start = 0
         self._last_interval_action_time = {}
         self._action_interval_lock = threading.Lock()
+        self._init_log_gate()
 
     def sync_config(self, config=None):
         """同步并保存配置"""
@@ -77,7 +79,9 @@ class BaseNTETask(CharUIMixin, MovementMixin, VisionMixin, OgMixin, BaseTask):
         if og.my_app is None:
             return []
         if box is None:
-            box = self.box_of_screen(0.0840, 0.1326, 0.9030, 0.8694, name="openvino_box")
+            box = self.box_of_screen(0, 0, 1, 1, name="openvino")
+        else:
+            box.name = "openvino"
         self.draw_boxes(boxes=box, color="blue")
         if frame is None:
             frame = self.frame
@@ -221,8 +225,8 @@ class BaseNTETask(CharUIMixin, MovementMixin, VisionMixin, OgMixin, BaseTask):
             box = self._shift_char_ui_box(box)
         return box
 
-    def is_char_at_index(self, index, threshold=0.5, frame=None):
-        detection = self._get_current_char_detection(frame=frame)
+    def is_char_at_index(self, index, threshold=0.5, frame=None, char_count=None):
+        detection = self._get_current_char_detection(frame=frame, char_count=char_count)
         score = detection.scores[index]
         new = f"idx {index} conf {score:.3f} {detection.reason}"
         if detection.accepted and detection.index == index and score < threshold:
@@ -258,16 +262,20 @@ class BaseNTETask(CharUIMixin, MovementMixin, VisionMixin, OgMixin, BaseTask):
         arr = self._update_char_ui_offset()
 
         # self.log_debug(f"in_team {arr}")
-        current = self.get_current_char_index()
         exist_count = 0
         for i in range(len(arr)):
             if arr[i] is not None:
                 exist_count += 1
-            elif current == -1:
-                current = i
 
-        if current != -1 and arr[current] is None:
-            exist_count += 1
+        if exist_count == 0:
+            self.log_warning("in_team exist_count is 0")
+            return False, -1, 0
+
+        current = self.get_current_char_index(char_count=exist_count)
+
+        if current == -1:
+            self.log_warning("in_team not found current char")
+            return False, -1, 0
 
         self.scene.set_logged_in()
         return True, current, exist_count
