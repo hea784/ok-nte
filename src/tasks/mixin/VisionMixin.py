@@ -46,6 +46,9 @@ class SiftAttempt(NamedTuple):
     min_match_count: int
 
 
+SIFT_HOMOGRAPHY_MIN_MATCH_COUNT = 4
+
+
 class VisionMixin(BaseTask):
     # cache_id/mask fingerprint/angle options -> [(angle, rotated mask), ...]
     _rotated_template_cache: dict[RotatedTemplateCacheKey, RotatedTemplateCacheValue] = {}
@@ -148,18 +151,23 @@ class VisionMixin(BaseTask):
         )
 
         def build_attempts():
-            attempts = [SiftAttempt("normal", 1.0, ratio, min_match_count)]
+            normal_min_match_count = max(min_match_count, SIFT_HOMOGRAPHY_MIN_MATCH_COUNT)
+            attempts = [SiftAttempt("normal", 1.0, ratio, normal_min_match_count)]
             if (
                 small_target_retry
                 and not math.isclose(small_target_scene_scale, 0.0)
                 and not math.isclose(small_target_scene_scale, 1.0)
             ):
+                retry_min_match_count = max(
+                    min(min_match_count, small_target_min_match_count),
+                    SIFT_HOMOGRAPHY_MIN_MATCH_COUNT,
+                )
                 attempts.append(
                     SiftAttempt(
                         "small_target",
                         small_target_scene_scale,
                         max(ratio, small_target_ratio),
-                        min(min_match_count, small_target_min_match_count),
+                        retry_min_match_count,
                     )
                 )
             return attempts

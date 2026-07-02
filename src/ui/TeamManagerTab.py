@@ -243,7 +243,13 @@ class SlotCard(CardWidget):
                     and not self.manager.is_custom_combo_exist(combo_ref)
                 ):
                     self.manager.add_combo(combo_ref, "")
-                self.update_result(self.current_mat, self.current_w, self.current_h, char_name)
+                self.update_result(
+                    self.current_mat,
+                    self.current_w,
+                    self.current_h,
+                    char_name,
+                    1.0,
+                )
                 char_manager_signals.refresh_tab.emit()
 
 

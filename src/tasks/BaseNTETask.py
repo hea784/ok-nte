@@ -435,15 +435,17 @@ class BaseNTETask(CharUIMixin, MovementMixin, VisionMixin, OgMixin, LogGateMixin
         self.click_traval_button()
         return teleport
 
-    def click_traval_button(self, travel_btn=None):
+    def click_traval_button(self, travel_btn=None, raise_if_not_found=True):
         if not isinstance(travel_btn, Box):
             travel_btn = self.wait_until(
-                self.find_traval_button, time_out=10, raise_if_not_found=True
+                self.find_traval_button, time_out=10, raise_if_not_found=raise_if_not_found
             )
-
+        if not travel_btn:
+            return False
         self.sleep(0.1)
         self.operate_click(travel_btn)
         self.sleep(1)
+        return True
 
     def openF1panel(self):
         if hasattr(self, "reset_to_false"):

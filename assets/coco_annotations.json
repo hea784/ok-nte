@@ -191,6 +191,12 @@
             "file_name": "images/0.png",
             "width": 2560,
             "height": 1440
+        },
+        {
+            "id": 34,
+            "file_name": "images/1.png",
+            "width": 2560,
+            "height": 1440
         }
     ],
     "annotations": [
@@ -1064,6 +1070,32 @@
             ],
             "area": 19305,
             "iscrowd": 0
+        },
+        {
+            "id": 68,
+            "image_id": 34,
+            "category_id": 68,
+            "bbox": [
+                1439,
+                754,
+                28,
+                32
+            ],
+            "area": 896,
+            "iscrowd": 0
+        },
+        {
+            "id": 69,
+            "image_id": 28,
+            "category_id": 69,
+            "bbox": [
+                109,
+                468,
+                38,
+                35
+            ],
+            "area": 1330,
+            "iscrowd": 0
         }
     ],
     "categories": [
@@ -1400,6 +1432,16 @@
         {
             "id": 67,
             "name": "anomaly_fluff",
+            "supercategory": ""
+        },
+        {
+            "id": 68,
+            "name": "bonfire_teleport",
+            "supercategory": ""
+        },
+        {
+            "id": 69,
+            "name": "map_zoom_in",
             "supercategory": ""
         }
     ]
