@@ -1036,3 +1036,6 @@ msgstr "放置EXP稼ぎ"
 
 msgid "位置"
 msgstr "位置"
+
+msgid "赤龙古堡-龙之高塔室外篝火"
+msgstr "赤竜の古城-竜の高塔屋外の篝火"

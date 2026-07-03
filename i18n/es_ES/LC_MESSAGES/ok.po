@@ -1036,3 +1036,6 @@ msgstr "Farming de EXP AFK"
 
 msgid "位置"
 msgstr "Ubicación"
+
+msgid "赤龙古堡-龙之高塔室外篝火"
+msgstr "Castillo del Dragón Rojo - Hoguera exterior de la Torre del Dragón"

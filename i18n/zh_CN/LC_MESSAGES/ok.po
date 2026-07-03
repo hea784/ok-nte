@@ -1019,3 +1019,6 @@ msgstr ""
 
 msgid "位置"
 msgstr ""
+
+msgid "赤龙古堡-龙之高塔室外篝火"
+msgstr ""

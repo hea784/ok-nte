@@ -6,16 +6,41 @@ from src.Labels import Labels
 from src.tasks.BaseNTETask import Box
 from src.tasks.NTEOneTimeTask import NTEOneTimeTask
 
+SPACE = "&nbsp;" * 4
+
+# ruff: noqa: E501
+INST = (
+    "手动传送一次目标篝火后不要转动视角，直接开始任务。\n\n"
+    "巧克力火山-底层最左边的篝火\n"
+    f"{SPACE}底层整个地图最靠左的篝火\n"
+    f"{SPACE}https://b23.tv/qsEVcDO\n\n"
+    "赤龙古堡-龙之高塔室外篝火\n"
+    f"{SPACE}龙之高塔室只有两个篝火，室外旁边有棵树的篝火"
+)
+
+EN_INST = (
+    "After manually teleporting to the target campfire once, do not rotate the camera; begin the quest immediately.\n\n"
+    "Chocolate Volcano - Bottom Floor Leftmost Bonfire\n"
+    f"{SPACE}The campfire on the far left of the entire bottom map\n"
+    f"{SPACE}https://b23.tv/qsEVcDO\n\n"
+    "Red Dragon Castle - Dragon Tower Outdoor Campfire\n"
+    f"{SPACE}There are only two campfires inside the Dragon Tower, and a campfire outside next to a tree."
+)
+# ruff: noqa
+
 
 class DSDFarmTask(NTEOneTimeTask, BaseCombatTask):
     CONF_LOCATION = "位置"
     CONF_ROUNDS = "循环次数"
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.name = "九百九十九夜"
         self.description = "挂机刷经验"
         self.icon = FluentIcon.FLAG
-        self.locations = ["巧克力火山-底层最左边的篝火"]
+        _locale = self.get_app_locale()
+        self.instructions = INST if _locale and "zh" in _locale else EN_INST
+        self.locations = ["巧克力火山-底层最左边的篝火", "赤龙古堡-龙之高塔室外篝火"]
         self.default_config.update(
             {
                 self.CONF_LOCATION: self.locations[0],
@@ -51,7 +76,7 @@ class DSDFarmTask(NTEOneTimeTask, BaseCombatTask):
             self.sleep_check_skip.all = False
 
     def do_run(self):
-        self.map_zoom_max()
+        self.deside_map_zoom()
         n = 0
         while True:
             n += 1
@@ -78,16 +103,7 @@ class DSDFarmTask(NTEOneTimeTask, BaseCombatTask):
             self.operate_click(0.057, 0.218)
             self.sleep(0.5)
             self.ensure_main()
-            if self.walk_until_combat(run=True, delay=1):
-                with self.skip_sleep_checks() as skip:
-                    skip.all = False
-                    self.combat_once()
-            self.sleep(0.5)
-            while True:
-                if self.teleport_to_bonfire():
-                    break
-                self.ensure_main()
-                self.sleep(0.5)
+            self.deside_action()
             self.next_frame()
 
     def sleep_check(self):
@@ -95,10 +111,75 @@ class DSDFarmTask(NTEOneTimeTask, BaseCombatTask):
         if self.should_check_monthly_card():
             self.handle_monthly_card()
 
-    def map_zoom_max(self):
+    def deside_map_zoom(self):
+        location = self.config.get(self.CONF_LOCATION, None)
+        if location == self.locations[0]:
+            self.map_zoom(zoom="max")
+        elif location == self.locations[1]:
+            self.map_zoom(zoom="mid")
+
+    def deside_action(self):
+        location = self.config.get(self.CONF_LOCATION, None)
+
+        if location == self.locations[0]:
+            self.location_0()
+        elif location == self.locations[1]:
+            self.location_1()
+
+    def location_0(self):
+        if self.walk_until_combat(run=True, delay=1):
+            with self.skip_sleep_checks() as skip:
+                skip.all = False
+                self.combat_once()
+        self.sleep(0.5)
+        while True:
+            if self.teleport_to_nearest_bonfire():
+                break
+            self.ensure_main()
+            self.sleep(0.5)
+
+    def location_1(self):
+        self.send_key_down("w")
+        self.sleep(0.37)
+        self.send_key_down("lshift")
+        self.sleep(0.12)
+        self.send_key_up("lshift")
+        self.sleep(4.11)
+        self.send_key_up("w")
+        self.sleep(0.51)
+        self.send_key_down("s")
+        self.sleep(0.40)
+        self.send_key_up("s")
+        self.sleep(0.18)
+        self.send_key_down("d")
+        self.sleep(0.36)
+        self.send_key_down("w")
+        self.sleep(0.5)
+        for _ in range(5):
+            self.send_key_down("d")
+            self.sleep(0.5)
+            self.send_key_up("d")
+            self.sleep(0.8)
+        self.send_key_up("w")
+        if self.wait_until(self.in_combat, time_out=10):
+            with self.skip_sleep_checks() as skip:
+                skip.all = False
+                self.combat_once()
+        self.sleep(0.5)
+        box = self.box_of_screen(0.498, 0.102, 0.931, 0.827)
+        while True:
+            if self.teleport_to_top_bonfire(box):
+                break
+            self.ensure_main()
+            self.sleep(0.5)
+
+    def map_zoom(self, zoom="max"):
         self.ensure_main()
         self.open_map()
-        self.operate_click(0.050, 0.378)
+        if zoom == "max":
+            self.operate_click(0.050, 0.378)
+        elif zoom == "mid":
+            self.operate_click(0.050, 0.527)
         self.sleep(1)
         self.ensure_main()
 
@@ -111,7 +192,7 @@ class DSDFarmTask(NTEOneTimeTask, BaseCombatTask):
         )
         self.sleep(1)
 
-    def teleport_to_bonfire(self, threshold=0.7, time_out=10):
+    def teleport_to_nearest_bonfire(self, threshold=0.7, time_out=10):
         self.ensure_main()
         self.open_map()
         to_find = [Labels.bonfire_teleport]
@@ -139,6 +220,21 @@ class DSDFarmTask(NTEOneTimeTask, BaseCombatTask):
 
         teleport = self.wait_until(find_teleport, time_out=time_out, raise_if_not_found=True)
         self.log_info(f"found nearest map teleport {teleport}")
-        self.operate_click(teleport, action_name="click_nearest_map_teleport", interval=1)
+        self.operate_click(teleport, action_name="click_nearest_map_teleport")
+        self.sleep(0.5)
+        return self.click_traval_button(raise_if_not_found=False)
+
+    def teleport_to_top_bonfire(self, box: Box, threshold=0.7):
+        self.ensure_main()
+        self.open_map()
+
+        teleports = self.find_feature(Labels.bonfire_teleport, box=box, threshold=threshold)
+        if not teleports:
+            return False
+
+        self.log_info(f"found map teleports {teleports}")
+
+        teleport = min(teleports, key=lambda teleport: teleport.y)
+        self.operate_click(teleport, action_name="click_map_teleport")
         self.sleep(0.5)
         return self.click_traval_button(raise_if_not_found=False)

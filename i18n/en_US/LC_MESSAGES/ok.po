@@ -1036,3 +1036,6 @@ msgstr "AFK EXP Farming"
 
 msgid "位置"
 msgstr "Location"
+
+msgid "赤龙古堡-龙之高塔室外篝火"
+msgstr "Red Dragon Castle - Dragon Tower Outdoor Campfire"
