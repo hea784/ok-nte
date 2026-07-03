@@ -38,7 +38,6 @@ KEY_DOWN_TIME = 0.005
 class RhythmTask(NTEOneTimeTask, BaseNTETask):
     CONF_TIMEOUT_SECONDS = "超时秒数"
     CONF_DEBUG_LOG = "调试日志"
-    CONF_LOOP_COUNT = "循环次数"
     CONF_TRACK_KEYS = "键位"
 
     def __init__(self, *args, **kwargs):
@@ -48,11 +47,11 @@ class RhythmTask(NTEOneTimeTask, BaseNTETask):
         self.icon = FluentIcon.MUSIC
         self.group_name = "都市闲趣"
         self.group_icon = FluentIcon.GAME
+        self.add_rounds_config()
         self.default_config.update(
             {
                 self.CONF_TIMEOUT_SECONDS: 180,
                 self.CONF_DEBUG_LOG: False,
-                self.CONF_LOOP_COUNT: 0,
                 self.CONF_TRACK_KEYS: "d, f, j, k",
             }
         )
@@ -60,7 +59,6 @@ class RhythmTask(NTEOneTimeTask, BaseNTETask):
             {
                 self.CONF_TIMEOUT_SECONDS: "单曲超时时间(秒)",
                 self.CONF_DEBUG_LOG: "输出调试日志",
-                self.CONF_LOOP_COUNT: "打歌次数, 0=无限循环",
                 self.CONF_TRACK_KEYS: "4列对应的键盘按键",
             }
         )
@@ -90,13 +88,12 @@ class RhythmTask(NTEOneTimeTask, BaseNTETask):
             raise
 
     def do_run(self):
-        total = int(self.config.get(self.CONF_LOOP_COUNT, 1))
-        endless = total == 0
+        total = self.configured_rounds(default=0)
         count = 0
 
-        while endless or count < total:
+        while self.should_run_round(count + 1, total):
             count += 1
-            label = f"第 {count} 次" + ("" if endless else f"/{total}")
+            label = f"第 {self.rounds_info_text(count, total)} 次"
 
             # 点击开始演奏
             self.log_info(f"{label}：点击开始演奏")
@@ -126,7 +123,7 @@ class RhythmTask(NTEOneTimeTask, BaseNTETask):
             self._handle_finish()
 
             # 是否继续
-            if endless or count < total:
+            if self.should_run_round(count + 1, total):
                 # 等待回到选歌界面后再点
                 self.log_info("等待回到选歌界面")
                 self.sleep(1.0)

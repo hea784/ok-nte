@@ -15,7 +15,6 @@ RECORD_INS = (
 
 
 class OwnerSelectionTask(NTEOneTimeTask, RecordTask):
-    CONF_ROUNDS = "循环次数"
     CONF_ROB = "抢钱流"
     CONF_CORDS = "记录坐标"
 
@@ -44,7 +43,8 @@ class OwnerSelectionTask(NTEOneTimeTask, RecordTask):
         self.icon = FluentIcon.CAFE
         self.group_name = "都市闲趣"
         self.group_icon = FluentIcon.GAME
-        self.default_config.update({self.CONF_ROUNDS: 99999, self.CONF_ROB: False})
+        self.add_rounds_config()
+        self.default_config.update({self.CONF_ROB: False})
         self.tr(RECORD_INS)
 
     def run(self):
@@ -62,12 +62,12 @@ class OwnerSelectionTask(NTEOneTimeTask, RecordTask):
         success_count = 0
         failed_count = 0
         round_index = 1
-        rounds = self._configured_rounds()
+        rounds = self.configured_rounds(default=0)
 
         self.info_set("成功次数", "0")
         self.info_set("失败次数", 0)
         self.info_set("失败原因", None)
-        self.log_info(f"开始店长特供，共 {rounds} 轮")
+        self.log_info(f"开始店长特供，共 {self.rounds_total_text(rounds)} 轮")
 
         self.wait_until(
             lambda: not self.is_in_team(),
@@ -77,7 +77,8 @@ class OwnerSelectionTask(NTEOneTimeTask, RecordTask):
             raise_if_not_found=True,
         )
 
-        while round_index <= rounds:
+        while self.should_run_round(round_index, rounds):
+            self.info_set("轮次", self.rounds_info_text(round_index, rounds))
             self.log_info(f"开始第 {round_index} 轮")
 
             if self.run_round(round_index):
@@ -88,14 +89,16 @@ class OwnerSelectionTask(NTEOneTimeTask, RecordTask):
                 self.info_set("失败次数", failed_count)
                 self.log_error(f"第 {round_index} 轮失败")
 
-            rounds = self._configured_rounds()
+            rounds = self.configured_rounds(default=0)
             round_index += 1
 
-            self.info_set("轮次", f"{round_index}/{rounds}")
             self.info_set("成功次数", success_count)
             self.info_set("失败次数", failed_count)
 
-        self.log_info(f"店长特供结束，成功 {success_count}/{rounds}", notify=True)
+        self.log_info(
+            f"店长特供结束，成功 {success_count}/{self.rounds_total_text(rounds)}",
+            notify=True,
+        )
 
     def run_round(self, round_index: int) -> bool:
         # 步骤1：按 F 进入店长特供页面
@@ -145,9 +148,6 @@ class OwnerSelectionTask(NTEOneTimeTask, RecordTask):
 
         self.log_error("营业额检测超时")
         return False
-
-    def _configured_rounds(self) -> int:
-        return max(1, int(self.config.get(self.CONF_ROUNDS, 1)))
 
     def _check_revenue_reached(self) -> bool:
         box = self.box_of_screen(0.9484, 0.1660, 0.9555, 0.1771, name="star")

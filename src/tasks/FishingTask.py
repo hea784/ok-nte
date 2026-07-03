@@ -19,7 +19,6 @@ class RestockState(Enum):
 
 
 class FishingTask(NTEOneTimeTask, BaseNTETask):
-    CONF_ROUNDS = "循环次数"
     CONF_CONTROL_MODE = "控条模式"
     CONF_TAP_MULTIPLIER = "点按时长倍率"
     CONF_AUTO_BUY_BAIT = "自动补饵卖鱼"
@@ -42,9 +41,9 @@ class FishingTask(NTEOneTimeTask, BaseNTETask):
         self.icon = FluentIcon.SYNC
         self.group_name = "都市闲趣"
         self.group_icon = FluentIcon.GAME
+        self.add_rounds_config()
         self.default_config.update(
             {
-                self.CONF_ROUNDS: 1,
                 self.CONF_CONTROL_MODE: self.MODE_HOLD,
                 self.CONF_TAP_MULTIPLIER: 1.0,
                 self.CONF_AUTO_BUY_BAIT: True,
@@ -98,7 +97,8 @@ class FishingTask(NTEOneTimeTask, BaseNTETask):
                 return True
 
     def run_fishing_state_machine(self):
-        target_rounds = self._configured_rounds()
+        target_rounds = self.configured_rounds(default=0)
+        target_rounds_text = self.rounds_total_text(target_rounds)
         round_index = 1
         success_count = 0
         failed_count = 0
@@ -106,10 +106,10 @@ class FishingTask(NTEOneTimeTask, BaseNTETask):
         retry_count = 0
         try_cast_count = 0
         machine_start = None
-        self.log_info(f"开始自动钓鱼，共 {target_rounds} 轮")
+        self.log_info(f"开始自动钓鱼，共 {target_rounds_text} 轮")
 
-        while success_count + failed_count < target_rounds:
-            round_text = f"{round_index}/{target_rounds}"
+        while self.should_run_round(success_count + failed_count + 1, target_rounds):
+            round_text = self.rounds_info_text(round_index, target_rounds)
             if self.info_get("轮次") != round_text:
                 self.info_set("轮次", round_text)
                 self.info_set("成功次数", success_count)
@@ -143,7 +143,10 @@ class FishingTask(NTEOneTimeTask, BaseNTETask):
                         self.log_error(f"第 {pending_success_round} 轮钓鱼失败：未检测到成功面板")
                         pending_success_round = None
                         round_index += 1
-                        if success_count + failed_count >= target_rounds:
+                        if not self.should_run_round(
+                            success_count + failed_count + 1,
+                            target_rounds,
+                        ):
                             continue
 
                     self.log_info("鱼儿咬钩")
@@ -206,7 +209,7 @@ class FishingTask(NTEOneTimeTask, BaseNTETask):
         self.info_set("成功次数", success_count)
         self.info_set("失败次数", failed_count)
         self.log_info(
-            f"自动钓鱼结束，成功 {success_count}/{target_rounds}",
+            f"自动钓鱼结束，成功 {success_count}/{target_rounds_text}",
             notify=True,
         )
 
@@ -669,9 +672,6 @@ class FishingTask(NTEOneTimeTask, BaseNTETask):
         self._set_bar_key(None)
         self._last_direction = None
         self._bar_active_key = None
-
-    def _configured_rounds(self):
-        return max(1, int(self.config.get(self.CONF_ROUNDS, 1)))
 
     def _publish_config_info(self):
         self.info_set("控条模式", self.config.get(self.CONF_CONTROL_MODE, self.MODE_HOLD))

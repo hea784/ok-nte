@@ -39,7 +39,7 @@ class CombatDetectResult:
     force: bool = False
 
 
-@dataclass(frozen=True)
+@dataclass(slots=True)
 class CombatDetectPolicy:
     miss_required: int = 1
     uncertain_seconds: float = 0.4
@@ -159,19 +159,20 @@ class CombatCheck(BaseNTETask):
             time_out = self.target_enemy_time_out
             if turn:
                 # 引入了转向，需要额外增加耗时，原本的时间不足以完成
-                time_out += 2
+                time_out += 2.5
             logger.info(f"targeting enemy for {time_out}s")
             deadline = time.time() + time_out
             while time.time() < deadline:
                 if self.is_in_team():
-                    self.middle_click()
-                    self.sleep(0.3)
-                    if self.combat_detect(lv=lv):
-                        return True
                     if turn:
                         self.send_key("a", down_time=0.1)
                         self.middle_click()
-                        self.sleep(0.3)
+                        self.sleep(0.7)
+                    else:
+                        self.middle_click()
+                        self.sleep(0.4)
+                    if self.combat_detect(lv=lv):
+                        return True
                 self.next_frame()
 
     def has_health_bar(self):

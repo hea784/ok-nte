@@ -24,6 +24,8 @@ stamina_re = re.compile(r"(\d+)/(\d+)")
 
 
 class BaseNTETask(CharUIMixin, MovementMixin, VisionMixin, OgMixin, LogGateMixin, BaseTask):
+    CONF_ROUNDS = "循环次数"
+    INFINITE_ROUNDS_TEXT = "∞"
     DEFAULT_MOVE = False
 
     def __init__(self, *args, **kwargs):
@@ -38,6 +40,30 @@ class BaseNTETask(CharUIMixin, MovementMixin, VisionMixin, OgMixin, LogGateMixin
         self._last_interval_action_time = {}
         self._action_interval_lock = threading.Lock()
         self._init_log_gate()
+
+    def configured_rounds(self, default=0) -> int:
+        """读取统一的循环次数配置: 0 表示无限运行。"""
+        value = self.config.get(self.CONF_ROUNDS, None)
+        if value is None:
+            value = default
+        try:
+            return max(0, int(value))
+        except (TypeError, ValueError):
+            return max(0, int(default))
+
+    @staticmethod
+    def should_run_round(round_index: int, rounds: int) -> bool:
+        return rounds == 0 or round_index <= rounds
+
+    def rounds_total_text(self, rounds: int) -> str:
+        return self.INFINITE_ROUNDS_TEXT if rounds == 0 else str(rounds)
+
+    def rounds_info_text(self, round_index: int, rounds: int) -> str:
+        return f"{round_index} / {self.rounds_total_text(rounds)}"
+
+    def add_rounds_config(self, default=0):
+        self.default_config.update({self.CONF_ROUNDS: default})
+        self.config_description.update({self.CONF_ROUNDS: "设置为0则一直运行"})
 
     def sync_config(self, config=None):
         """同步并保存配置"""

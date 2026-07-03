@@ -16,18 +16,12 @@ RECORD_INS = (
 
 
 class DarkTask(NTEOneTimeTask, RecordTask):
-    CONF_TIME = "循环次数(0为无限次)"
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.name = "黑暗赛车"
         self.description = "自动执行黑暗赛车,请在大世界开始执行"
         self.icon = FluentIcon.CAR
-        self.default_config.update(
-            {
-                self.CONF_TIME: 0,
-            }
-        )
+        self.add_rounds_config()
         self.tr(RECORD_INS)
 
     def run(self):
@@ -42,24 +36,20 @@ class DarkTask(NTEOneTimeTask, RecordTask):
 
     def do_run(self):
         current_time = 0
-        max_time = self.config.get(self.CONF_TIME, 0)
-        running = True
-        while running:
-            # 判断是否达到次数
-            if max_time > 0 and current_time >= max_time:
-                self.log_info("达到最大循环次数")
-                running = False
-                break
-
+        max_time = self.configured_rounds(default=0)
+        while self.should_run_round(current_time + 1, max_time):
             # 逻辑
             self.one_time()
 
             # 完成一次后计数
             current_time += 1
 
-            self.log_info(f"当前次数: {current_time}/{max_time}")
+            round_text = self.rounds_info_text(current_time, max_time)
+            self.info_set("轮次", round_text)
+            self.log_info(f"当前次数: {round_text}")
 
             self.sleep(0.1)
+        self.log_info("达到最大循环次数")
 
     def one_time(self):
         self.send_key("f4", after_sleep=3)
@@ -88,7 +78,7 @@ class DarkTask(NTEOneTimeTask, RecordTask):
 
                 if remain <= 0:
                     break
-                
+
                 if elapsed > 20 and elapsed < 40:
                     if not key_down:
                         key_down = True
