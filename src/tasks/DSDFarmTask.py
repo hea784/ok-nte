@@ -15,7 +15,7 @@ INST = (
     f"{SPACE}底层整个地图最靠左的篝火\n"
     f"{SPACE}https://b23.tv/qsEVcDO\n\n"
     "赤龙古堡-龙之高塔室外篝火\n"
-    f"{SPACE}龙之高塔室只有两个篝火，室外旁边有棵树的篝火"
+    f"{SPACE}龙之高塔只有两个篝火，室外旁边有棵树的篝火"
 )
 
 EN_INST = (
@@ -24,7 +24,7 @@ EN_INST = (
     f"{SPACE}The campfire on the far left of the entire bottom map\n"
     f"{SPACE}https://b23.tv/qsEVcDO\n\n"
     "Red Dragon Castle - Dragon Tower Outdoor Campfire\n"
-    f"{SPACE}There are only two campfires inside the Dragon Tower, and a campfire outside next to a tree."
+    f"{SPACE}The Dragon Tower only has two campfires, one of which is outdoors next to a tree."
 )
 # ruff: noqa
 
@@ -32,6 +32,7 @@ EN_INST = (
 class DSDFarmTask(NTEOneTimeTask, BaseCombatTask):
     CONF_LOCATION = "位置"
     CONF_ROUNDS = "循环次数"
+    CONF_USE_ULT = "使用终结技"
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -45,6 +46,7 @@ class DSDFarmTask(NTEOneTimeTask, BaseCombatTask):
             {
                 self.CONF_LOCATION: self.locations[0],
                 self.CONF_ROUNDS: 0,
+                self.CONF_USE_ULT: True
             }
         )
 
@@ -76,6 +78,7 @@ class DSDFarmTask(NTEOneTimeTask, BaseCombatTask):
             self.sleep_check_skip.all = False
 
     def do_run(self):
+        self.use_ultimate = self.config.get(self.CONF_USE_ULT, True)
         self.deside_map_zoom()
         n = 0
         while True:
@@ -160,6 +163,7 @@ class DSDFarmTask(NTEOneTimeTask, BaseCombatTask):
             self.sleep(0.5)
             self.send_key_up("d")
             self.sleep(0.8)
+        self.sleep(2)
         self.send_key_up("w")
         if self.wait_until(self.in_combat, time_out=10):
             with self.skip_sleep_checks() as skip:

@@ -1039,3 +1039,6 @@ msgstr "Location"
 
 msgid "赤龙古堡-龙之高塔室外篝火"
 msgstr "Red Dragon Castle - Dragon Tower Outdoor Campfire"
+
+msgid "使用终结技"
+msgstr "Use Ultimate"

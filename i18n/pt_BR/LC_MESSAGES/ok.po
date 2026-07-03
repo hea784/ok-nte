@@ -786,3 +786,6 @@ msgstr "Localização"
 
 msgid "赤龙古堡-龙之高塔室外篝火"
 msgstr "Castelo do Dragão Vermelho - Fogueira externa da Torre do Dragão"
+
+msgid "使用终结技"
+msgstr "Usar Ultimate"

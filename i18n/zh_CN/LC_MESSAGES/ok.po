@@ -1022,3 +1022,6 @@ msgstr ""
 
 msgid "赤龙古堡-龙之高塔室外篝火"
 msgstr ""
+
+msgid "使用终结技"
+msgstr ""
