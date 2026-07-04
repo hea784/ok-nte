@@ -403,14 +403,16 @@ class YOLO26OpenVINOAsyncDetector:
     def detect_sync(
         self, image, box=None, threshold=0.5, label="target", force=False, mask_regions=None
     ):
-        """同步检测版本：发起请求后立即堵住，直到拿到结果"""
+        """同步检测版本：发起请求后立即堵住，直到拿到本次请求的结果。"""
         done_event = threading.Event()
+        # 同步调用通常用于确认当前帧状态。若等待旧 async 请求，回来的可能是旧帧、
+        # 旧 ROI 或旧 mask 的结果，因此这里始终允许轮换忙队列并提交本次请求。
         _, submitted = self._detect(
             image,
             box=box,
             threshold=threshold,
             label=label,
-            force=force,
+            force=True,
             mask_regions=mask_regions,
             done_event=done_event,
         )

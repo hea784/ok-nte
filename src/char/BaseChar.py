@@ -530,7 +530,8 @@ class BaseChar:
 
     def alert_skill_failed(self):
         self.task.log_error(
-            "Click skill failed, check if the keybinding is correct in ok-ww settings!", notify=True
+            "Click skill failed, check if the keybinding is correct in ok-nte settings!",
+            notify=True,
         )
         self.task.screenshot("click_skill too long, breaking")
 
@@ -762,7 +763,9 @@ class BaseChar:
             "skill",
             self.skill_available,
             lambda: self.send_skill_key(
-                down_time=down_time, action_name="skill_send", interval=0.15,
+                down_time=down_time,
+                action_name="skill_send",
+                interval=0.15,
             ),
             send_click=send_click,
             time_out=the_time_out,
