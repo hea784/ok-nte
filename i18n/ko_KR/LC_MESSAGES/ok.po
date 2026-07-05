@@ -97,8 +97,8 @@ msgstr "저장 성공"
 msgid "停用"
 msgstr "비활성화"
 
-msgid "先扫描或手动填写"
-msgstr "먼저 스캔하거나 수동으로 입력하세요"
+msgid "先扫描并关联特征或手动填写"
+msgstr "먼저 스캔하여 특징을 연동하거나 수동으로 입력하세요"
 
 msgid "出招表"
 msgstr "콤보 목록"
@@ -151,8 +151,8 @@ msgstr "지도에서 자동 순간이동 클릭"
 msgid "填入扫描"
 msgstr "스캔 결과 입력"
 
-msgid "关联 <b style=\"color: #0078d7;\">角色特征</b> 后将自动判断当前角色。<br>如果不想管理 <b style=\"color: #0078d7;\">角色特征</b>，可以直接启用 <b style=\"color: #0078d7;\">{fixed_team}</b> 功能。"
-msgstr "<b style=\"color: #0078d7;\">캐릭터 특징</b>을 연결하면 현재 캐릭터를 자동으로 판별합니다.<br><b style=\"color: #0078d7;\">캐릭터 특징</b>을 관리하고 싶지 않다면 <b style=\"color: #0078d7;\">{fixed_team}</b> 기능을 직접 활성화할 수 있습니다."
+msgid "这是个用于向数据库关联或添加 <b style=\"color: #0078d7;\">角色特征</b> 的工具面板。<br>点击 <b style=\"color: #0078d7;\">{scan_team}</b> 后点击 <b style=\"color: #0078d7;\">关联或添加</b> 特征，自动战斗时就会识别对应的角色。<br><b style=\"color: #d83b01;\">💡 注意：</b>此面板 <b style=\"color: #d83b01;\">不会</b> 在进入战斗或更换阵容时实时自动刷新或同步显示, 因为这是工具面板。<br>如果不想管理 <b style=\"color: #0078d7;\">角色特征</b>，可以直接使用 <b style=\"color: #0078d7;\">{fixed_team}</b> 功能。"
+msgstr "이것은 데이터베이스에 <b style=\"color: #0078d7;\">캐릭터 특징</b>을 연결하거나 추가하기 위한 도구 패널입니다.<br><b style=\"color: #0078d7;\">{scan_team}</b>을 클릭한 후 특징의 <b style=\"color: #0078d7;\">연결 또는 추가</b>를 클릭하면, 자동 전투 시 해당 캐릭터를 인식하게 됩니다.<br><b style=\"color: #d83b01;\">💡 주의:</b> 이 패널은 도구 패널이므로 전투에 진입하거나 진형을 변경할 때 실시간으로 자동 새로고침되거나 동기화되어 표시되지 <b style=\"color: #d83b01;\">않습니다</b>.<br><b style=\"color: #0078d7;\">캐릭터 특징</b>을 관리하고 싶지 않다면 <b style=\"color: #0078d7;\">{fixed_team}</b> 기능을 직접 사용할 수 있습니다."
 
 msgid "完成每日活跃度"
 msgstr "일일 활성도 완료"
@@ -1049,35 +1049,35 @@ msgstr "백그라운드 오디오 라우팅"
 msgid "Enable Background Audio Routing"
 msgstr "백그라운드 오디오 라우팅 활성화"
 
-msgid "SoundVolumeView Path"
-msgstr "SoundVolumeView 경로"
+msgid "SoundVolumeCommandLine Path"
+msgstr "SoundVolumeCommandLine 경로"
 
 msgid "Background Output Device"
 msgstr "백그라운드 출력 장치"
 
-msgid "Open SoundVolumeView Download Page"
-msgstr "SoundVolumeView 다운로드 페이지 열기"
+msgid "Open SoundVolumeCommandLine Download Page"
+msgstr "SoundVolumeCommandLine 다운로드 페이지 열기"
 
-msgid "Optionally route the game to a selected Windows output device while it is in the background. SoundVolumeView is not bundled; select your own downloaded copy."
-msgstr "게임이 백그라운드에 있을 때 선택한 Windows 출력 장치로 게임 오디오를 라우팅할 수 있습니다. SoundVolumeView는 내장되어 있지 않으므로 직접 다운로드한 복사본을 선택하세요."
+msgid "Optionally route the game to a selected Windows output device while it is in the background. SoundVolumeCommandLine is not bundled; select your own downloaded copy."
+msgstr "게임이 백그라운드에 있을 때 선택한 Windows 출력 장치로 게임 오디오를 라우팅할 수 있습니다. SoundVolumeCommandLine는 내장되어 있지 않으므로 직접 다운로드한 복사본을 선택하세요."
 
 msgid "Switch game audio output when the game window leaves the foreground"
 msgstr "게임 창이 활성화 상태를 벗어날 때 게임 오디오 출력 전환"
 
-msgid "Select SoundVolumeView.exe downloaded from NirSoft"
-msgstr "NirSoft에서 다운로드한 SoundVolumeView.exe 선택"
+msgid "Select svcl.exe downloaded from NirSoft"
+msgstr "NirSoft에서 다운로드한 svcl.exe 선택"
 
 msgid "Output device used while the game is in the background"
 msgstr "게임이 백그라운드에 있을 때 사용할 출력 장치"
 
-msgid "Open the official NirSoft SoundVolumeView page"
-msgstr "공식 NirSoft SoundVolumeView 페이지 열기"
+msgid "Open the official NirSoft SoundVolumeCommandLine page"
+msgstr "공식 NirSoft SoundVolumeCommandLine 페이지 열기"
 
-msgid "SoundVolumeView.exe (SoundVolumeView.exe);;Executable Files (*.exe);;All Files (*)"
-msgstr "SoundVolumeView.exe (SoundVolumeView.exe);;실행 파일 (*.exe);;모든 파일 (*)"
+msgid "SoundVolumeCommandLine (svcl.exe);;Executable Files (*.exe);;All Files (*)"
+msgstr "SoundVolumeCommandLine (svcl.exe);;실행 파일 (*.exe);;모든 파일 (*)"
 
-msgid "Select SoundVolumeView.exe"
-msgstr "SoundVolumeView.exe 선택"
+msgid "Select svcl.exe"
+msgstr "svcl.exe 선택"
 
 msgid "Open Download Page"
 msgstr "다운로드 페이지 열기"

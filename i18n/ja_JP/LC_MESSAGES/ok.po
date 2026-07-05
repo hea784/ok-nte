@@ -97,8 +97,8 @@ msgstr "保存成功"
 msgid "停用"
 msgstr "無効化"
 
-msgid "先扫描或手动填写"
-msgstr "先にスキャンするか手動で入力してください"
+msgid "先扫描并关联特征或手动填写"
+msgstr "先にスキャンして特徴を関連付けるか、手動で入力してください"
 
 msgid "出招表"
 msgstr "コンボリスト"
@@ -151,8 +151,8 @@ msgstr "マップ内で自動テレポート"
 msgid "填入扫描"
 msgstr "スキャン結果を入力"
 
-msgid "关联 <b style=\"color: #0078d7;\">角色特征</b> 后将自动判断当前角色。<br>如果不想管理 <b style=\"color: #0078d7;\">角色特征</b>，可以直接启用 <b style=\"color: #0078d7;\">{fixed_team}</b> 功能。"
-msgstr "<b style=\"color: #0078d7;\">キャラクター特徴</b>を関連付けると、現在のキャラクターを自動的に判別します。<br><b style=\"color: #0078d7;\">キャラクター特徴</b>を管理したくない場合は、<b style=\"color: #0078d7;\">{fixed_team}</b> 機能を直接有効にできます。"
+msgid "这是个用于向数据库关联或添加 <b style=\"color: #0078d7;\">角色特征</b> 的工具面板。<br>点击 <b style=\"color: #0078d7;\">{scan_team}</b> 后点击 <b style=\"color: #0078d7;\">关联或添加</b> 特征，自动战斗时就会识别对应的角色。<br><b style=\"color: #d83b01;\">💡 注意：</b>此面板 <b style=\"color: #d83b01;\">不会</b> 在进入战斗或更换阵容时实时自动刷新或同步显示, 因为这是工具面板。<br>如果不想管理 <b style=\"color: #0078d7;\">角色特征</b>，可以直接使用 <b style=\"color: #0078d7;\">{fixed_team}</b> 功能。"
+msgstr "これはデータベースに<b style=\"color: #0078d7;\">キャラクター特徴</b>を関連付け、または追加するためのツールパネルです。<br><b style=\"color: #0078d7;\">{scan_team}</b>をクリックした後に、特徴の<b style=\"color: #0078d7;\">関連付けまたは追加</b>をクリックすると、自動戦闘時に対応するキャラクターが識別されます。<br><b style=\"color: #d83b01;\">💡 注意：</b>このパネルはツールパネルであるため、戦闘に入ったときやチーム編成を変更したときにリアルタイムで自動更新または同期表示<b style=\"color: #d83b01;\">されません</b>。<br><b style=\"color: #0078d7;\">キャラクター特徴</b>を管理したくない場合は、<b style=\"color: #0078d7;\">{fixed_team}</b>機能を直接使用できます。"
 
 msgid "完成每日活跃度"
 msgstr "デイリーアクティビティを完了"
@@ -1049,35 +1049,35 @@ msgstr "バックグラウンドオーディオルーティング"
 msgid "Enable Background Audio Routing"
 msgstr "バックグラウンドオーディオルーティングを有効にする"
 
-msgid "SoundVolumeView Path"
-msgstr "SoundVolumeViewのパス"
+msgid "SoundVolumeCommandLine Path"
+msgstr "SoundVolumeCommandLineのパス"
 
 msgid "Background Output Device"
 msgstr "バックグラウンド出力デバイス"
 
-msgid "Open SoundVolumeView Download Page"
-msgstr "SoundVolumeViewダウンロードページを開く"
+msgid "Open SoundVolumeCommandLine Download Page"
+msgstr "SoundVolumeCommandLineダウンロードページを開く"
 
-msgid "Optionally route the game to a selected Windows output device while it is in the background. SoundVolumeView is not bundled; select your own downloaded copy."
-msgstr "ゲームがバックグラウンドにある間、ゲーム音声を指定したWindows出力デバイスにルーティングします。SoundVolumeViewは同梱されていません。ダウンロードしたファイルを選択してください。"
+msgid "Optionally route the game to a selected Windows output device while it is in the background. SoundVolumeCommandLine is not bundled; select your own downloaded copy."
+msgstr "ゲームがバックグラウンドにある間、ゲーム音声を指定したWindows出力デバイスにルーティングします。SoundVolumeCommandLineは同梱されていません。ダウンロードしたファイルを選択してください。"
 
 msgid "Switch game audio output when the game window leaves the foreground"
 msgstr "ゲームウィンドウが最前面（アクティブ）から外れたときにゲームの音声出力を切り替える"
 
-msgid "Select SoundVolumeView.exe downloaded from NirSoft"
-msgstr "NirSoftからダウンロードしたSoundVolumeView.exeを選択する"
+msgid "Select svcl.exe downloaded from NirSoft"
+msgstr "NirSoftからダウンロードしたsvcl.exeを選択する"
 
 msgid "Output device used while the game is in the background"
 msgstr "ゲームがバックグラウンドにあるときに使用する出力デバイス"
 
-msgid "Open the official NirSoft SoundVolumeView page"
-msgstr "NirSoft SoundVolumeViewの公式サイトを開く"
+msgid "Open the official NirSoft SoundVolumeCommandLine page"
+msgstr "NirSoft SoundVolumeCommandLineの公式サイトを開く"
 
-msgid "SoundVolumeView.exe (SoundVolumeView.exe);;Executable Files (*.exe);;All Files (*)"
-msgstr "SoundVolumeView.exe (SoundVolumeView.exe);;実行可能ファイル (*.exe);;すべてのファイル (*)"
+msgid "SoundVolumeCommandLine (svcl.exe);;Executable Files (*.exe);;All Files (*)"
+msgstr "SoundVolumeCommandLine (svcl.exe);;実行可能ファイル (*.exe);;すべてのファイル (*)"
 
-msgid "Select SoundVolumeView.exe"
-msgstr "SoundVolumeView.exeの選択"
+msgid "Select svcl.exe"
+msgstr "svcl.exeの選択"
 
 msgid "Open Download Page"
 msgstr "ダウンロードページを開く"

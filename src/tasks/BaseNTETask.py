@@ -298,6 +298,8 @@ class BaseNTETask(CharUIMixin, MovementMixin, VisionMixin, OgMixin, LogGateMixin
             return False, -1, 0
 
         current = self.get_current_char_index(char_count=exist_count)
+        if current != -1 and safe_get(arr, current) is None:
+            exist_count += 1
 
         if current == -1:
             self.log_warning("in_team not found current char")

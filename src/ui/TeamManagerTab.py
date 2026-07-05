@@ -378,7 +378,7 @@ class TeamManagerTab(CustomTab):
         self.tr_disable_fixed_team = og.app.tr("停用")
         self.tr_clear_fixed_team = og.app.tr("清空")
         self.tr_fill_failed_title = og.app.tr("没有可用扫描结果")
-        self.tr_fill_failed_desc = og.app.tr("先扫描或手动填写")
+        self.tr_fill_failed_desc = og.app.tr("先扫描并关联特征或手动填写")
         self.tr_fill_partial_title = og.app.tr("已填入扫描结果")
         self.tr_fill_partial_desc = og.app.tr("已填入 {}")
         self.tr_save_success_title = tr_fmt(
@@ -414,12 +414,15 @@ class TeamManagerTab(CustomTab):
             '<span style="color: #95a5a6;">○ {fixed_team}：已停用</span>',
             fixed_team=self.tr_fixed_team_title,
         )
+        # ruff: disable[E501]
         self.tr_scan_tips = tr_fmt(
-            '关联 <b style="color: #0078d7;">角色特征</b> 后将自动判断当前角色。<br>'
-            '如果不想管理 <b style="color: #0078d7;">角色特征</b>，可以直接启用 '
-            '<b style="color: #0078d7;">{fixed_team}</b> 功能。',
-            fixed_team=self.tr_fixed_team_title,
+            '这是个用于向数据库关联或添加 <b style="color: #0078d7;">角色特征</b> 的工具面板。<br>'
+            '点击 <b style="color: #0078d7;">{scan_team}</b> 后点击 <b style="color: #0078d7;">关联或添加</b> 特征，自动战斗时就会识别对应的角色。<br>'
+            '<b style="color: #d83b01;">💡 注意：</b>此面板 <b style="color: #d83b01;">不会</b> 在进入战斗或更换阵容时实时自动刷新或同步显示, 因为这是工具面板。<br>'
+            '如果不想管理 <b style="color: #0078d7;">角色特征</b>，可以直接使用 <b style="color: #0078d7;">{fixed_team}</b> 功能。',
+            fixed_team=self.tr_fixed_team_title, scan_team=og.app.tr("扫描队伍")
         )
+        # ruff: enable[E501]
         self.tr_fixed_team_tips = tr_fmt(
             '<b style="color: #0078d7;">角色</b> 和 '
             '<b style="color: #0078d7;">{combo}</b> '

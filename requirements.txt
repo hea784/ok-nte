@@ -5,7 +5,9 @@ audioread==3.1.0
 certifi==2026.2.25
     # via requests
 cffi==2.0.0
-    # via soundfile
+    # via
+    #   sounddevice
+    #   soundfile
 charset-normalizer==3.4.7
     # via requests
 comtypes==1.4.16
@@ -138,6 +140,8 @@ shiboken6==6.9.1
     #   pyside6-essentials
 six==1.17.0
     # via pynput
+sounddevice==0.5.5
+    # via ok-nte (pyproject.toml)
 soundfile==0.13.1
     # via librosa
 soxr==1.1.0

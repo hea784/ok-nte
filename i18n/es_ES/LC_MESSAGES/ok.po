@@ -97,8 +97,8 @@ msgstr "Guardado con éxito"
 msgid "停用"
 msgstr "Desactivar"
 
-msgid "先扫描或手动填写"
-msgstr "Escanear primero o completar manualmente"
+msgid "先扫描并关联特征或手动填写"
+msgstr "Escanear y vincular características primero, o completar manualmente"
 
 msgid "出招表"
 msgstr "Lista de combos"
@@ -151,8 +151,8 @@ msgstr "Clic automático de teletransporte en el mapa"
 msgid "填入扫描"
 msgstr "Completar escaneo"
 
-msgid "关联 <b style=\"color: #0078d7;\">角色特征</b> 后将自动判断当前角色。<br>如果不想管理 <b style=\"color: #0078d7;\">角色特征</b>，可以直接启用 <b style=\"color: #0078d7;\">{fixed_team}</b> 功能。"
-msgstr "Al vincular <b style=\"color: #0078d7;\">Características del personaje</b>, se identificará automáticamente al personaje actual.<br>Si no desea gestionar las <b style=\"color: #0078d7;\">Características del personaje</b>, puede activar directamente la función <b style=\"color: #0078d7;\">{fixed_team}</b>."
+msgid "这是个用于向数据库关联或添加 <b style=\"color: #0078d7;\">角色特征</b> 的工具面板。<br>点击 <b style=\"color: #0078d7;\">{scan_team}</b> 后点击 <b style=\"color: #0078d7;\">关联或添加</b> 特征，自动战斗时就会识别对应的角色。<br><b style=\"color: #d83b01;\">💡 注意：</b>此面板 <b style=\"color: #d83b01;\">不会</b> 在进入战斗或更换阵容时实时自动刷新或同步显示, 因为这是工具面板。<br>如果不想管理 <b style=\"color: #0078d7;\">角色特征</b>，可以直接使用 <b style=\"color: #0078d7;\">{fixed_team}</b> 功能。"
+msgstr "Este es un panel de herramientas para vincular o añadir <b style=\"color: #0078d7;\">Características del personaje</b> a la base de datos.<br>Haga clic en <b style=\"color: #0078d7;\">{scan_team}</b> y luego en <b style=\"color: #0078d7;\">Vincular o Añadir</b> característica, y el personaje correspondiente se identificará durante el combate automático.<br><b style=\"color: #d83b01;\">💡 Nota:</b> Este panel <b style=\"color: #d83b01;\">no se actualizará</b> ni sincronizará automáticamente en tiempo real al entrar en combate o cambiar la composition del equipo, ya que es un panel de herramientas.<br>Si no desea gestionar las <b style=\"color: #0078d7;\">Características del personaje</b>, puede usar directamente la función <b style=\"color: #0078d7;\">{fixed_team}</b>."
 
 msgid "完成每日活跃度"
 msgstr "Completar actividad diaria"
@@ -1049,35 +1049,35 @@ msgstr "Enrutamiento de audio en segundo plano"
 msgid "Enable Background Audio Routing"
 msgstr "Habilitar enrutamiento de audio en segundo plano"
 
-msgid "SoundVolumeView Path"
-msgstr "Ruta de SoundVolumeView"
+msgid "SoundVolumeCommandLine Path"
+msgstr "Ruta de SoundVolumeCommandLine"
 
 msgid "Background Output Device"
 msgstr "Dispositivo de salida en segundo plano"
 
-msgid "Open SoundVolumeView Download Page"
-msgstr "Abrir página de descarga de SoundVolumeView"
+msgid "Open SoundVolumeCommandLine Download Page"
+msgstr "Abrir página de descarga de SoundVolumeCommandLine"
 
-msgid "Optionally route the game to a selected Windows output device while it is in the background. SoundVolumeView is not bundled; select your own downloaded copy."
-msgstr "Opcionalmente, enruta el audio del juego a un dispositivo de salida de Windows seleccionado mientras está en segundo plano. SoundVolumeView no está incluido; selecciona tu propia copia descargada."
+msgid "Optionally route the game to a selected Windows output device while it is in the background. SoundVolumeCommandLine is not bundled; select your own downloaded copy."
+msgstr "Opcionalmente, enruta el audio del juego a un dispositivo de salida de Windows seleccionado mientras está en segundo plano. SoundVolumeCommandLine no está incluido; selecciona tu propia copia descargada."
 
 msgid "Switch game audio output when the game window leaves the foreground"
 msgstr "Cambiar la salida de audio del juego cuando la ventana del juego deja de estar en primer plano"
 
-msgid "Select SoundVolumeView.exe downloaded from NirSoft"
-msgstr "Seleccionar SoundVolumeView.exe descargado de NirSoft"
+msgid "Select svcl.exe downloaded from NirSoft"
+msgstr "Seleccionar svcl.exe descargado de NirSoft"
 
 msgid "Output device used while the game is in the background"
 msgstr "Dispositivo de salida utilizado mientras el juego está en segundo plano"
 
-msgid "Open the official NirSoft SoundVolumeView page"
-msgstr "Abrir la página oficial de NirSoft SoundVolumeView"
+msgid "Open the official NirSoft SoundVolumeCommandLine page"
+msgstr "Abrir la página oficial de NirSoft SoundVolumeCommandLine"
 
-msgid "SoundVolumeView.exe (SoundVolumeView.exe);;Executable Files (*.exe);;All Files (*)"
-msgstr "SoundVolumeView.exe (SoundVolumeView.exe);;Archivos ejecutables (*.exe);;Todos los archivos (*)"
+msgid "SoundVolumeCommandLine (svcl.exe);;Executable Files (*.exe);;All Files (*)"
+msgstr "SoundVolumeCommandLine (svcl.exe);;Archivos ejecutables (*.exe);;Todos los archivos (*)"
 
-msgid "Select SoundVolumeView.exe"
-msgstr "Seleccionar SoundVolumeView.exe"
+msgid "Select svcl.exe"
+msgstr "Seleccionar svcl.exe"
 
 msgid "Open Download Page"
 msgstr "Abrir página de descarga"

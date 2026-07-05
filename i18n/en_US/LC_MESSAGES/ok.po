@@ -97,8 +97,8 @@ msgstr "Saved successfully"
 msgid "停用"
 msgstr "Deactivate"
 
-msgid "先扫描或手动填写"
-msgstr "Scan first or fill manually"
+msgid "先扫描并关联特征或手动填写"
+msgstr "Scan and link features first, or fill manually"
 
 msgid "出招表"
 msgstr "Combo List"
@@ -151,8 +151,8 @@ msgstr "Auto-click teleport in map"
 msgid "填入扫描"
 msgstr "Fill Scan"
 
-msgid "关联 <b style=\"color: #0078d7;\">角色特征</b> 后将自动判断当前角色。<br>如果不想管理 <b style=\"color: #0078d7;\">角色特征</b>，可以直接启用 <b style=\"color: #0078d7;\">{fixed_team}</b> 功能。"
-msgstr "Linking <b style=\"color: #0078d7;\">Character Features</b> will automatically identify the current character.<br>If you don't want to manage <b style=\"color: #0078d7;\">Character Features</b>, you can directly enable the <b style=\"color: #0078d7;\">{fixed_team}</b> function."
+msgid "这是个用于向数据库关联或添加 <b style=\"color: #0078d7;\">角色特征</b> 的工具面板。<br>点击 <b style=\"color: #0078d7;\">{scan_team}</b> 后点击 <b style=\"color: #0078d7;\">关联或添加</b> 特征，自动战斗时就会识别对应的角色。<br><b style=\"color: #d83b01;\">💡 注意：</b>此面板 <b style=\"color: #d83b01;\">不会</b> 在进入战斗或更换阵容时实时自动刷新或同步显示, 因为这是工具面板。<br>如果不想管理 <b style=\"color: #0078d7;\">角色特征</b>，可以直接使用 <b style=\"color: #0078d7;\">{fixed_team}</b> 功能。"
+msgstr "This is a tool panel for linking or adding <b style=\"color: #0078d7;\">Character Features</b> to the database.<br>Click <b style=\"color: #0078d7;\">{scan_team}</b> and then click <b style=\"color: #0078d7;\">Link or Add</b> feature, and the corresponding character will be identified during auto-combat.<br><b style=\"color: #d83b01;\">💡 Note:</b> This panel <b style=\"color: #d83b01;\">will not</b> automatically refresh or sync in real-time when entering combat or changing team composition, as this is a tool panel.<br>If you don't want to manage <b style=\"color: #0078d7;\">Character Features</b>, you can directly use the <b style=\"color: #0078d7;\">{fixed_team}</b> function."
 
 msgid "完成每日活跃度"
 msgstr "Complete Daily Activity"
@@ -1049,35 +1049,35 @@ msgstr "Background Audio Routing"
 msgid "Enable Background Audio Routing"
 msgstr "Enable Background Audio Routing"
 
-msgid "SoundVolumeView Path"
-msgstr "SoundVolumeView Path"
+msgid "SoundVolumeCommandLine Path"
+msgstr "SoundVolumeCommandLine Path"
 
 msgid "Background Output Device"
 msgstr "Background Output Device"
 
-msgid "Open SoundVolumeView Download Page"
-msgstr "Open SoundVolumeView Download Page"
+msgid "Open SoundVolumeCommandLine Download Page"
+msgstr "Open SoundVolumeCommandLine Download Page"
 
-msgid "Optionally route the game to a selected Windows output device while it is in the background. SoundVolumeView is not bundled; select your own downloaded copy."
-msgstr "Optionally route the game to a selected Windows output device while it is in the background. SoundVolumeView is not bundled; select your own downloaded copy."
+msgid "Optionally route the game to a selected Windows output device while it is in the background. SoundVolumeCommandLine is not bundled; select your own downloaded copy."
+msgstr "Optionally route the game to a selected Windows output device while it is in the background. SoundVolumeCommandLine is not bundled; select your own downloaded copy."
 
 msgid "Switch game audio output when the game window leaves the foreground"
 msgstr "Switch game audio output when the game window leaves the foreground"
 
-msgid "Select SoundVolumeView.exe downloaded from NirSoft"
-msgstr "Select SoundVolumeView.exe downloaded from NirSoft"
+msgid "Select svcl.exe downloaded from NirSoft"
+msgstr "Select svcl.exe downloaded from NirSoft"
 
 msgid "Output device used while the game is in the background"
 msgstr "Output device used while the game is in the background"
 
-msgid "Open the official NirSoft SoundVolumeView page"
-msgstr "Open the official NirSoft SoundVolumeView page"
+msgid "Open the official NirSoft SoundVolumeCommandLine page"
+msgstr "Open the official NirSoft SoundVolumeCommandLine page"
 
-msgid "SoundVolumeView.exe (SoundVolumeView.exe);;Executable Files (*.exe);;All Files (*)"
-msgstr "SoundVolumeView.exe (SoundVolumeView.exe);;Executable Files (*.exe);;All Files (*)"
+msgid "SoundVolumeCommandLine (svcl.exe);;Executable Files (*.exe);;All Files (*)"
+msgstr "SoundVolumeCommandLine (svcl.exe);;Executable Files (*.exe);;All Files (*)"
 
-msgid "Select SoundVolumeView.exe"
-msgstr "Select SoundVolumeView.exe"
+msgid "Select svcl.exe"
+msgstr "Select svcl.exe"
 
 msgid "Open Download Page"
 msgstr "Open Download Page"
