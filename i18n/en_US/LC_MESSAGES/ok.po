@@ -824,6 +824,12 @@ msgstr "繁體中文"
 msgid "文案生成模型调用地址, 需兼容OpenAI接口请求格式"
 msgstr "Model API URL, must be compatible with OpenAI API format"
 
+msgid "模型调用超时时间(s)"
+msgstr "Model Call Timeout (s)"
+
+msgid "文案生成调用模型的超时时间, 超时将回退使用本地词库, 留空使用30s"
+msgstr "Timeout for text generation model calls. Will fallback to local word bank on timeout. Leave empty for 30s."
+
 msgid "关闭后将降级使用本地词库抽取发帖回复文案"
 msgstr "When disabled, it will fallback to the local vocabulary database"
 
@@ -1081,3 +1087,15 @@ msgstr "Select svcl.exe"
 
 msgid "Open Download Page"
 msgstr "Open Download Page"
+
+msgid "⚠️ 正在运行{rob_mode}\n该模式会高频占用/争夺鼠标。如需停止，请使用热键暂停 ok-nte, 再手动停止任务。\n当前热键: {hotkey} (如无法确认当前热键则点击取消, 主动确认后再运行)"
+msgstr "⚠️ Running {rob_mode}\nThis mode will occupy/fight for the mouse at high frequency. To stop, use the hotkey to pause ok-nte, then manually stop the task.\nCurrent hotkey: {hotkey} (if you cannot confirm the current hotkey, click cancel and run after confirming manually)"
+
+msgid "赤龙古堡-残丝长巷篝火"
+msgstr "Red Dragon Castle - Silken Alley Checkpoint"
+
+msgid "战斗时长上限"
+msgstr "Max Combat Duration"
+
+msgid "战斗时不切人"
+msgstr "Do not switch characters during combat"

@@ -45,7 +45,7 @@ class BaseChar:
 
     INTRO_MOTION_FREEZE_DURATION = 1.5
 
-    def __init__(self, task, index, char_name=None, confidence=1):
+    def __init__(self, task, index, char_id="", confidence=1):
         """初始化角色基础属性。
 
         Args:
@@ -54,8 +54,11 @@ class BaseChar:
             char_name (str, optional): 角色名称。默认为 None。
         """
         self.task: "BaseCombatTask" = task
-        self.char_name = char_name
-        self.builtin_key = None
+        self.char_name = "default"
+        self.combo_name = "default"
+        self.char_id = char_id
+        self.combo_id = ""
+        self.builtin = False
         self.index = index
         self.last_switch_time = -1
         self.last_ultimate_time = -1
@@ -69,7 +72,6 @@ class BaseChar:
         self.confidence = confidence
         self.logger = Logger.get_logger(self.name)
         self.cycle_start_time = 0.0
-        self.combo_label = "default"
         self.element = Element.DEFAULT
         self.planner_handles_arc = False
         self.is_dead = False
@@ -492,33 +494,9 @@ class BaseChar:
         self.task.switch_next_char(self, post_action=post_action, free_intro=free_intro)
 
     def switch_other_char(self):
-        target_index = (self.index + 1) % len(self.task.chars)
-        for char in self.task.chars:
-            if char and char.index != self.index:
-                target_index = char.index
-                break
-        next_char = str(target_index + 1)
+        """切换到其他角色 (代理到 task.switch_other_char)。"""
 
-        from src.tasks.trigger.AutoCombatTask import AutoCombatTask
-
-        if isinstance(self.task, AutoCombatTask):
-            self.logger.debug("AutoCombatTask, skip switch_other_char")
-            return
-        self.logger.debug(
-            f"{self.char_name} on_combat_end {self.index} switch next char: {next_char}"
-        )
-        start = time.time()
-        while time.time() - start < 6:
-            in_team, current_index, _ = self.task.in_team()
-            if in_team and current_index != self.index:
-                for char in self.task.chars:
-                    if char:
-                        char.is_current_char = char.index == current_index
-                break
-            else:
-                self.task.send_key(next_char)
-            self.sleep(0.2, False)
-        self.logger.debug(f"switch_other_char on_combat_end {self.index} switch end")
+        self.task.switch_other_char(self)
 
     def sleep(self, sec, sleep_check=True):
         if not sleep_check:

@@ -30,7 +30,6 @@ _COMMAND_TIMEOUT_SECONDS = 5
 _WINDOW_ROUTE_CHECK_INTERVAL_SECONDS = 2
 _IGNORED_SOUNDDEVICE_HOST_APIS = {"MME", "Windows WDM-KS"}
 _SOUND_ITEM_COLUMNS = "Command-LineFriendlyID,ItemID,DeviceState,Direction,ProcessID"
-_COMMAND_ID_KEY = "Command-Line Friendly ID"
 _RESET_PATCH_ATTR = "_background_audio_routing_reset_patched"
 
 
@@ -139,21 +138,21 @@ def _append_unique_device(devices: list[str], seen: set[str], name: str) -> None
 
 
 def _current_process_render_output_device(
-    data: Any,
+    data: list[dict[str, str]],
     process_name: str,
 ) -> "_RenderOutputDevice | None":
     render_devices = _render_output_devices(data)
     process_ids = _target_process_ids(process_name)
-    for record in _iter_records(data):
+    for record in data:
         if not _is_app_record(record, process_ids):
             continue
-        if _first_text(record, "Direction").casefold() != "render":
+        if record.get("direction", "").casefold() != "render":
             continue
-        if _first_text(record, "Device State").casefold() != "active":
+        if record.get("devicestate", "").casefold() != "active":
             continue
         device = _resolve_app_render_output_device(
             render_devices,
-            _application_command_device_name(_first_text(record, _COMMAND_ID_KEY)),
+            _application_command_device_name(record.get("commandlinefriendlyid", "")),
             _sound_item_endpoint_key(record),
         )
         if device is not None:
@@ -162,10 +161,10 @@ def _current_process_render_output_device(
 
 
 def _is_app_record(
-    record: dict[str, Any],
+    record: dict[str, str],
     process_ids: set[int],
 ) -> bool:
-    item_type = _first_text(record, "Type").casefold()
+    item_type = record.get("type", "").casefold()
     if item_type and item_type != "application":
         return False
     record_pid = _record_process_id(record)
@@ -184,8 +183,8 @@ def _target_process_ids(process_name: str) -> set[int]:
     return process_ids
 
 
-def _record_process_id(record: dict[str, Any]) -> int | None:
-    value = _first_text(record, "Process ID", "ProcessID")
+def _record_process_id(record: dict[str, str]) -> int | None:
+    value = record.get("processid")
     if not value:
         return None
     try:
@@ -324,10 +323,10 @@ class _RenderOutputDevice:
     endpoint: str = ""
 
 
-def _render_output_devices(data: Any) -> list[_RenderOutputDevice]:
+def _render_output_devices(data: list[dict[str, str]]) -> list[_RenderOutputDevice]:
     devices = []
-    for record in _iter_records(data):
-        route_device = _first_text(record, _COMMAND_ID_KEY, "Name")
+    for record in data:
+        route_device = record.get("commandlinefriendlyid") or record.get("name", "")
         if not _is_render_endpoint(record, route_device):
             continue
         controller, endpoint = _render_device_parts(route_device)
@@ -485,11 +484,7 @@ class _BackgroundAudioRouter:
         if not visible:
             return config.get(CONF_BACKGROUND_DEVICE)
         with self._lock:
-            if not self._restore_needed:
-                if self._pending_route is not None and self._pending_route.save_current:
-                    self._pending_route = None
-                return None
-            if self._original_device is None:
+            if not self._restore_needed or self._original_device is None:
                 if self._pending_route is not None and self._pending_route.save_current:
                     self._pending_route = None
                 return None
@@ -528,6 +523,7 @@ class _BackgroundAudioRouter:
                 timeout=_COMMAND_TIMEOUT_SECONDS,
                 check=False,
                 shell=False,
+                creationflags=subprocess.CREATE_NO_WINDOW
             )
         except Exception as exc:
             logger.error("failed to route game audio with svcl", exc)
@@ -685,6 +681,7 @@ def _export_sound_items(exe_path: str):
         timeout=_COMMAND_TIMEOUT_SECONDS,
         check=False,
         shell=False,
+        creationflags=subprocess.CREATE_NO_WINDOW
     )
     if result.returncode != 0:
         raise RuntimeError(f"svcl failed to list sound items, exit code {result.returncode}")
@@ -703,14 +700,17 @@ def _decode_sound_items_stdout(stdout: bytes | str) -> str:
 
 def _parse_sound_items_csv(text: str) -> list[dict[str, str]]:
     records = []
-    for row in csv.DictReader(io.StringIO(text.lstrip("\ufeff"))):
-        command_id = _first_text(row, _COMMAND_ID_KEY, "CommandLineFriendlyID")
+    reader = csv.DictReader(io.StringIO(text.lstrip("\ufeff")))
+    if reader.fieldnames:
+        reader.fieldnames = [re.sub(r"[\s_\-]+", "", k).casefold() for k in reader.fieldnames]
+
+    for row in reader:
+        command_id = row.get("commandlinefriendlyid")
         if not command_id:
             continue
         record = dict(row)
-        record[_COMMAND_ID_KEY] = command_id
-        record.setdefault("Type", _sound_item_type(command_id))
-        record.setdefault("Name", _sound_item_name(command_id))
+        record.setdefault("type", _sound_item_type(command_id))
+        record.setdefault("name", _sound_item_name(command_id))
         records.append(record)
     return records
 
@@ -736,27 +736,17 @@ def _sound_item_name(command_id: str) -> str:
     return command_id
 
 
-def _iter_records(data: Any):
-    if isinstance(data, list):
-        yield from (item for item in data if isinstance(item, dict))
-    elif isinstance(data, dict):
-        for value in data.values():
-            if isinstance(value, list):
-                yield from (item for item in value if isinstance(item, dict))
-
-
-def _is_render_endpoint(record: dict[str, Any], device_id: str) -> bool:
-    record_text = " ".join(str(value) for value in record.values()).lower()
-    device_id_lower = device_id.lower()
+def _is_render_endpoint(record: dict[str, str], device_id: str) -> bool:
+    device_id_lower = device_id.casefold()
     if not _is_svcl_render_device_id(device_id):
         return False
-    if "\\subunit\\" in device_id_lower or " subunit" in record_text:
+    if "\\subunit\\" in device_id_lower or record.get("type", "").casefold() == "subunit":
         return False
-    return "\\capture" not in device_id_lower and "application" not in record_text
+    return "\\capture" not in device_id_lower and record.get("type", "").casefold() != "application"
 
 
 def _is_svcl_render_device_id(device: str) -> bool:
-    device_lower = device.lower()
+    device_lower = device.casefold()
     return "\\device\\" in device_lower and "\\render" in device_lower
 
 
@@ -768,25 +758,10 @@ def _render_device_parts(device: str) -> tuple[str, str]:
     return device, ""
 
 
-def _sound_item_endpoint_key(record: dict[str, Any]) -> str:
-    item_id = _first_text(record, "Item ID")
+def _sound_item_endpoint_key(record: dict[str, str]) -> str:
+    item_id = record.get("itemid", "")
     match = re.search(r"\{0\.0\.[01]\.00000000\}\.\{([^}]+)\}", item_id, re.IGNORECASE)
     return match.group(1).casefold() if match else ""
-
-
-def _first_text(record: dict[str, Any], *keys: str) -> str:
-    normalized = {
-        _field_match_key(key): value for key, value in record.items() if isinstance(key, str)
-    }
-    for key in keys:
-        value = record.get(key, normalized.get(_field_match_key(key)))
-        if isinstance(value, str) and value.strip():
-            return value.strip()
-    return ""
-
-
-def _field_match_key(key: str) -> str:
-    return re.sub(r"[\s_\-]+", "", key).casefold()
 
 
 def _device_match_key(device: str) -> str:

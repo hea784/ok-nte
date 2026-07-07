@@ -824,3 +824,15 @@ msgstr "Selecionar svcl.exe"
 
 msgid "Open Download Page"
 msgstr "Abrir página de download"
+
+msgid "⚠️ 正在运行{rob_mode}\n该模式会高频占用/争夺鼠标。如需停止，请使用热键暂停 ok-nte, 再手动停止任务。\n当前热键: {hotkey} (如无法确认当前热键则点击取消, 主动确认后再运行)"
+msgstr "⚠️ Executando {rob_mode}\nEste modo ocupará/disputará o mouse em alta frequência. Para parar, use a tecla de atalho para pausar o ok-nte e depois pare a tarefa manualmente.\nTecla de atalho atual: {hotkey} (se não puder confirmar a tecla de atalho atual, clique em cancelar e execute após confirmar manualmente)"
+
+msgid "赤龙古堡-残丝长巷篝火"
+msgstr "Castelo do Dragão Vermelho - Fogueira do Beco da Seda"
+
+msgid "战斗时长上限"
+msgstr "Duração máxima do combate"
+
+msgid "战斗时不切人"
+msgstr "Não trocar de personagem durante o combate"

@@ -475,8 +475,14 @@ class BaseNTETask(CharUIMixin, MovementMixin, VisionMixin, OgMixin, LogGateMixin
         if not travel_btn:
             return False
         self.sleep(0.1)
-        self.operate_click(travel_btn)
-        self.sleep(1)
+        self.wait_until(
+            lambda: not self.find_traval_button(),
+            pre_action=lambda: self.operate_click(travel_btn, interval=0.5),
+            time_out=20,
+            settle_time=1,
+            raise_if_not_found=raise_if_not_found,
+        )
+        self.sleep(0.1)
         return True
 
     def openF1panel(self):

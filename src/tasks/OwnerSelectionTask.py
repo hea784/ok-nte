@@ -5,12 +5,19 @@ from qfluentwidgets import FluentIcon
 
 from src.tasks.NTEOneTimeTask import NTEOneTimeTask
 from src.tasks.RecordTask import RecordTask
+from src.ui.util import show_dialog_and_wait, tr_fmt
 
 RECORD_INS = (
     "记录点击目标关卡的操作，分为两个步骤：\n"
     "1. 使用滚轮滚动至[目标关卡]可见 (若不需要则点击[目标关卡])\n"
     "2. 点击目标关卡\n\n"
     "※ 请勿点击[开始营业]"
+)
+
+ROB_MODE_HINT = (
+    "⚠️ 正在运行{rob_mode}\n"
+    "该模式会高频占用/争夺鼠标。如需停止，请使用热键暂停 ok-nte, 再手动停止任务。\n"
+    "当前热键: {hotkey} (如无法确认当前热键则点击取消, 主动确认后再运行)"
 )
 
 
@@ -46,6 +53,7 @@ class OwnerSelectionTask(NTEOneTimeTask, RecordTask):
         self.add_rounds_config()
         self.default_config.update({self.CONF_ROB: False})
         self.tr(RECORD_INS)
+        self.tr(ROB_MODE_HINT)
 
     def run(self):
         super().run()
@@ -59,6 +67,19 @@ class OwnerSelectionTask(NTEOneTimeTask, RecordTask):
             raise
 
     def do_run(self):
+        if self.config.get(self.CONF_ROB):
+            try:
+                hotkey = og.executor.basic_options.get("Start/Stop")
+            except Exception:
+                hotkey = "--"
+            if show_dialog_and_wait(
+                self.tr(self.name),
+                tr_fmt(ROB_MODE_HINT, rob_mode=self.tr(self.CONF_ROB), hotkey=hotkey),
+                rich_text=False,
+                close_delay_seconds=2,
+                hide_cancel=False,
+            ) == 0:
+                return
         success_count = 0
         failed_count = 0
         round_index = 1

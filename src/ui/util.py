@@ -214,15 +214,26 @@ def ensure_scan_capture():
 
 def wait_main_window(after_sleep=0):
     try:
-        use_gui = og.ok.config.get("use_gui") and not og.ok.args.get("headless", False)
+        ok = getattr(og, "ok", None)
+        if ok is None:
+            return
+        use_gui = ok.config.get("use_gui") and not ok.args.get("headless", False)
         deadline = time.time() + 60
         if use_gui:
             while time.time() < deadline:
-                if og.app.main_window is not None:
-                    if og.app.main_window.isVisible():
-                        break
+                app = getattr(og, "app", None)
+                main_window = getattr(app, "main_window", None)
+                if main_window is not None and main_window.isVisible():
+                    break
                 time.sleep(1)
             if after_sleep > 0:
                 time.sleep(after_sleep)
     except Exception as e:
         logger.error("wait main_window error", e)
+
+
+def tr_fmt(text_id, **kwargs):
+    t = og.app.tr(text_id)
+    for k, v in kwargs.items():
+        t = t.replace(f"{{{k}}}", str(v))
+    return t
