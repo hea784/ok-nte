@@ -1,6 +1,8 @@
 import ast
 from typing import Any, Callable, List, NamedTuple
 
+from ok import TaskDisabledException
+
 from src.char.BaseChar import BaseChar
 from src.char.custom.CustomCharManager import CustomCharManager
 from src.combat.planner import (
@@ -163,6 +165,8 @@ class CustomChar(BaseChar):
         if error:
             self.logger.error(f"Syntax error parsing combo '{self.combo_str}': {error}")
             return
+        if not parsed_combo:
+            self.logger.warning("Parsed combo is empty")
         self.parsed_combo = parsed_combo
 
     @staticmethod
@@ -355,6 +359,8 @@ class CustomChar(BaseChar):
         for command in self.parsed_combo:
             try:
                 self._execute_compiled_command(command)
+            except TaskDisabledException:
+                raise
             except Exception as e:
                 cmd = command[4] if len(command) >= 5 else "unknown"
                 self.logger.error(f"Error executing command '{cmd}'", e)
