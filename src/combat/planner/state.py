@@ -18,6 +18,7 @@ from .requests import (
 from .types import (
     ActionIntent,
     ActionResult,
+    EntryFactory,
     ExpectedEntry,
     FieldClaim,
     RequestStatus,
@@ -225,8 +226,9 @@ class CombatState:
 
 
 @dataclass(slots=True)
-class _IntentSet:
-    """一次 planner 决策内缓存的角色意图快照。"""
+class _PlanSnapshot:
+    """一次 planner 决策内缓存的角色 plan 快照。"""
 
     actions: list[ActionIntent] = field(default_factory=list)
     claims: list[FieldClaim] = field(default_factory=list)
+    entry: EntryFactory | None = None

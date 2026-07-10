@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Iterable
+from typing import TYPE_CHECKING, Any, Iterable
 
 from ok import Logger
 
@@ -11,14 +11,14 @@ from .context import CombatContext
 from .requests import (
     _Request,
     _RouteRequest,
-    request_blocks_entry_chain,
+    request_blocks_entry_flow,
     request_current_step,
     request_fulfilled,
     request_is_switch,
     request_switch_target,
     request_wants_action,
 )
-from .state import CombatState, _IntentSet
+from .state import CombatState, _PlanSnapshot
 from .types import (
     ACTION_TAG_SCORES,
     FIELD_CLAIM_SCORES,
@@ -30,8 +30,7 @@ from .types import (
     ActionResult,
     ActionSlot,
     ActionTag,
-    CombatIntent,
-    EntryChainPolicy,
+    CombatPlan,
     ExpectedEntry,
     FieldClaim,
     FieldClaimLevel,
@@ -64,9 +63,8 @@ __all__ = [
     "ActionExecutor",
     "ActionPredicate",
     "CombatContext",
-    "CombatIntent",
+    "CombatPlan",
     "CombatPlanner",
-    "EntryChainPolicy",
     "ExpectedEntry",
     "FieldClaim",
     "FieldClaimLevel",
@@ -104,6 +102,21 @@ class _ScoreBreakdown:
         return f"{parts} => {self.total}"
 
 
+@dataclass(slots=True)
+class _EntrySession:
+    """一次在场角色入场内共享的 action flow 状态。"""
+
+    char: "BaseChar"
+    context: CombatContext
+    entry_flow: Any | None = None
+    pending_entry_action: ActionIntent | None = None
+    performed_results: dict[str, ActionResult] = field(default_factory=dict)
+    last_result: ActionResult | None = None
+    successful_action: bool = False
+    yielded_before_action: bool = False
+    steps: int = 0
+
+
 class CombatPlanner:
     """队伍协作规划器。
 
@@ -116,9 +129,9 @@ class CombatPlanner:
     代表该角色参与切人竞争。action 分数来自 `ActionIntent.tags` 对应的
     `ACTION_TAG_SCORES`，再叠加协作请求和角色 `RoleProfile` 的评分。
 
-    角色切入后也不会无条件执行所有 actions。planner 每次重新选择一个当前最合适
-    的 action，并按 `ActionIntent.chain_policy` 决定是否继续，最多执行
-    `MAX_ACTIONS_PER_ENTRY` 次。同名 action 在同一次入场中只会执行一次。
+    角色切入后，普通路径由 `CombatPlan.entry` 控制；未声明 entry 时按 actions
+    顺序执行，最多执行 `MAX_ACTIONS_PER_ENTRY` 次。同名 action 在同一次入场中
+    只会执行一次。
 
     `SKILL_ACTION` 和 `ULTIMATE_ACTION` 已经包含 E/Q 的默认输出评分；`DAMAGE`
     只用于普攻站场、旧出招表或非 E/Q 的额外伤害动作。
@@ -171,7 +184,7 @@ class CombatPlanner:
     def context_for(
         self,
         current_char: "BaseChar",
-        intent_cache: dict[int, _IntentSet] | None = None,
+        plan_cache: dict[int, _PlanSnapshot] | None = None,
     ) -> CombatContext:
         """为当前角色创建 `CombatContext`。
 
@@ -183,7 +196,7 @@ class CombatPlanner:
             task=self.task,
             _state=self.state,
             current_char=current_char,
-            _intent_cache=intent_cache,
+            _plan_cache=plan_cache,
         )
 
     def _log_info_throttled(self, key, message: str, interval: float | None = None):
@@ -202,8 +215,8 @@ class CombatPlanner:
         `BaseChar.switch_in_guard()` 返回延迟条件。
         """
 
-        intent_cache: dict[int, _IntentSet] = {}
-        context = self.context_for(target_char, intent_cache)
+        plan_cache: dict[int, _PlanSnapshot] = {}
+        context = self.context_for(target_char, plan_cache)
         guard = target_char.switch_in_guard(context, from_char, has_intro)
         return guard or SwitchInGuard.allow()
 
@@ -272,55 +285,48 @@ class CombatPlanner:
     def perform_current_char(self, current_char: "BaseChar") -> ActionResult | None:
         """规划并执行当前在场角色的动作。
 
-        单次入场最多连续执行 `MAX_ACTIONS_PER_ENTRY` 个可串联动作；如果所有动作
-        都失败或没有动作，会尝试 planner 内建的 field time fallback。
-
-        每轮都会重新读取 `combat_intents(context)` 并挑一个动作执行，不是把
-        当前所有可执行 action 依序跑完。执行链会按照 action 的
-        `chain_policy`、followup、active request、strict route 下一步和次数上限
-        决定是否停止。
+        单次入场最多执行 `MAX_ACTIONS_PER_ENTRY` 个动作；如果所有动作都失败或没有
+        动作，会尝试 planner 内建的 field time fallback。
 
         如果执行函数返回 bool/None，`ActionResult.tags` 会继承 action tags；
-        因此一般不需要手写 result tags。`ActionResult.tags` 不再影响入场链控制。
+        因此一般不需要手写 result tags。`ActionResult.tags` 不再影响 entry flow 控制。
 
         执行优先级:
             1. pending expected entry，例如 strict route 切入后的强制首动。
             2. 当前 strict route 的目标 action。
             3. active tag request 可完成的 action。
-            4. 角色在 `combat_intents()` 中声明顺序里的第一个 allowed action。
+            4. 角色 `combat_plan().entry` 产出的普通入场动作；未定义 entry 时按
+               `combat_plan().actions` 声明顺序执行。
 
         返回:
             最后一次执行的 `ActionResult`，或没有动作时返回 None。
         """
 
-        performed_actions: set[str] = set()
-        last_result = None
-        successful_action = False
-        yielded_before_action = False
+        session = self._entry_session_for(current_char)
 
-        for action_index in range(self.MAX_ACTIONS_PER_ENTRY):
-            intent_cache: dict[int, _IntentSet] = {}
-            context = self.context_for(current_char, intent_cache)
-            if action_index == 0 and self._should_return_to_requester_before_action(
-                current_char, context
+        while session.steps < self.MAX_ACTIONS_PER_ENTRY:
+            if session.steps == 0 and self._should_return_to_requester_before_action(
+                current_char, session.context
             ):
                 self._log_info_throttled(
                     ("return_before_action", current_char.index),
                     f"planner return to requester before action {current_char}",
                 )
-                yielded_before_action = True
+                session.yielded_before_action = True
                 break
-            action = self._entry_expected_action(current_char, context)
+
+            action, scheduled = self._next_session_action(session)
             if action is None:
-                action = self._next_action_for(current_char, context, performed_actions)
-            if action is None:
-                if action_index == 0:
-                    if self._should_return_to_requester_before_action(current_char, context):
+                if session.steps == 0:
+                    if self._should_return_to_requester_before_action(
+                        current_char,
+                        session.context,
+                    ):
                         self._log_info_throttled(
                             ("return_before_action", current_char.index),
                             f"planner return to requester before action {current_char}",
                         )
-                        yielded_before_action = True
+                        session.yielded_before_action = True
                         break
                     self._log_info_throttled(
                         ("action_none", current_char.index),
@@ -328,43 +334,41 @@ class CombatPlanner:
                     )
                 break
 
-            action_name = action.display_name()
-            logger.info(
-                f"planner action {current_char} -> {action_name}, "
-                f"tags {sorted(str(tag) for tag in action.tags)}, reason {action.reason}"
+            result, executed = self._execute_entry_action(
+                current_char,
+                action,
+                session.context,
             )
-            route_active_before_action = self.state.locked_route is not None
-            result = action.run(context)
-            published_requests = context._consume_published_requests()
-            self._ensure_followup_sources(current_char, published_requests)
-            self.state.record_action(current_char, result)
-            self.state.add_requests(published_requests)
-            performed_actions.add(action.identity_key())
-            last_result = result
-            successful_action = successful_action or result.success
+            session.steps += 1
+            self._record_session_result(session, action, result, executed)
 
-            if self._skip_failed_optional_route_step(current_char, action, result):
+            if executed and self._skip_failed_optional_route_step(current_char, action, result):
                 continue
-            if route_active_before_action and self.state.locked_route is None:
+            if not self._should_continue_entry(current_char, result):
                 break
-            if not result.success and self._can_try_next_action_after_failure(
-                current_char, action, result
-            ):
-                continue
-            if not self._should_continue_entry(current_char, action, result):
-                break
+
+            if not scheduled and session.entry_flow is not None:
+                session.pending_entry_action = self._advance_entry_flow(
+                    session.entry_flow,
+                    session.context,
+                    result,
+                )
+                if session.pending_entry_action is None:
+                    break
+                if self._ordinary_entry_blocked(current_char, session.context):
+                    break
 
         if (
-            not successful_action
-            and not yielded_before_action
+            not session.successful_action
+            and not session.yielded_before_action
             and self._can_use_field_time_fallback()
         ):
             context = self.context_for(current_char)
             fallback_result = self._perform_field_time_fallback(current_char, context)
             if fallback_result is not None:
-                last_result = fallback_result
+                session.last_result = fallback_result
 
-        return last_result
+        return session.last_result
 
     def _ensure_followup_sources(
         self, current_char: "BaseChar", requests: Iterable[_Request]
@@ -374,6 +378,87 @@ class CombatPlanner:
                 request._source = current_char.index
             if not request.reason:
                 request.reason = f"{current_char} planner request"
+
+    def _entry_session_for(self, current_char: "BaseChar") -> _EntrySession:
+        return _EntrySession(
+            char=current_char,
+            context=self.context_for(current_char, {}),
+        )
+
+    def _next_session_action(
+        self,
+        session: _EntrySession,
+    ) -> tuple[ActionIntent | None, bool]:
+        skipped_route_actions: list[ActionIntent] = []
+        scheduled_action = self._scheduled_action_for(
+            session.char,
+            session.context,
+            set(session.performed_results),
+            skipped_route_actions,
+        )
+        for action in skipped_route_actions:
+            session.performed_results.setdefault(
+                action.identity_key(),
+                ActionResult(
+                    name=action.name,
+                    success=False,
+                    tags=set(action.tags),
+                    slot=action.slot,
+                    reason="optional route step skipped by planner",
+                ),
+            )
+        if scheduled_action is not None:
+            return scheduled_action, True
+
+        action = self._next_entry_flow_action(session)
+        if action is None:
+            return None, False
+        session.pending_entry_action = None
+        return action, False
+
+    def _next_entry_flow_action(self, session: _EntrySession) -> ActionIntent | None:
+        if session.entry_flow is None:
+            session.entry_flow = self._entry_flow_for(session.char, session.context)
+            session.pending_entry_action = self._advance_entry_flow(
+                session.entry_flow,
+                session.context,
+            )
+
+        while session.pending_entry_action is not None:
+            performed_result = session.performed_results.get(
+                session.pending_entry_action.identity_key()
+            )
+            if performed_result is None:
+                return session.pending_entry_action
+            if session.steps >= self.MAX_ACTIONS_PER_ENTRY:
+                return None
+            session.steps += 1
+            session.pending_entry_action = self._advance_entry_flow(
+                session.entry_flow,
+                session.context,
+                performed_result,
+            )
+            if session.steps >= self.MAX_ACTIONS_PER_ENTRY:
+                return None
+            if session.pending_entry_action is not None and self._ordinary_entry_blocked(
+                session.char,
+                session.context,
+            ):
+                return None
+
+        return None
+
+    def _record_session_result(
+        self,
+        session: _EntrySession,
+        action: ActionIntent,
+        result: ActionResult,
+        executed: bool,
+    ) -> None:
+        if executed:
+            session.performed_results[action.identity_key()] = result
+        session.last_result = result
+        session.successful_action = session.successful_action or result.success
 
     def _entry_expected_action(
         self, current_char: "BaseChar", context: CombatContext
@@ -390,6 +475,97 @@ class CombatPlanner:
                 return action
         logger.info(f"planner entry expected action unavailable {current_char} -> {expected_entry}")
         return None
+
+    def _scheduled_action_for(
+        self,
+        char: "BaseChar",
+        context: CombatContext,
+        excluded_action_names: set[str],
+        skipped_route_actions: list[ActionIntent] | None = None,
+    ) -> ActionIntent | None:
+        action = self._entry_expected_action(char, context)
+        if action is not None and action.identity_key() not in excluded_action_names:
+            return action
+
+        skipped_actions = self._skip_unavailable_optional_route_steps(context)
+        if skipped_route_actions is not None:
+            skipped_route_actions.extend(skipped_actions)
+        if self._should_return_to_requester_before_action(char, context):
+            return None
+        actions = self._actions_for(char, context)
+        route_action = self._strict_route_action(char, actions, context)
+        if route_action is not None and route_action.identity_key() not in excluded_action_names:
+            return route_action
+        route_wait = self._strict_route_wait_action(char, context)
+        if route_wait is not None and route_wait.identity_key() not in excluded_action_names:
+            return route_wait
+        if not context._state.active_requests:
+            return None
+        allowed_actions = [
+            action
+            for action in actions
+            if action.identity_key() not in excluded_action_names
+            and self._action_allowed(char, action, context)
+        ]
+        if self._strict_route_request(context) is not None or not allowed_actions:
+            return None
+        return self._active_request_action(char, allowed_actions, context)
+
+    def _entry_flow_for(self, char: "BaseChar", context: CombatContext):
+        plan = self._plan_snapshot_for(char, context)
+        if plan.entry is not None:
+            return plan.entry()
+
+        def default_entry():
+            for action in plan.actions:
+                yield action
+
+        return default_entry()
+
+    def _advance_entry_flow(
+        self,
+        entry_flow,
+        context: CombatContext,
+        result: ActionResult | None = None,
+    ) -> ActionIntent | None:
+        try:
+            action = next(entry_flow) if result is None else entry_flow.send(result)
+        except StopIteration:
+            return None
+        published_requests = context._consume_published_requests()
+        self._ensure_followup_sources(context.current_char, published_requests)
+        self.state.add_requests(published_requests)
+        return action
+
+    def _execute_entry_action(
+        self,
+        current_char: "BaseChar",
+        action: ActionIntent,
+        context: CombatContext,
+    ) -> tuple[ActionResult, bool]:
+        if not self._action_allowed(current_char, action, context):
+            return (
+                ActionResult(
+                    name=action.name,
+                    success=False,
+                    tags=set(action.tags),
+                    slot=action.slot,
+                    reason="action blocked by planner",
+                ),
+                False,
+            )
+
+        action_name = action.display_name()
+        logger.info(
+            f"planner action {current_char} -> {action_name}, "
+            f"tags {sorted(str(tag) for tag in action.tags)}, reason {action.reason}"
+        )
+        result = action.run(context)
+        published_requests = context._consume_published_requests()
+        self._ensure_followup_sources(current_char, published_requests)
+        self.state.record_action(current_char, result)
+        self.state.add_requests(published_requests)
+        return result, True
 
     def decide_switch(
         self,
@@ -421,8 +597,8 @@ class CombatPlanner:
             会设置它来保证切入后先执行路线要求动作。
         """
 
-        intent_cache: dict[int, _IntentSet] = {}
-        context = self.context_for(current_char, intent_cache)
+        plan_cache: dict[int, _PlanSnapshot] = {}
+        context = self.context_for(current_char, plan_cache)
         has_intro = free_intro or current_char.is_cycle_full()
         if require_intro and not has_intro:
             return SwitchDecision(current_char, "intro required but not ready", -999999, has_intro)
@@ -488,46 +664,6 @@ class CombatPlanner:
 
         self._log_switch_decision(current_char, best_decision)
         return best_decision
-
-    def _next_action_for(
-        self,
-        char: "BaseChar",
-        context: CombatContext,
-        excluded_action_names: set[str] | None = None,
-    ) -> ActionIntent | None:
-        """选择当前入场后要尝试执行的动作。
-
-        此路径不使用 `priority_ready`。`priority_ready` 只服务切人评分；角色已经
-        在场后，只要动作没有被 planner 层 reservation 禁止，就让动作自己的
-        execute/click 逻辑判断真实游戏状态。
-
-        普通路径按 `combat_intents()` 声明顺序选择 action；不要依赖 tag 分数控制
-        同一角色入场后的动作顺序。
-        """
-
-        excluded_action_names = excluded_action_names or set()
-        self._skip_unavailable_optional_route_steps(context)
-        if self._should_return_to_requester_before_action(char, context):
-            return None
-        actions = self._actions_for(char, context)
-        route_action = self._strict_route_action(char, actions, context)
-        if route_action is not None and route_action.identity_key() not in excluded_action_names:
-            return route_action
-        route_wait = self._strict_route_wait_action(char, context)
-        if route_wait is not None and route_wait.identity_key() not in excluded_action_names:
-            return route_wait
-        allowed_actions = [
-            action
-            for action in actions
-            if action.identity_key() not in excluded_action_names
-            and self._action_allowed(char, action, context)
-        ]
-        if self._strict_route_request(context) is not None or not allowed_actions:
-            return None
-        request_action = self._active_request_action(char, allowed_actions, context)
-        if request_action is not None:
-            return request_action
-        return allowed_actions[0]
 
     def _active_request_action(
         self,
@@ -602,36 +738,34 @@ class CombatPlanner:
             return False
         return True
 
-    def _should_continue_entry(
-        self, current_char: "BaseChar", action: ActionIntent, result: ActionResult
-    ) -> bool:
+    def _should_continue_entry(self, current_char: "BaseChar", result: ActionResult) -> bool:
         if not result.success:
-            return False
-        policy = action.chain_policy
-        if policy in (EntryChainPolicy.STOP, EntryChainPolicy.STOP_ON_SUCCESS):
-            return False
+            return self._can_try_next_action_after_failure()
         if self.state.locked_route is not None:
             return self._locked_route_can_continue_on_current(current_char)
-        if any(request_blocks_entry_chain(request) for request in self.state.active_requests):
+        if any(request_blocks_entry_flow(request) for request in self.state.active_requests):
             return False
         return True
 
-    def _can_try_next_action_after_failure(
-        self, current_char: "BaseChar", action: ActionIntent, result: ActionResult
-    ) -> bool:
-        if action.chain_policy == EntryChainPolicy.STOP:
-            return False
+    def _can_try_next_action_after_failure(self) -> bool:
         if self.state.locked_route is not None:
             return False
-        if any(request_blocks_entry_chain(request) for request in self.state.active_requests):
+        if any(request_blocks_entry_flow(request) for request in self.state.active_requests):
             return False
         return True
+
+    def _ordinary_entry_blocked(self, current_char: "BaseChar", context: CombatContext) -> bool:
+        if self.state.locked_route is not None:
+            return not self._locked_route_can_continue_on_current(current_char)
+        if self._should_return_to_requester_before_action(current_char, context):
+            return True
+        return any(request_blocks_entry_flow(request) for request in self.state.active_requests)
 
     def _can_use_field_time_fallback(self) -> bool:
         if self.state.locked_route is not None:
             return False
         return not any(
-            request_blocks_entry_chain(request) for request in self.state.active_requests
+            request_blocks_entry_flow(request) for request in self.state.active_requests
         )
 
     def _locked_route_can_continue_on_current(self, current_char: "BaseChar") -> bool:
@@ -720,37 +854,32 @@ class CombatPlanner:
         context._state.active_requests = active_requests
         return decision
 
-    def _intent_set_for(self, char: "BaseChar", context: CombatContext) -> _IntentSet:
-        if context._intent_cache is not None and char.index in context._intent_cache:
-            return context._intent_cache[char.index]
+    def _plan_snapshot_for(self, char: "BaseChar", context: CombatContext) -> _PlanSnapshot:
+        if context._plan_cache is not None and char.index in context._plan_cache:
+            return context._plan_cache[char.index]
 
-        intents = [intent for intent in char.combat_intents(context) if intent is not None]
-        actions = []
+        plan = char.combat_plan(context)
+        actions = [action for action in plan.actions if action is not None]
         claims = []
-        for intent in intents:
-            if isinstance(intent, FieldClaim):
-                intent.ensure_source(char)
-                claims.append(intent)
-            elif isinstance(intent, ActionIntent):
-                actions.append(intent)
+        for claim in plan.claims:
+            if claim is None:
+                continue
+            claim.ensure_source(char)
+            claims.append(claim)
         followups = context._consume_published_requests()
         if followups:
             logger.warning(
-                f"{char}.combat_intents() published planner requests; ignored. "
+                f"{char}.combat_plan() published planner requests; ignored. "
                 "Publish long-lived requests in combat_policies(), or publish action "
                 "followups from ActionIntent.execute()."
             )
-        intent_set = _IntentSet(actions=actions, claims=claims)
-        if context._intent_cache is not None:
-            context._intent_cache[char.index] = intent_set
-        return intent_set
-
-    def _intents_for(self, char: "BaseChar", context: CombatContext) -> list[CombatIntent]:
-        intent_set = self._intent_set_for(char, context)
-        return [*intent_set.actions, *intent_set.claims]
+        snapshot = _PlanSnapshot(actions=actions, claims=claims, entry=plan.entry)
+        if context._plan_cache is not None:
+            context._plan_cache[char.index] = snapshot
+        return snapshot
 
     def _actions_for(self, char: "BaseChar", context: CombatContext) -> list[ActionIntent]:
-        return list(self._intent_set_for(char, context).actions)
+        return list(self._plan_snapshot_for(char, context).actions)
 
     def _action_allowed(
         self, char: "BaseChar", action: ActionIntent, context: CombatContext
@@ -794,7 +923,6 @@ class CombatPlanner:
             slot=ActionSlot.FIELD_TIME,
             execute=lambda _: self._execute_field_time(char, profile.max_field_time),
             reason=f"{profile.field_preference} field time fallback",
-            chain_policy=EntryChainPolicy.STOP,
         )
 
     def _execute_field_time(self, char: "BaseChar", max_field_time: float) -> ActionResult:
@@ -829,12 +957,16 @@ class CombatPlanner:
             return request
         return None
 
-    def _skip_unavailable_optional_route_steps(self, context: CombatContext):
+    def _skip_unavailable_optional_route_steps(
+        self,
+        context: CombatContext,
+    ) -> list[ActionIntent]:
+        skipped_actions: list[ActionIntent] = []
         request = self._strict_route_request(context)
         while request is not None:
             step = request.current_step()
             if step is None or not step.optional:
-                return
+                return skipped_actions
             if step.requires_entry_reaction:
                 if self._route_step_blocked_by_dead_target(context, step):
                     logger.info(
@@ -844,31 +976,33 @@ class CombatPlanner:
                     if request.skip_current_step():
                         if request.fulfilled():
                             context._state.fulfill_locked_route()
-                            return
+                            return skipped_actions
                         continue
-                return
+                return skipped_actions
             target = self._strict_route_target(context, step)
             if target is None:
                 if request.skip_current_step():
                     if request.fulfilled():
                         context._state.fulfill_locked_route()
-                        return
+                        return skipped_actions
                     continue
-                return
+                return skipped_actions
             if target != context.current_char:
-                return
+                return skipped_actions
             actions = self._actions_for(target, context)
             if any(
                 step.wants(target, action) and self._action_priority_ready(target, action, context)
                 for action in actions
             ):
-                return
+                return skipped_actions
             logger.info(f"strict route skips optional step: {request.reason} / {step.reason}")
+            skipped_actions.extend(action for action in actions if step.wants(target, action))
             if not request.skip_current_step():
-                return
+                return skipped_actions
             if request.fulfilled():
                 context._state.fulfill_locked_route()
-                return
+                return skipped_actions
+        return skipped_actions
 
     def _strict_route_action(
         self, char: "BaseChar", actions: list[ActionIntent], context: CombatContext
@@ -905,7 +1039,6 @@ class CombatPlanner:
             tags={ActionTag.DEFAULT_ACTION},
             execute=lambda _: self._wait_for_strict_route_action(char, request, step),
             reason=f"waiting strict route action: {step.reason}",
-            chain_policy=EntryChainPolicy.STOP,
         )
 
     def _wait_for_strict_route_action(
@@ -1038,7 +1171,7 @@ class CombatPlanner:
         return score
 
     def _claims_for(self, char: "BaseChar", context: CombatContext) -> list[FieldClaim]:
-        return list(self._intent_set_for(char, context).claims)
+        return list(self._plan_snapshot_for(char, context).claims)
 
     def _best_field_claim_for(self, char: "BaseChar", context: CombatContext) -> FieldClaim | None:
         claims = [claim for claim in self._claims_for(char, context) if claim.matches_char(char)]
