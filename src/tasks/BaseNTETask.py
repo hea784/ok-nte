@@ -21,6 +21,12 @@ from src.utils.log_gate import LogGateMixin
 
 logger = Logger.get_logger(__name__)
 stamina_re = re.compile(r"(\d+)/(\d+)")
+MSG_MAIN_DETECTION_FAILED = (
+    "主界面检测失败。建议操作: \n"
+    "1. 关闭显卡滤镜与锐化功能；\n"
+    "2. 尝试开启 Windows “自动管理应用的颜色”设置。"
+)
+MSG_WORLD_DETECTION_FAILED = "大世界检测失败: 请检查游戏内 UI 透明度是否已设置为 1.0。"
 
 
 class BaseNTETask(CharUIMixin, MovementMixin, VisionMixin, OgMixin, LogGateMixin, BaseTask):
@@ -343,23 +349,32 @@ class BaseNTETask(CharUIMixin, MovementMixin, VisionMixin, OgMixin, LogGateMixin
         success = self.wait_until(
             self.is_in_team,
             time_out=time_out,
-            raise_if_not_found=raise_if_not_found,
+            raise_if_not_found=False,
             post_action=lambda: self.back(after_sleep=2) if esc else None,
             settle_time=settle_time,
         )
         if success:
             self.sleep(0.1)
+        elif raise_if_not_found:
+            msg = self.tr(MSG_MAIN_DETECTION_FAILED)
+            self.log_error(msg, notify=True)
+            raise CannotFindException(msg)
         return success
 
     def wait_in_team_and_world(self, time_out=30, raise_if_not_found=True, esc=False):
         success = self.wait_until(
             self.in_team_and_world,
             time_out=time_out,
-            raise_if_not_found=raise_if_not_found,
+            raise_if_not_found=False,
             post_action=lambda: self.back(after_sleep=2) if esc else None,
         )
         if success:
             self.sleep(0.1)
+        elif raise_if_not_found:
+            msg = self.tr(MSG_MAIN_DETECTION_FAILED)
+            msg += "\n" + self.tr(MSG_WORLD_DETECTION_FAILED)
+            self.log_error(msg, notify=True)
+            raise CannotFindException(msg)
         return success
 
     def set_pynput_interaction(self):
@@ -493,7 +508,7 @@ class BaseNTETask(CharUIMixin, MovementMixin, VisionMixin, OgMixin, LogGateMixin
     def openF1panel(self):
         if hasattr(self, "reset_to_false"):
             self.reset_to_false("opening f1 panel")
-        if self.in_team_and_world():
+        if self.is_in_team():
             self.send_key("f1", after_sleep=1)
             self.log_info("send f1 key to open the panel")
 
@@ -507,7 +522,7 @@ class BaseNTETask(CharUIMixin, MovementMixin, VisionMixin, OgMixin, LogGateMixin
     def openF2panel(self):
         if hasattr(self, "reset_to_false"):
             self.reset_to_false("opening f2 panel")
-        if self.in_team_and_world():
+        if self.is_in_team():
             self.send_key("f2", after_sleep=1)
             self.log_info("send f2 key to open the panel")
 
@@ -521,7 +536,7 @@ class BaseNTETask(CharUIMixin, MovementMixin, VisionMixin, OgMixin, LogGateMixin
     def openF5panel(self):
         if hasattr(self, "reset_to_false"):
             self.reset_to_false("opening f5 panel")
-        if self.in_team_and_world():
+        if self.is_in_team():
             self.send_key("f5", after_sleep=1)
             self.log_info("send f5 key to open the panel")
 
@@ -535,7 +550,7 @@ class BaseNTETask(CharUIMixin, MovementMixin, VisionMixin, OgMixin, LogGateMixin
     def openESCpanel(self):
         if hasattr(self, "reset_to_false"):
             self.reset_to_false("opening esc panel")
-        if self.in_team_and_world():
+        if self.is_in_team():
             self.send_key("esc", after_sleep=1)
             self.log_info("send esc key to open the panel")
 
@@ -555,7 +570,7 @@ class BaseNTETask(CharUIMixin, MovementMixin, VisionMixin, OgMixin, LogGateMixin
         logger.info(f"found {feature} {result}")
         return result
 
-    def ensure_main(self, esc=True, in_world=True, time_out=30):
+    def ensure_main(self, esc=True, in_world=False, time_out=30):
         self.info_set("current task", f"wait main esc={esc}")
         if not self.scene.logged_in():
             time_out = 600
@@ -565,7 +580,11 @@ class BaseNTETask(CharUIMixin, MovementMixin, VisionMixin, OgMixin, LogGateMixin
             raise_if_not_found=False,
             settle_time=0.25,
         ):
-            raise Exception("Please start in game world and in team!")
+            msg = self.tr(MSG_MAIN_DETECTION_FAILED)
+            if in_world:
+                msg += "\n" + self.tr(MSG_WORLD_DETECTION_FAILED)
+            self.log_error(msg, notify=True)
+            raise CannotFindException(msg)
         self.sleep(0.5)
         self.info_set("current task", None)
 
@@ -605,7 +624,7 @@ class BaseNTETask(CharUIMixin, MovementMixin, VisionMixin, OgMixin, LogGateMixin
             deadline = time.time() + 20
             settle = -1
             while time.time() < deadline:
-                if self.in_team_and_world():
+                if self.is_in_team():
                     if settle < 0:
                         settle = time.time()
                     elif time.time() - settle > 2:
@@ -639,7 +658,7 @@ class BaseNTETask(CharUIMixin, MovementMixin, VisionMixin, OgMixin, LogGateMixin
 
     def wait_login(self):
         if not self.scene.logged_in():
-            if self.in_team_and_world():
+            if self.is_in_team():
                 return True
             self.handle_monthly_card()
             if self.find_one(Labels.login_setting):
@@ -820,6 +839,11 @@ class BaseNTETask(CharUIMixin, MovementMixin, VisionMixin, OgMixin, LogGateMixin
             return og.app.locale.name()
         except Exception:
             return None
+
+    def is_chinese(self) -> bool:
+        """判断当前应用语言是否为中文"""
+
+        return "zh" in self.get_app_locale()
 
     def open_f1_domain_page(self):
         self.openF1panel()

@@ -55,7 +55,7 @@ class BagelAITools(NTEOneTimeTask, BaseNTETask):
         self.name = "呗果智能体"
         self.description = "请详阅使用说明"
         self.icon = FluentIcon.HEART
-        self.instructions = INS if "zh" in self.get_app_locale() else EN_INS
+        self.instructions = INS if self.is_chinese() else EN_INS
         self.bagel_supported_languages = [
             "zh_CN",
             "zh_TW",
@@ -248,7 +248,7 @@ class BagelAITools(NTEOneTimeTask, BaseNTETask):
                     self.sleep(1.14)
                     continue
                 else:
-                    if self.in_team_and_world():
+                    if self.is_in_team():
                         self.log_info("🔴 检测在大世界，呗果文案助手自动暂停！")
                         self.is_running = False
                         continue
