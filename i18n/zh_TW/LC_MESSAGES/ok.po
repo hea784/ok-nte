@@ -1070,3 +1070,84 @@ msgstr "目前 CPU 不支援 AVX2，無法執行 OpenVINO 2026 CPU 推理；自�
 
 msgid "战斗后等待至时长上限"
 msgstr "戰鬥後等待至時長上限"
+
+msgid "羁遇赠礼"
+msgstr "羈遇贈禮"
+
+msgid "新增角色"
+msgstr "新增角色"
+
+msgid "更新当前角色"
+msgstr "更新當前角色"
+
+msgid "删除当前角色"
+msgstr "刪除當前角色"
+
+msgid "开始赠礼"
+msgstr "開始贈禮"
+
+msgid "继续赠礼"
+msgstr "繼續贈禮"
+
+msgid "停止"
+msgstr "停止"
+
+msgid "在游戏赠礼页点击{}。点击礼物卡片可设定优先级，再次点击取消。"
+msgstr "在遊戲贈禮頁點擊{}。點擊禮物卡片可設定優先級，再次點擊取消。"
+
+msgid "赠礼状态"
+msgstr "贈禮狀態"
+
+msgid "已启用"
+msgstr "已啟用"
+
+msgid "名称"
+msgstr "名稱"
+
+msgid "角色显示名称"
+msgstr "角色顯示名稱"
+
+msgid "赠送次数"
+msgstr "贈送次數"
+
+msgid "角色名称"
+msgstr "角色名稱"
+
+msgid "礼物优先级"
+msgstr "禮物優先級"
+
+msgid "不赠送"
+msgstr "不贈送"
+
+msgid "优先级 {}"
+msgstr "優先級 {}"
+
+msgid "不可赠送"
+msgstr "不可贈送"
+
+msgid "未命名角色"
+msgstr "未命名角色"
+
+msgid "捕获失败"
+msgstr "捕獲失敗"
+
+msgid "保存失败"
+msgstr "儲存失敗"
+
+msgid "无法开始"
+msgstr "無法開始"
+
+msgid "赠礼任务未注册"
+msgstr "贈禮任務未註冊"
+
+msgid "没有可用的游戏画面"
+msgstr "沒有可用的遊戲畫面"
+
+msgid "请先捕获、选择礼物并启用至少一个角色。"
+msgstr "請先捕獲、選擇禮物並啟用至少一個角色。"
+
+msgid "使用录制功能"
+msgstr "使用錄製功能"
+
+msgid "启用后录制并回放选择目标关卡的操作"
+msgstr "啟用後會錄製並重播選擇目標關卡的操作"
