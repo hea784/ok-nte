@@ -44,7 +44,7 @@ class CombatDetectResult:
 class CombatDetectPolicy:
     miss_required: int = 1
     uncertain_seconds: float = 0.5
-    retarget_settle_seconds: float = 0.4
+    retarget_settle_seconds: float = 0.3
 
 
 @dataclass
@@ -73,9 +73,7 @@ class CombatCheck(BaseNTETask):
         super().__init__(*args, **kwargs)
         self._in_animation = False
         self._in_combat = False
-        self.out_of_combat_reason = ""
         self.target_enemy_time_out = 3
-        self.switch_char_time_out = 5
         self.combat_end_condition = None
         self.target_enemy_error_notified = False
         self.freeze_durations = deque()
@@ -112,12 +110,7 @@ class CombatCheck(BaseNTETask):
     def on_combat_check(self):
         return True
 
-    def reset_to_false(self, reason=""):
-        self.out_of_combat_reason = reason
-        self.do_reset_to_false()
-        return False
-
-    def do_reset_to_false(self):
+    def reset_to_false(self):
         self.freeze_durations.clear()
         self.cds = {}
         self._in_combat = False
@@ -167,16 +160,16 @@ class CombatCheck(BaseNTETask):
         deadline = time.time() + time_out
         while time.time() < deadline:
             if self.is_in_team():
-                if self.combat_detect(lv=lv):
+                if self.wait_until(lambda: self.combat_detect(lv=lv), time_out=0.2):
                     return True
                 if turn:
                     self.send_key("a", down_time=0.1)
                     self.sleep(0.3)
                     self.middle_click()
-                    self.sleep(0.4)
+                    self.sleep(0.3)
                 else:
                     self.middle_click()
-                    self.sleep(0.4)
+                    self.sleep(0.3)
             self.next_frame()
 
     def has_health_bar(self):
@@ -254,7 +247,7 @@ class CombatCheck(BaseNTETask):
 
         policy = self.combat_detect_policy
         self.combat_detect_state.miss_count += 1
-        if self.combat_detect_state.miss_count < policy.miss_required:
+        if self.combat_detect_state.miss_count <= policy.miss_required:
             return CombatDetectPhase.IN_COMBAT
 
         if self.combat_detect_state.uncertain_until is None:
@@ -324,7 +317,7 @@ class CombatCheck(BaseNTETask):
 
         if not self.on_combat_check():
             self.log_info("on_combat_check failed")
-            return self.reset_to_false(reason="on_combat_check failed")
+            return self.reset_to_false()
 
         if self.is_boss():
             self._boss_fight = True
@@ -334,7 +327,7 @@ class CombatCheck(BaseNTETask):
             return self._recover_or_end_combat()
 
         if self.combat_end_condition is not None and self.combat_end_condition():
-            return self.reset_to_false(reason="end condition reached")
+            return self.reset_to_false()
 
         combat_detect = self._detect_combat_signal()
         combat_phase = self._update_combat_detect_state(combat_detect)
@@ -356,7 +349,7 @@ class CombatCheck(BaseNTETask):
         if self.should_check_monthly_card() and self.handle_monthly_card():
             return self._set_in_combat("monthly_card")
         logger.error("target_enemy failed, try recheck break out of combat")
-        return self.reset_to_false(reason="target enemy failed")
+        return self.reset_to_false()
 
     def _try_enter_combat(self):
         from src.tasks.trigger.AutoCombatTask import AutoCombatTask

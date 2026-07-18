@@ -31,6 +31,7 @@ MSG_WORLD_DETECTION_FAILED = "大世界检测失败: 请检查游戏内 UI 透�
 
 class BaseNTETask(CharUIMixin, MovementMixin, VisionMixin, OgMixin, LogGateMixin, BaseTask):
     CONF_ROUNDS = "循环次数"
+    CONF_CLAIM_REWARD_COUNT = "领取奖励次数"
     INFINITE_ROUNDS_TEXT = "∞"
     DEFAULT_MOVE = False
 
@@ -70,6 +71,12 @@ class BaseNTETask(CharUIMixin, MovementMixin, VisionMixin, OgMixin, LogGateMixin
     def add_rounds_config(self, default=0):
         self.default_config.update({self.CONF_ROUNDS: default})
         self.config_description.update({self.CONF_ROUNDS: "设置为0则一直运行"})
+
+    def add_claim_reward_count_config(self, default=0):
+        self.default_config.update({self.CONF_CLAIM_REWARD_COUNT: default})
+        self.config_description.update(
+            {self.CONF_CLAIM_REWARD_COUNT: "设置为0则领取当前体力可领取的全部奖励"}
+        )
 
     def sync_config(self, config=None):
         """同步并保存配置"""
@@ -345,7 +352,9 @@ class BaseNTETask(CharUIMixin, MovementMixin, VisionMixin, OgMixin, LogGateMixin
         in_world = self.in_world()
         return in_team and in_world
 
-    def wait_in_team(self, time_out=30, raise_if_not_found=True, esc=False, settle_time=0):
+    def wait_in_team(
+        self, time_out=30, raise_if_not_found=True, esc=False, settle_time=0
+    ) -> Box | None:
         success = self.wait_until(
             self.is_in_team,
             time_out=time_out,
@@ -502,12 +511,13 @@ class BaseNTETask(CharUIMixin, MovementMixin, VisionMixin, OgMixin, LogGateMixin
             settle_time=0.5,
             raise_if_not_found=raise_if_not_found,
         )
+        self.monitor_and_sync_cursor()
         self.sleep(0.1)
         return True
 
     def openF1panel(self):
         if hasattr(self, "reset_to_false"):
-            self.reset_to_false("opening f1 panel")
+            self.reset_to_false()
         if self.is_in_team():
             self.send_key("f1", after_sleep=1)
             self.log_info("send f1 key to open the panel")
@@ -521,7 +531,7 @@ class BaseNTETask(CharUIMixin, MovementMixin, VisionMixin, OgMixin, LogGateMixin
 
     def openF2panel(self):
         if hasattr(self, "reset_to_false"):
-            self.reset_to_false("opening f2 panel")
+            self.reset_to_false()
         if self.is_in_team():
             self.send_key("f2", after_sleep=1)
             self.log_info("send f2 key to open the panel")
@@ -535,7 +545,7 @@ class BaseNTETask(CharUIMixin, MovementMixin, VisionMixin, OgMixin, LogGateMixin
 
     def openF5panel(self):
         if hasattr(self, "reset_to_false"):
-            self.reset_to_false("opening f5 panel")
+            self.reset_to_false()
         if self.is_in_team():
             self.send_key("f5", after_sleep=1)
             self.log_info("send f5 key to open the panel")
@@ -544,12 +554,12 @@ class BaseNTETask(CharUIMixin, MovementMixin, VisionMixin, OgMixin, LogGateMixin
         if not result:
             self.log_error("can't find panel, make sure f5 is the hotkey for panel", notify=True)
             raise CannotFindException("can't find panel, make sure f5 is the hotkey for panel")
-        self.sleep(0.5)
+        self.sleep(1.5)
         return result
 
     def openESCpanel(self):
         if hasattr(self, "reset_to_false"):
-            self.reset_to_false("opening esc panel")
+            self.reset_to_false()
         if self.is_in_team():
             self.send_key("esc", after_sleep=1)
             self.log_info("send esc key to open the panel")
@@ -896,6 +906,10 @@ class BaseNTETask(CharUIMixin, MovementMixin, VisionMixin, OgMixin, LogGateMixin
         ):
             return False
         return True
+
+    def monitor_and_sync_cursor(self, timeout=1):
+        if interaction := self.executor.interaction:
+            interaction.monitor_and_sync_cursor(timeout=timeout)
 
 
 def interac_mask(image):

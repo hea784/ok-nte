@@ -12,7 +12,7 @@ from src.process_feature import process_feature
 if "PATH" not in os.environ:
     os.environ["PATH"] = ""
 
-version = "v1.2.14"
+version = "v1.2.15"
 # 不需要修改version, Github Action打包会自动修改
 
 key_config_option = ConfigOption(
@@ -185,6 +185,7 @@ config = {
         ["src.tasks.CoffeeTask", "CoffeeTask"],
         ["src.tasks.FishingTask", "FishingTask"],
         ["src.tasks.AnomalyTask", "AnomalyTask"],
+        ["src.tasks.AnomalyHunter", "AnomalyHunter"],
         ["src.tasks.RhythmTask", "RhythmTask"],
         ["src.tasks.OwnerSelectionTask", "OwnerSelectionTask"],
         ["src.tasks.AutoHeistTask", "AutoHeistTask"],
