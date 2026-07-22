@@ -527,16 +527,16 @@ class DailyTask(NTEOneTimeTask, CinemaDateMixin, BaseNTETask):
         scroll_per_item = 6
         i = 0
 
-        for furniture in [
-            Labels.anomaly_fluff,
-            Labels.anomaly_hamster_ball,
-            Labels.anomaly_wooden_crate,
-        ]:
+        def claim_furniture(furniture):
+            nonlocal scroll, scroll_times, i
+
             is_initial = True
-            open_house_panel()
+            if not open_house_panel():
+                return False
 
             # 寻找目标家具
             while scroll or i < shown:
+                self.next_frame()
                 if scroll:
                     target_y = ratio_y
                 else:
@@ -550,7 +550,7 @@ class DailyTask(NTEOneTimeTask, CinemaDateMixin, BaseNTETask):
                     if not is_initial:
                         box = self.get_box_by_name(Labels.box_house_preview_snapshot)
                         snapshot = box.crop_frame(self.frame)
-                        while scroll_times > 0:
+                        for _ in range(10):
                             self.operate_click(ratio_x, target_y)
                             self.sleep(0.25)
                             if not self.find_one(template=snapshot, box=box):
@@ -588,7 +588,7 @@ class DailyTask(NTEOneTimeTask, CinemaDateMixin, BaseNTETask):
                     ),
                     block=True,
                 )
-                continue
+                return False
 
             # 传送至目标房子
             self.wait_until(
@@ -647,7 +647,33 @@ class DailyTask(NTEOneTimeTask, CinemaDateMixin, BaseNTETask):
                 block=True,
             )
             self.sleep(2)
+            return True
+
+        furniture_results = {}
+        for furniture in [
+            Labels.anomaly_fluff,
+            Labels.anomaly_hamster_ball,
+            Labels.anomaly_wooden_crate,
+        ]:
+            try:
+                claimed = claim_furniture(furniture)
+            except TaskDisabledException:
+                raise
+            except Exception as e:
+                self.log_error(f"领取异象家具失败: {furniture}", e)
+                claimed = False
+
+            furniture_results[furniture] = claimed
+            result = "成功" if claimed else "失败"
+            self.log_info(f"异象家具 {furniture} 领取{result}")
             self.ensure_main()
+
+        all_claimed = all(furniture_results.values())
+        if all_claimed:
+            self.log_info("异象家具奖励全部领取成功")
+        else:
+            self.log_error("异象家具奖励未能全部领取成功")
+        return all_claimed
 
     def run_gift_task(self):
         with self.set_working_task(GiftTask) as task:
