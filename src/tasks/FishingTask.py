@@ -90,7 +90,7 @@ class FishingTask(NTEOneTimeTask, BaseNTETask):
         self.run_fishing_state_machine()
 
     def monthly_card_check(self):
-        if self.should_check_monthly_card():
+        if self.check_monthly_card():
             self._set_stage("check monthly card")
             if self.handle_monthly_card():
                 return True

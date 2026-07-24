@@ -310,7 +310,7 @@ class AutoHeistTask(NTEOneTimeTask, BaseCombatTask):
             return
         self._poll_interaction_watch()
         self._poll_character_switch()
-        if self.should_check_monthly_card() and self.handle_monthly_card():
+        if self.check_monthly_card() and self.handle_monthly_card():
             raise AbortException("found monthly_card")
 
     def _update_sleep_check_interval(self):

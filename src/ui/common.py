@@ -72,11 +72,13 @@ char_manager_signals = CharManagerSignals()
 
 
 class BorderCardWidget(CardWidget):
-    """A Fluent card widget with an adjustable painted border width."""
+    """A Fluent card widget with adjustable border width and color."""
 
-    def __init__(self, parent=None, border_width: float = 1.0):
+    def __init__(self, parent=None, border_width: float = 1.0, border_color=None):
         super().__init__(parent)
         self._border_width = max(0.0, border_width)
+        self._border_color = None
+        self.setBorderColor(border_color)
 
     def borderWidth(self) -> float:
         return self._border_width
@@ -88,28 +90,33 @@ class BorderCardWidget(CardWidget):
             self._border_width = width
             self.update()
 
+    def borderColor(self) -> QColor | None:
+        return QColor(self._border_color) if self._border_color is not None else None
+
+    def setBorderColor(self, color):
+        """Set a solid border color, or ``None`` to use the Fluent default."""
+        border_color = None if color is None else QColor(color)
+        if border_color is not None and not border_color.isValid():
+            raise ValueError(f"Invalid border color: {color!r}")
+        if self._border_color != border_color:
+            self._border_color = border_color
+            self.update()
+
     def paintEvent(self, e):
+        if self._border_width == 1 and self._border_color is None:
+            super().paintEvent(e)
+            return
+
         painter = QPainter(self)
         painter.setRenderHints(QPainter.RenderHint.Antialiasing)
 
-        width, height = self.width(), self.height()
+        w, h = self.width(), self.height()
+        r = self.borderRadius
+        d = 2 * r
+        border_width = min(self._border_width, w, h)
         is_dark = isDarkTheme()
 
-        painter.setPen(Qt.PenStyle.NoPen)
-        painter.setBrush(self.backgroundColor)
-        painter.drawRoundedRect(
-            self.rect().adjusted(1, 1, -1, -1), self.borderRadius, self.borderRadius
-        )
-
-        if self._border_width <= 0 or width <= 0 or height <= 0:
-            return
-
-        inset = min(self._border_width / 2, width / 2, height / 2)
-        radius = min(self.borderRadius, (width - 2 * inset) / 2, (height - 2 * inset) / 2)
-        diameter = 2 * max(0, radius)
-        right = width - inset
-        bottom = height - inset
-
+        # draw top border
         top_border_color = QColor(0, 0, 0, 20)
         if is_dark:
             if self.isPressed:
@@ -119,31 +126,72 @@ class BorderCardWidget(CardWidget):
         else:
             top_border_color = QColor(0, 0, 0, 15)
 
-        top_border = QPainterPath()
-        top_border.arcMoveTo(inset, bottom - diameter, diameter, diameter, 225)
-        top_border.arcTo(inset, bottom - diameter, diameter, diameter, 225, -60)
-        top_border.lineTo(inset, inset + radius)
-        top_border.arcTo(inset, inset, diameter, diameter, -180, -90)
-        top_border.lineTo(right - radius, inset)
-        top_border.arcTo(right - diameter, inset, diameter, diameter, 90, -90)
-        top_border.lineTo(right, bottom - radius)
-        top_border.arcTo(right - diameter, bottom - diameter, diameter, diameter, 0, -45)
-        top_pen = QPen(top_border_color, self._border_width)
-        top_pen.setCapStyle(Qt.PenCapStyle.FlatCap)
-        painter.strokePath(top_border, top_pen)
-
-        bottom_border = QPainterPath()
-        bottom_border.arcMoveTo(inset, bottom - diameter, diameter, diameter, 225)
-        bottom_border.arcTo(inset, bottom - diameter, diameter, diameter, 225, 45)
-        bottom_border.lineTo(right - radius, bottom)
-        bottom_border.arcTo(right - diameter, bottom - diameter, diameter, diameter, 270, 45)
-
+        # draw bottom border
         bottom_border_color = top_border_color
         if not is_dark and self.isHover and not self.isPressed:
             bottom_border_color = QColor(0, 0, 0, 27)
-        bottom_pen = QPen(bottom_border_color, self._border_width)
-        bottom_pen.setCapStyle(Qt.PenCapStyle.FlatCap)
-        painter.strokePath(bottom_border, bottom_pen)
+
+        if self._border_color is not None:
+            top_border_color = bottom_border_color = self._border_color
+
+        if border_width > 1:
+            inset = border_width / 2
+            r = max(0, min(r, w / 2, h / 2) - inset)
+            d = 2 * r
+            left, top = inset, inset
+            right, bottom = w - inset, h - inset
+
+            path = QPainterPath()
+            path.arcMoveTo(left, bottom - d, d, d, 225)
+            path.arcTo(left, bottom - d, d, d, 225, -60)
+            path.lineTo(left, top + r)
+            path.arcTo(left, top, d, d, -180, -90)
+            path.lineTo(right - r, top)
+            path.arcTo(right - d, top, d, d, 90, -90)
+            path.lineTo(right, bottom - r)
+            path.arcTo(right - d, bottom - d, d, d, 0, -45)
+            pen = QPen(top_border_color, border_width)
+            pen.setCapStyle(Qt.PenCapStyle.FlatCap)
+            painter.strokePath(path, pen)
+
+            path = QPainterPath()
+            path.arcMoveTo(left, bottom - d, d, d, 225)
+            path.arcTo(left, bottom - d, d, d, 225, 45)
+            path.lineTo(right - r, bottom)
+            path.arcTo(right - d, bottom - d, d, d, 270, 45)
+            pen = QPen(bottom_border_color, border_width)
+            pen.setCapStyle(Qt.PenCapStyle.FlatCap)
+            painter.strokePath(path, pen)
+        elif border_width > 0:
+            path = QPainterPath()
+            path.arcMoveTo(1, h - d - 1, d, d, 240)
+            path.arcTo(1, h - d - 1, d, d, 225, -60)
+            path.lineTo(1, r)
+            path.arcTo(1, 1, d, d, -180, -90)
+            path.lineTo(w - r, 1)
+            path.arcTo(w - d - 1, 1, d, d, 90, -90)
+            path.lineTo(w - 1, h - r)
+            path.arcTo(w - d - 1, h - d - 1, d, d, 0, -60)
+            painter.strokePath(path, top_border_color)
+
+            path = QPainterPath()
+            path.arcMoveTo(1, h - d - 1, d, d, 240)
+            path.arcTo(1, h - d - 1, d, d, 240, 30)
+            path.lineTo(w - r - 1, h - 1)
+            path.arcTo(w - d - 1, h - d - 1, d, d, 270, 30)
+            painter.strokePath(path, bottom_border_color)
+
+        # draw background
+        painter.setPen(Qt.NoPen)
+        if border_width > 1:
+            inset = border_width / 2
+            rect = self.rect().adjusted(inset, inset, -inset, -inset)
+            painter.setBrush(self.backgroundColor)
+            painter.drawRoundedRect(rect, r, r)
+        else:
+            rect = self.rect().adjusted(1, 1, -1, -1)
+            painter.setBrush(self.backgroundColor)
+            painter.drawRoundedRect(rect, r, r)
 
 
 class SearchableComboBox(EditableComboBox):

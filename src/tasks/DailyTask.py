@@ -522,14 +522,12 @@ class DailyTask(NTEOneTimeTask, CinemaDateMixin, BaseNTETask):
         ratio_x = 0.079
         ratio_y = 0.308
         gap = 0.183
-        scroll = True
-        scroll_times = 0
         scroll_per_item = 6
-        i = 0
 
         def claim_furniture(furniture):
-            nonlocal scroll, scroll_times, i
-
+            scroll = True
+            scroll_times = 0
+            i = 0
             is_initial = True
             if not open_house_panel():
                 return False
@@ -646,7 +644,8 @@ class DailyTask(NTEOneTimeTask, CinemaDateMixin, BaseNTETask):
                 ),
                 block=True,
             )
-            self.sleep(2)
+            self.sleep(0.5)
+            self.ensure_main()
             return True
 
         furniture_results = {}
@@ -666,7 +665,6 @@ class DailyTask(NTEOneTimeTask, CinemaDateMixin, BaseNTETask):
             furniture_results[furniture] = claimed
             result = "成功" if claimed else "失败"
             self.log_info(f"异象家具 {furniture} 领取{result}")
-            self.ensure_main()
 
         all_claimed = all(furniture_results.values())
         if all_claimed:
