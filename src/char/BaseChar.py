@@ -646,10 +646,12 @@ class BaseChar:
         while not self.has_cd("ultimate") and time.time() < deadline:
             self.sleep(0.1)
 
-    def _wait_ultimate_unfreeze(self, start):
+    def _wait_ultimate_unfreeze(self, start, click=True):
         self.logger.info("waiting for ultimate unfrozen")
         self.task.wait_until(
-            lambda: self.has_cd("ultimate"), post_action=self.click_with_interval, time_out=2
+            lambda: self.has_cd("ultimate"),
+            post_action=lambda: click and self.click_with_interval(),
+            time_out=2,
         )
         box_ultimate = self.task.get_box_by_name(Labels.box_ultimate)
         snapshot = box_ultimate.crop_frame(self.task.frame)
@@ -672,7 +674,7 @@ class BaseChar:
         self.task.wait_until(
             condition,
             time_out=10,
-            post_action=self.click_with_interval,
+            post_action=lambda: click and self.click_with_interval(),
         )
         duration = time.time() - start
         self.add_freeze_duration(start, duration)

@@ -99,10 +99,8 @@ class DSDFarmTask(NTEOneTimeTask, BaseCombatTask):
         self.do_teleport_on_spot = False
         self.use_ultimate = self.config.get(self.CONF_USE_ULT, True)
         self.deside_map_zoom()
-        rounds = self.configured_rounds(default=0)
-        round_index = 1
-        while self.should_run_round(round_index, rounds):
-            self.info_set("轮次", self.rounds_info_text(round_index, rounds))
+        self.start_rounds()
+        while self.begin_round():
             self.wait_until(
                 self.find_interac,
                 time_out=10,
@@ -124,7 +122,8 @@ class DSDFarmTask(NTEOneTimeTask, BaseCombatTask):
                 self.ensure_main()
             self.deside_action()
             self.next_frame()
-            round_index += 1
+            self.add_success()
+        self.finish_rounds()
 
     def sleep_check(self):
         super().sleep_check()

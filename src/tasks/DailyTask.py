@@ -24,7 +24,8 @@ class DailyTask(NTEOneTimeTask, CinemaDateMixin, BaseNTETask):
 
     # --- 配置项键名 ---
     CONF_TASK = "副本类型"
-    TASK = [AnomalyTask.NAME]
+    TASK_NONE = "不执行"
+    TASK = [TASK_NONE, AnomalyTask.NAME]
 
     CONF_CLAIM_MAIL = "领取邮件"
     CONF_COMPLETE_DAILY = "完成每日活跃度"
@@ -56,7 +57,7 @@ class DailyTask(NTEOneTimeTask, CinemaDateMixin, BaseNTETask):
         AnomalyTask.setup_config(self, daily=True)
         self.default_config.update(
             {
-                self.CONF_TASK: self.TASK[0],
+                self.CONF_TASK: self.TASK[1],
                 self.DAILY_STAMINA_TARGET: 180,
                 self.CONF_COFFEE_TASK: self.COFFEE_MODE_NONE,
                 self.CONF_CINEMA_DATE: False,
@@ -80,9 +81,10 @@ class DailyTask(NTEOneTimeTask, CinemaDateMixin, BaseNTETask):
                     "type": "drop_down",
                     "options": self.TASK,
                     "sub_configs": {
-                        self.TASK[0]: [
+                        self.TASK[1]: [
                             AnomalyTask.CONF_TASK_TYPE,
                             AnomalyTask.CONF_AUTO_CYCLE_SUB_TASK,
+                            self.DAILY_STAMINA_TARGET,
                         ],
                     },
                 },

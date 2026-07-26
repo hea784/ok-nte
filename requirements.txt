@@ -109,13 +109,13 @@ pydirectinput==1.0.4 ; sys_platform == 'win32'
     # via ok-script
 pynput==1.8.2 ; sys_platform == 'win32'
     # via ok-nte
-pyside6==6.9.1 ; sys_platform == 'win32'
+pyside6==6.11.1 ; sys_platform == 'win32'
     # via
     #   ok-nte
     #   pyside6-fluent-widgets
-pyside6-addons==6.9.1 ; sys_platform == 'win32'
+pyside6-addons==6.11.1 ; sys_platform == 'win32'
     # via pyside6
-pyside6-essentials==6.9.1 ; sys_platform == 'win32'
+pyside6-essentials==6.11.1 ; sys_platform == 'win32'
     # via
     #   pyside6
     #   pyside6-addons
@@ -144,7 +144,7 @@ scipy==1.18.0 ; sys_platform == 'win32'
     #   scikit-learn
 shapely==2.1.2 ; sys_platform == 'win32'
     # via onnxocr-ppocrv5
-shiboken6==6.9.1 ; sys_platform == 'win32'
+shiboken6==6.11.1 ; sys_platform == 'win32'
     # via
     #   pyside6
     #   pyside6-addons
