@@ -263,14 +263,17 @@ class LauncherTask(BaseNTETask):
             if button_state == LauncherButtonState.START:
                 ready_other_count = 0
                 update_in_progress = False
-                self.log_info(f"Found launcher Start Game button: {button}")
+                self.log_info_gated(
+                    f"Found launcher Start Game button: {button}", interval=10, changed=True
+                )
                 self.click(button, after_sleep=2)
                 start_click_pending = True
                 if self._is_launcher_minimized():
                     self.log_info("Launcher minimized after Start Game click")
                     return True
-                self.log_info(
-                    "Launcher is not minimized after click; will check and click again if needed"
+                self.log_info_gated(
+                    "Launcher is not minimized after click; will check and click again if needed",
+                    interval=10,
                 )
                 continue
 
@@ -280,9 +283,10 @@ class LauncherTask(BaseNTETask):
 
             if button_state == LauncherButtonState.READY_OTHER:
                 if update_in_progress:
-                    self.log_info(
+                    self.log_info_gated(
                         "Launcher button is ready while update is in progress; "
-                        "waiting for Start Game button"
+                        "waiting for Start Game button",
+                        interval=10,
                     )
                     self.sleep(1)
                     deadline = self._extend_deadline_for_update(deadline, loop_start)
@@ -349,7 +353,7 @@ class LauncherTask(BaseNTETask):
     def _launcher_button_ready(self):
         box = self.box_of_screen(0.8137, 0.8678, 0.8387, 0.9022, name="launcher_button")
         per = self.calculate_color_percentage(launcher_btn_ready_color, box)
-        self.log_info(f"launcher_button color {per}")
+        self.log_info_gated(f"launcher_button color {per}", interval=10, changed=True)
         return per > 0.8, box
 
     def _is_launcher_minimized(self):
@@ -425,6 +429,7 @@ class LauncherTask(BaseNTETask):
                             f"Window for {exe_label} exists but is too small; "
                             f"hwnd={hwnd}, size={size[0]}x{size[1]}, elapsed={elapsed}s",
                             interval=10,
+                            changed=True,
                         )
                         self.sleep(1)
                         continue
@@ -436,9 +441,11 @@ class LauncherTask(BaseNTETask):
                             return False
                         size = self._get_window_size(hwnd)
 
-                    self.log_info(
+                    self.log_info_gated(
                         f"Found process and window {exe_label}: "
-                        f"{self._format_process(proc)}, hwnd={hwnd}, size={size[0]}x{size[1]}"
+                        f"{self._format_process(proc)}, hwnd={hwnd}, size={size[0]}x{size[1]}",
+                        interval=10,
+                        changed=True,
                     )
                     return True
 
@@ -506,7 +513,9 @@ class LauncherTask(BaseNTETask):
             left, top, right, bottom = win32gui.GetWindowRect(hwnd)
             return max(0, right - left), max(0, bottom - top)
         except Exception as e:
-            self.log_debug(f"Failed to get window size for hwnd={hwnd}: {e}")
+            self.log_debug_gated(
+                f"Failed to get window size for hwnd={hwnd}: {e}", interval=10, changed=True
+            )
             return 0, 0
 
     def _is_usable_window_size(self, size):
@@ -715,10 +724,7 @@ class LauncherTask(BaseNTETask):
 
     def _is_launcher_exe_path(self, path):
         launcher_names = {name.lower() for name in _exe_name_list(LAUNCHER_EXE)}
-        return (
-            os.path.basename(path).lower() in launcher_names
-            and os.path.exists(path)
-        )
+        return os.path.basename(path).lower() in launcher_names and os.path.exists(path)
 
     def _format_process(self, proc_info):
         if not proc_info:

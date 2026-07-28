@@ -1182,3 +1182,12 @@ msgstr ""
 
 msgid "持续检测诊断 Lv, 锁定目标标记(白色菱形)和红色血条; 请手动停止以查看完整报告"
 msgstr ""
+
+msgid "喷泉签到"
+msgstr ""
+
+msgid "防止 NTE 移动鼠标"
+msgstr ""
+
+msgid "后台运行时，在 NTE 将鼠标移动到屏幕中心后，自动恢复鼠标位置。"
+msgstr ""

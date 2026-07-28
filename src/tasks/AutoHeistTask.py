@@ -445,27 +445,6 @@ class AutoHeistTask(NTEOneTimeTask, BaseCombatTask):
         finally:
             self._handling_switch_state = False
 
-    def handle_monthly_card(self):
-        monthly_card = self.find_monthly_card()
-        # self.screenshot('monthly_card1')
-        if monthly_card is not None:
-            # self.screenshot('monthly_card1')
-            self.log_info("monthly_card found click")
-            self.click(0.50, 0.89)
-            self.sleep(2)
-            # self.screenshot('monthly_card2')
-            self.click(0.50, 0.89)
-            self.sleep(2)
-            self.wait_until(
-                self.in_team,
-                time_out=10,
-                post_action=lambda: self.click(0.50, 0.89, after_sleep=1),
-            )
-            # self.screenshot('monthly_card3')
-            self.set_check_monthly_card(next_day=True)
-        # logger.debug(f'check_monthly_card {monthly_card}')
-        return monthly_card is not None
-
     def get_heist_rewards(self):
         cash = self.ocr(
             0.359, 0.595, 0.500, 0.642, frame_processor=gf.isolate_text_to_black, name="cash"
@@ -835,7 +814,7 @@ class AutoHeistTask(NTEOneTimeTask, BaseCombatTask):
             lambda: not self.find_interac(), pre_action=lambda: self.send_key("f", interval=1)
         )
         if is_lock:
-            self.wait_until(self.is_lock_pick_active, time_out=2)
+            self.wait_until(self.is_lock_pick_active, settle_time=0.5, time_out=2)
             self.wait_until(lambda: not self.is_lock_pick_active(), settle_time=0.5)
             return not self.find_interac()
         return True
@@ -876,7 +855,7 @@ class AutoHeistTask(NTEOneTimeTask, BaseCombatTask):
                 lock_pick = time.time()
                 if direction is not None:
                     self.send_key_up(direction)
-                self.wait_until(self.is_lock_pick_active, settle_time=0.25)
+                self.wait_until(self.is_lock_pick_active, settle_time=0.5)
                 self.wait_until(lambda: not self.is_lock_pick_active(), settle_time=0.5)
                 self.sleep(0.50)
                 deadline += time.time() - lock_pick
@@ -894,7 +873,7 @@ class AutoHeistTask(NTEOneTimeTask, BaseCombatTask):
         deadline = time.time() + time_out
         while time.time() < deadline:
             if self.find_one(Labels.heist_interac_lock_pick, vertical_variance=0.05):
-                self.wait_until(self.is_lock_pick_active)
+                self.wait_until(self.is_lock_pick_active, settle_time=0.5)
             if self.is_lock_pick_active():
                 self.wait_until(lambda: not self.is_lock_pick_active(), settle_time=0.5)
                 self.sleep(0.50)
@@ -913,7 +892,7 @@ class AutoHeistTask(NTEOneTimeTask, BaseCombatTask):
             threshold=self.LOCK_PICK_MATCH_THRESHOLD,
             frame_processor=lambda cropped: iu.create_color_mask(cropped, text_white_color),
         )
-        return len(res) >= 1
+        return len(res) == 1
 
     def try_open_exit(self, direction=None):
         """尝试打开当前出口并返回是否可撤离。

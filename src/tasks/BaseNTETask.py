@@ -637,7 +637,6 @@ class BaseNTETask(
             settle_time=0.5,
             raise_if_not_found=raise_if_not_found,
         )
-        self.monitor_and_sync_cursor()
         self.sleep(0.1)
         return True
 
@@ -745,7 +744,7 @@ class BaseNTETask(
         if in_team_or_world:
             self.scene.set_logged_in()
             return True
-        if self.handle_monthly_card():
+        if self.handle_monthly_card(log=False):
             return True
         if self.wait_login():
             return True
@@ -765,7 +764,7 @@ class BaseNTETask(
                 return True
         return False
 
-    def handle_monthly_card(self):
+    def handle_monthly_card(self, log=True):
         monthly_card = self.find_monthly_card()
         if monthly_card is not None:
             self.log_info("monthly_card found click")
@@ -787,7 +786,7 @@ class BaseNTETask(
             else:
                 raise WaitFailedException()
             self.set_check_monthly_card(next_day=True)
-        else:
+        elif log:
             self.log_warning_gated("monthly_card not found")
         return monthly_card is not None
 
@@ -812,7 +811,7 @@ class BaseNTETask(
         if not self.scene.logged_in():
             if self.is_in_team():
                 return True
-            self.handle_monthly_card()
+            self.handle_monthly_card(log=False)
             if self.find_one(Labels.login_setting):
                 self.log_info("found login_setting, bring_to_front and click")
                 if not self.is_foreground():
@@ -1048,11 +1047,6 @@ class BaseNTETask(
         ):
             return False
         return True
-
-    def monitor_and_sync_cursor(self, timeout=1):
-        if interaction := self.executor.interaction:
-            interaction.monitor_and_sync_cursor(timeout=timeout)
-
 
 def interac_mask(image):
     mask = iu.create_color_mask(image, interac_pink_color, to_bgr=False)

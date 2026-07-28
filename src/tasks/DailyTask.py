@@ -11,6 +11,7 @@ from src.Labels import Labels
 from src.tasks.AnomalyTask import AnomalyTask
 from src.tasks.BaseNTETask import BaseNTETask
 from src.tasks.CoffeeTask import CoffeeTask
+from src.tasks.FountainTask import FountainTask
 from src.tasks.GiftTask import GiftTask
 from src.tasks.mixin.CinemaDateMixin import CinemaDateMixin
 from src.tasks.NTEOneTimeTask import NTEOneTimeTask
@@ -33,6 +34,7 @@ class DailyTask(NTEOneTimeTask, CinemaDateMixin, BaseNTETask):
     CONF_CLAIM_BP = "领取环期任务奖励"
     CONF_COFFEE_TASK = "一咖舍任务"
     CONF_CINEMA_DATE = "影院约会"
+    CONF_FOUNTAIN_SIGN = "喷泉签到"
     CONF_FURNITURE = "异象家具"
     CONF_GIFT = "羁遇赠礼"
 
@@ -62,6 +64,7 @@ class DailyTask(NTEOneTimeTask, CinemaDateMixin, BaseNTETask):
                 self.CONF_COFFEE_TASK: self.COFFEE_MODE_NONE,
                 self.CONF_CINEMA_DATE: False,
                 self.CINEMA_DATE_TARGET: "",
+                self.CONF_FOUNTAIN_SIGN: False,
                 self.CONF_FURNITURE: False,
                 self.CONF_GIFT: False,
             }
@@ -152,6 +155,11 @@ class DailyTask(NTEOneTimeTask, CinemaDateMixin, BaseNTETask):
                 self.CONF_CINEMA_DATE,
                 self._task_enabled(self.CONF_CINEMA_DATE, False),
                 lambda: self.run_cinema_date(self.config.get(self.CINEMA_DATE_TARGET, "")),
+            ),
+            (
+                self.CONF_FOUNTAIN_SIGN,
+                self._task_enabled(self.CONF_FOUNTAIN_SIGN, False),
+                self.run_fountain_sign_task,
             ),
             (
                 self.CONF_FURNITURE,
@@ -492,6 +500,10 @@ class DailyTask(NTEOneTimeTask, CinemaDateMixin, BaseNTETask):
         self.sleep(1)
         self.operate_click(0.600, 0.656)  # 确认
         return True
+
+    def run_fountain_sign_task(self):
+        with self.set_working_task(FountainTask) as task:
+            return task.do_run()
 
     def claim_anomaly_furniture(self):
         """领取异象家具奖励"""

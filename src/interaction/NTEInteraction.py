@@ -1,7 +1,6 @@
 import ctypes
 import threading
 import time
-from contextlib import suppress
 
 import win32api
 import win32con
@@ -14,61 +13,12 @@ from ok.device.intercation import (
     SendInput,
 )
 from ok.util.logger import Logger
-from win32api import GetCursorPos, SetCursorPos
+from win32api import GetCursorPos
 
+from src.interaction.cursor_sync import CursorSync
 from src.interaction.keyboard_layout import QwertyPhysicalKeyMapper
 
 logger = Logger.get_logger(__name__)
-CHECK_CURSOR_KEY = ["m", "f", "esc"]
-for i in range(1, 13):
-    CHECK_CURSOR_KEY.append(f"f{i}")
-
-
-def _cursor_sync_worker(lock, state_box):
-    while True:
-        with lock:
-            state = state_box.get("state")
-            if state is None:
-                state_box["thread"] = None
-                return
-
-        cursor_pos = None
-        with suppress(Exception):
-            cursor_pos = GetCursorPos()
-
-        can_check_cursor = all((cursor_pos is not None, time.time() < state["deadline"]))
-        should_reset = False
-        if can_check_cursor:
-            assert cursor_pos is not None
-            curr_x, curr_y = cursor_pos
-            abs_center_x, abs_center_y = state["center"]
-            limit_x, limit_y = state["limit"]
-            last_x, last_y = state["last_cursor_position"]
-            is_in_center_zone = all(
-                (abs(curr_x - abs_center_x) <= limit_x, abs(curr_y - abs_center_y) <= limit_y)
-            )
-            is_far_from_last_position = any(
-                (abs(curr_x - last_x) > limit_x, abs(curr_y - last_y) > limit_y)
-            )
-            should_reset = all((is_in_center_zone, is_far_from_last_position))
-
-            if not is_in_center_zone:
-                with lock:
-                    if state_box.get("state") is state:
-                        state["last_cursor_position"] = cursor_pos
-
-        if all((can_check_cursor, not should_reset)):
-            time.sleep(0.01)
-            continue
-
-        with lock:
-            if state_box.get("state") is not state:
-                continue
-            state_box["state"] = None
-            state_box["thread"] = None
-            if should_reset:
-                SetCursorPos(state["last_cursor_position"])
-        return
 
 
 class NTEInteraction(PostMessageInteraction):
@@ -84,26 +34,24 @@ class NTEInteraction(PostMessageInteraction):
         self._disable_key_mapping = 0
         self._activate_require = True
         self._next_try_activate_at = -1
-        self._cursor_sync_lock = threading.Lock()
-        self._cursor_sync_state = {"state": None, "thread": None}
+        self._cursor_sync = CursorSync()
+        self._cursor_sync.start()
         self.hwnd_window.visible_monitors.append(self)
 
     def on_visible(self, visible):
         self._activate_require = not visible
 
+    def on_destroy(self):
+        self._cursor_sync.stop()
+        super().on_destroy()
+
     def send_key(self, key, down_time=0.01):
         with self._input_lock:
-            cursor_position = None
-            if key in CHECK_CURSOR_KEY:
-                with suppress(Exception):
-                    cursor_position = GetCursorPos()
             key = self._map_key(key)
             self._disable_key_mapping += 1
             try:
                 return super().send_key(key, down_time=down_time)
             finally:
-                if cursor_position:
-                    self.monitor_and_sync_cursor(cursor_position, timeout=0.3)
                 self._disable_key_mapping -= 1
 
     def send_key_down(self, key, activate=True):
@@ -119,7 +67,7 @@ class NTEInteraction(PostMessageInteraction):
     def scroll(self, x, y, scroll_amount):
         with self._input_lock:
             self.try_activate()
-            logger.debug(f"scroll {x}, {y}, {scroll_amount}")
+            # logger.debug(f"scroll {x}, {y}, {scroll_amount}")
 
             base_hwnd = (
                 self.hwnd_window.top_hwnd if self.hwnd_window.top_hwnd else self.hwnd_window.hwnd
@@ -172,7 +120,7 @@ class NTEInteraction(PostMessageInteraction):
                 if should_restore:
                     self.cursor_position = GetCursorPos()
                 abs_x, abs_y = self.capture.get_abs_cords(x, y)
-                SetCursorPos((abs_x, abs_y))
+                self._cursor_sync.set_cursor_pos((abs_x, abs_y))
                 time.sleep(0.035)
             click_pos = win32api.MAKELONG(x, y)
             if key == "left":
@@ -254,7 +202,7 @@ class NTEInteraction(PostMessageInteraction):
     def _restore_cursor(self):
         time.sleep(0.035)
         try:
-            SetCursorPos(self.cursor_position)
+            self._cursor_sync.set_cursor_pos(self.cursor_position)
         except Exception as e:
             logger.error("restore cursor exception", e)
 
@@ -275,6 +223,7 @@ class NTEInteraction(PostMessageInteraction):
                 (positive for down, negative for up).
         """
 
+        self._cursor_sync.mark_internal_move()
         mi = MOUSEINPUT(dx, dy, 0, 1, 0, None)
         i = INPUT(0, mi)  # type=0 indicates a mouse event
         SendInput(1, ctypes.pointer(i), ctypes.sizeof(INPUT))
@@ -289,48 +238,3 @@ class NTEInteraction(PostMessageInteraction):
         elif now >= self._next_try_activate_at:
             super().try_activate()
             self._next_try_activate_at = now + self._ACTIVATE_REFRESH_INTERVAL
-
-    def monitor_and_sync_cursor(self, cursor_position=None, timeout=2.0, threshold_ratio=0.05):
-        """
-        在指定 timeout 时间内异步进行高频监测。
-        如果鼠标回到捕获区域中心 5% 范围内且远离目标点，则强制重置。
-
-        :param cursor_position: 监测开始时的鼠标坐标，用于初始化恢复位置 (x, y)
-        :param timeout: 监测持续时间（秒）
-        :param threshold_ratio: 判定阈值比例，默认 0.05 (5%)
-        """
-        if self.hwnd_window.is_foreground():
-            return
-
-        if cursor_position is None:
-            cursor_position = GetCursorPos()
-
-        # --- 1. 预计算固定值（移出循环以提高频率） ---
-        # 计算捕获区域的绝对中心点坐标
-        c_rel_x, c_rel_y = round(self.capture.width * 0.5), round(self.capture.height * 0.5)
-        abs_center_x, abs_center_y = self.capture.get_abs_cords(c_rel_x, c_rel_y)
-
-        # 计算 5% 的阈值
-        limit_x = self.capture.width * threshold_ratio
-        limit_y = self.capture.height * threshold_ratio
-
-        state = {
-            "center": (abs_center_x, abs_center_y),
-            "deadline": time.time() + timeout,
-            "limit": (limit_x, limit_y),
-            "last_cursor_position": tuple(cursor_position),
-        }
-        with self._cursor_sync_lock:
-            self._cursor_sync_state["state"] = state
-            thread = self._cursor_sync_state.get("thread")
-            if thread is not None and thread.is_alive():
-                return
-
-            thread = threading.Thread(
-                target=_cursor_sync_worker,
-                args=(self._cursor_sync_lock, self._cursor_sync_state),
-                daemon=True,
-                name="NTECursorSync",
-            )
-            self._cursor_sync_state["thread"] = thread
-            thread.start()

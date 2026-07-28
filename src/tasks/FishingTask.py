@@ -708,24 +708,6 @@ class FishingTask(NTEOneTimeTask, BaseNTETask):
 
         return self.find_one(Labels.fish_bait, frame_processor=frame_process)
 
-    def handle_monthly_card(self):
-        monthly_card = self.find_monthly_card()
-        if monthly_card is not None:
-            self._clear_bar_key_if_hold_mode()
-            self.log_info("检测到月卡，尝试关闭")
-            self.click(0.50, 0.89)
-            self.sleep(2)
-            self.click(0.50, 0.89)
-            self.sleep(2)
-            if self.find_monthly_card() is None:
-                self.set_check_monthly_card(next_day=True)
-                if self._fishing_session is not None:
-                    self._fishing_session.recovery_attempts = 0
-                return True
-            else:
-                self.log_warning("月卡关闭失败")
-        return False
-
     def reset_runtime_state(self):
         self._set_bar_key(None)
         self._last_direction = None

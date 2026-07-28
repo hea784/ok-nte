@@ -12,7 +12,7 @@ from src.process_feature import process_feature
 if "PATH" not in os.environ:
     os.environ["PATH"] = ""
 
-version = "v1.2.22"
+version = "v1.2.23"
 # 不需要修改version, Github Action打包会自动修改
 
 key_config_option = ConfigOption(
@@ -59,6 +59,13 @@ sound_trigger_config_option = ConfigOption(
     },
 )
 
+cursor_sync_config_option = ConfigOption(
+    "防止 NTE 移动鼠标",
+    {"启用": True},
+    description=(
+        "后台运行时，在 NTE 将鼠标移动到屏幕中心后，自动恢复鼠标位置。"
+    ),
+)
 background_audio_routing_config_option = create_background_audio_routing_config_option()
 
 
@@ -75,6 +82,7 @@ config = {
         key_config_option,
         monthly_card_config_option,
         sound_trigger_config_option,
+        cursor_sync_config_option,
         background_audio_routing_config_option,
     ],
     # "screenshot_processor": make_bottom_left_black,  # 在截图的时候对frame进行修改, 可选
@@ -198,6 +206,7 @@ config = {
         ["ok", "DiagnosisTask"],
         # ["src.tasks.custom.TeamScannerTask", "TeamScannerTask"],
         # ["src.tasks.DebugCharTask", "DebugCharTask"],
+        ["src.tasks.FountainTask", "FountainTask"],
     ],
     "trigger_tasks": [  # 不断执行的触发式任务
         ["src.tasks.trigger.AutoCombatTask", "AutoCombatTask"],
