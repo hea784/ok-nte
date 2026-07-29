@@ -204,6 +204,8 @@ class LauncherTask(BaseNTETask):
         self.log_info(
             f"Switching capture to launcher window: {self.capture_config.LAUNCHER_CAPTURE_CONFIG}"
         )
+        if not self._ensure_launcher_visible():
+            raise TaskDisabledException("Launcher window is not visible")
         self._log_task_state("before launcher ensure_capture")
         self.executor.device_manager.ensure_capture(self.capture_config.LAUNCHER_CAPTURE_CONFIG)
         self._log_task_state("after launcher ensure_capture")
@@ -236,9 +238,10 @@ class LauncherTask(BaseNTETask):
                 )
                 return True
 
-            if self._is_launcher_minimized():
-                self.log_info("Launcher window is minimized; Start Game click succeeded")
-                return True
+            if not start_click_pending and not self._ensure_launcher_visible():
+                self.log_warning("Launcher window is not visible; waiting for it to be restored")
+                self.sleep(1)
+                continue
 
             try:
                 button_state, button = self._launcher_button_state()
@@ -246,8 +249,8 @@ class LauncherTask(BaseNTETask):
                 self.log_warning(
                     f"Launcher frame was unavailable while checking launcher button {e}"
                 )
-                if self._is_launcher_minimized():
-                    self.log_info("treating as success")
+                if start_click_pending and self._is_launcher_hidden_or_minimized():
+                    self.log_info("Launcher minimized after Start Game click")
                     return True
                 else:
                     self.sleep(1)
@@ -268,7 +271,7 @@ class LauncherTask(BaseNTETask):
                 )
                 self.click(button, after_sleep=2)
                 start_click_pending = True
-                if self._is_launcher_minimized():
+                if self._is_launcher_hidden_or_minimized():
                     self.log_info("Launcher minimized after Start Game click")
                     return True
                 self.log_info_gated(
@@ -277,7 +280,7 @@ class LauncherTask(BaseNTETask):
                 )
                 continue
 
-            if start_click_pending and self._is_launcher_minimized():
+            if start_click_pending and self._is_launcher_hidden_or_minimized():
                 self.log_info("Launcher minimized after Start Game click")
                 return True
 
@@ -356,7 +359,20 @@ class LauncherTask(BaseNTETask):
         self.log_info_gated(f"launcher_button color {per}", interval=10, changed=True)
         return per > 0.8, box
 
-    def _is_launcher_minimized(self):
+    def _ensure_launcher_visible(self):
+        launcher_proc = self._find_process(LAUNCHER_EXE)
+        if not launcher_proc:
+            return False
+        launcher_hwnd = self._find_window_for_process(
+            launcher_proc,
+            hwnd_class=self.capture_config.LAUNCHER_CAPTURE_CONFIG["windows"]["hwnd_class"],
+            require_title=True,
+        )
+        if not launcher_hwnd:
+            return False
+        return self._restore_window_if_minimized(launcher_hwnd, LAUNCHER_EXE)
+
+    def _is_launcher_hidden_or_minimized(self):
         launcher_proc = self._find_process(LAUNCHER_EXE)
         if not launcher_proc:
             return False
@@ -425,11 +441,9 @@ class LauncherTask(BaseNTETask):
                     size = self._get_window_size(hwnd)
                     if not self._is_usable_window_size(size):
                         elapsed = int(time.time() - start)
-                        self.log_info_gated(
+                        self.log_info(
                             f"Window for {exe_label} exists but is too small; "
                             f"hwnd={hwnd}, size={size[0]}x{size[1]}, elapsed={elapsed}s",
-                            interval=10,
-                            changed=True,
                         )
                         self.sleep(1)
                         continue
@@ -441,24 +455,20 @@ class LauncherTask(BaseNTETask):
                             return False
                         size = self._get_window_size(hwnd)
 
-                    self.log_info_gated(
+                    self.log_info(
                         f"Found process and window {exe_label}: "
                         f"{self._format_process(proc)}, hwnd={hwnd}, size={size[0]}x{size[1]}",
-                        interval=10,
-                        changed=True,
                     )
                     return True
 
             elapsed = int(time.time() - start)
             if proc:
-                self.log_info_gated(
+                self.log_info(
                     f"Process {exe_label} exists, waiting for window; elapsed={elapsed}s",
-                    interval=10,
                 )
             else:
-                self.log_info_gated(
+                self.log_info(
                     f"Still waiting for {exe_label}; elapsed={elapsed}s",
-                    interval=10,
                 )
             self.sleep(1)
         self.log_warning(f"Process/window {exe_label} was not found within {time_out}s")
@@ -559,11 +569,25 @@ class LauncherTask(BaseNTETask):
         return False
 
     def _restore_window_if_minimized(self, hwnd, exe_name):
-        if win32gui.IsIconic(hwnd):
-            self.log_info(
-                f"Window for {_format_exe_names(exe_name)} is minimized; restoring hwnd={hwnd}"
-            )
+        is_minimized = bool(win32gui.IsIconic(hwnd))
+        is_visible = bool(win32gui.IsWindowVisible(hwnd))
+        if not is_minimized and is_visible:
+            return True
+
+        state = "minimized" if is_minimized else "hidden"
+        self.log_info(f"Window for {_format_exe_names(exe_name)} is {state}; restoring hwnd={hwnd}")
+        if is_minimized:
             win32gui.ShowWindow(hwnd, win32con.SW_RESTORE)
+        else:
+            win32gui.ShowWindow(hwnd, win32con.SW_SHOW)
+
+        restored = not win32gui.IsIconic(hwnd) and win32gui.IsWindowVisible(hwnd)
+        if not restored:
+            self.log_info(
+                f"Window for {_format_exe_names(exe_name)} is still not visible after restore; "
+                f"hwnd={hwnd}"
+            )
+        return restored
 
     def _get_launcher_path(self):
         configured_path = self.config.get(self.CONF_PATH, "").strip()
