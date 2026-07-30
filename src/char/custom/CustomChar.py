@@ -20,6 +20,9 @@ class Cmd(NamedTuple):
     if_capable: bool = False
 
 
+_RETURN_SIGNAL = object()
+
+
 class CustomChar(BaseChar):
     """
     用户自定义的出招表角色。
@@ -144,13 +147,6 @@ class CustomChar(BaseChar):
             Cmd("keydown", cls.keydown, PARAM_REQ_KEY, "按下按键", "keydown(a)"),
             Cmd("keyup", cls.keyup, PARAM_REQ_KEY, "松开按键", "keyup(d)"),
             Cmd("keypress", cls.keypress, PARAM_REQ_KEY, "按下并松开按键", "keypress(f1)"),
-            Cmd(
-                "if_",
-                cls._execute_if_command,
-                "条件命令、一个或多个目标命令",
-                "条件执行：仅可使用标记为（可用于 if_ 条件）的命令作为条件命令",
-                "if_(ultimate, skill), if_(skill(0.5), l_click(2), wait(0.1))",
-            ),
         ]
 
     def _compile_combo(self):
@@ -199,57 +195,94 @@ class CustomChar(BaseChar):
         return target
 
     @classmethod
-    def _parse_if_command(
+    def _parse_if_statement(
         cls,
-        node: ast.Call,
+        node: ast.If,
         combo_str: str,
         aliases: dict[str, Callable[..., Any]],
         if_capable_map: dict[str, bool],
     ):
-        if node.keywords:
-            return None, f"{cls._node_loc(node)}: if_ only supports positional arguments"
-        if len(node.args) < 2:
-            return (
-                None,
-                f"{cls._node_loc(node)}: if_ requires at least 2 positional arguments: "
-                f"if_(cond, then1, ...)",
-            )
-
-        cond_node = node.args[0]
-        then_nodes = node.args[1:]
+        cond_node = node.test
         cond_cmd, err = cls._parse_command_node(
             cond_node,
             combo_str=combo_str,
             aliases=aliases,
             if_capable_map=if_capable_map,
-            allow_if=False,
         )
-        if err:
+        if err or not cond_cmd:
             return None, err
 
         cond_name = cond_cmd[0]
         if not if_capable_map.get(cond_name, False):
             return (
                 None,
-                f"{cls._node_loc(cond_node)}: command '{cond_name}' is not enabled as "
-                f"if_ condition",
+                f"{cls._node_loc(cond_node)}: command '{cond_name}' is not enabled as if condition",
             )
 
-        then_cmds = []
-        for then_node in then_nodes:
-            then_cmd, err = cls._parse_command_node(
-                then_node,
+        then_cmds, err = cls._parse_if_branch(
+            node.body,
+            combo_str,
+            aliases,
+            if_capable_map,
+        )
+        if err:
+            return None, err
+        else_cmds, err = cls._parse_if_branch(
+            node.orelse,
+            combo_str,
+            aliases,
+            if_capable_map,
+            allow_empty=True,
+        )
+        if err:
+            return None, err
+
+        cmd_text = ast.get_source_segment(combo_str, node) or "if"
+        return (
+            "if",
+            cls._execute_if_statement,
+            [cond_cmd, then_cmds, else_cmds],
+            {},
+            cmd_text,
+        ), None
+
+    @classmethod
+    def _parse_if_branch(
+        cls,
+        statements,
+        combo_str: str,
+        aliases: dict[str, Callable[..., Any]],
+        if_capable_map: dict[str, bool],
+        allow_empty: bool = False,
+    ):
+        if not statements and allow_empty:
+            return [], None
+        if len(statements) != 1:
+            return None, "if branches must contain one command list or return"
+
+        statement = statements[0]
+        if isinstance(statement, ast.Return):
+            if statement.value is not None:
+                return None, f"{cls._node_loc(statement)}: return does not accept a value"
+            return [("return", cls._return_combo, [], {}, "return")], None
+        if not isinstance(statement, ast.Expr):
+            return None, f"{cls._node_loc(statement)}: unsupported if branch syntax"
+
+        nodes = (
+            statement.value.elts if isinstance(statement.value, ast.Tuple) else [statement.value]
+        )
+        commands = []
+        for node in nodes:
+            command, err = cls._parse_command_node(
+                node,
                 combo_str=combo_str,
                 aliases=aliases,
                 if_capable_map=if_capable_map,
-                allow_if=False,
             )
             if err:
                 return None, err
-            then_cmds.append(then_cmd)
-
-        cmd_text = ast.get_source_segment(combo_str, node) or "if_"
-        return ("if_", cls._execute_if_command, [cond_cmd, then_cmds], {}, cmd_text), None
+            commands.append(command)
+        return commands, None
 
     @classmethod
     def _parse_command_node(
@@ -258,7 +291,6 @@ class CustomChar(BaseChar):
         combo_str: str,
         aliases: dict[str, Callable[..., Any]],
         if_capable_map: dict[str, bool],
-        allow_if: bool = True,
     ):
         func_name = ""
         args = []
@@ -266,21 +298,10 @@ class CustomChar(BaseChar):
 
         if isinstance(node, ast.Name):
             func_name = node.id
-            if func_name == "if_":
-                return (
-                    None,
-                    f"{cls._node_loc(node)}: if_ must be called with arguments, "
-                    f"e.g. if_(ultimate, skill, wait(0.1))",
-                )
         elif isinstance(node, ast.Call):
             if not isinstance(node.func, ast.Name):
                 return None, f"{cls._node_loc(node)}: unsupported callable expression"
             func_name = node.func.id
-
-            if func_name == "if_":
-                if not allow_if:
-                    return None, f"{cls._node_loc(node)}: nested if_ is not supported"
-                return cls._parse_if_command(node, combo_str, aliases, if_capable_map)
 
             for arg in node.args:
                 ok, value, err = cls._parse_node_value(arg)
@@ -328,8 +349,21 @@ class CustomChar(BaseChar):
             return [], cls._syntax_error_text(error)
 
         for stmt in tree.body:
+            if isinstance(stmt, ast.If):
+                parsed_command, err = cls._parse_if_statement(
+                    stmt,
+                    combo_str=combo_str,
+                    aliases=aliases,
+                    if_capable_map=if_capable_map,
+                )
+                if err:
+                    return [], err
+                parsed_combo.append(parsed_command)
+                continue
+            if isinstance(stmt, ast.Return):
+                return [], f"{cls._node_loc(stmt)}: return is only allowed inside if or else"
             if not isinstance(stmt, ast.Expr):
-                return [], f"{cls._node_loc(stmt)}: only command expressions are allowed"
+                return [], f"{cls._node_loc(stmt)}: only commands and if statements are allowed"
 
             expr = stmt.value
             nodes = expr.elts if isinstance(expr, ast.Tuple) else [expr]
@@ -339,7 +373,6 @@ class CustomChar(BaseChar):
                     combo_str=combo_str,
                     aliases=aliases,
                     if_capable_map=if_capable_map,
-                    allow_if=True,
                 )
                 if err:
                     return [], err
@@ -356,7 +389,9 @@ class CustomChar(BaseChar):
         """战斗时极速遍历并执行已缓存的指令队列"""
         for command in self.parsed_combo:
             try:
-                self._execute_compiled_command(command)
+                result = self._execute_compiled_command(command)
+                if result is _RETURN_SIGNAL:
+                    return
             except TaskDisabledException:
                 raise
             except Exception as e:
@@ -380,21 +415,24 @@ class CustomChar(BaseChar):
         self.logger.warning(f"Unknown command in combo: {target}")
         return None
 
-    def _execute_if_command(self, condition_cmd, then_cmds):
+    @staticmethod
+    def _return_combo(_self):
+        return _RETURN_SIGNAL
+
+    def _execute_if_statement(self, condition_cmd, then_cmds, else_cmds):
         cond_result = self._execute_compiled_command(condition_cmd)
         if not isinstance(cond_result, bool):
             self.logger.warning(
-                f"if_ condition command '{condition_cmd[0]}' returned non-bool value, "
-                f"treat as False"
+                f"if condition command '{condition_cmd[0]}' returned non-bool value, treat as False"
             )
-            return False
+            cond_result = False
 
-        if not cond_result:
-            return False
-
-        for then_cmd in then_cmds:
-            self._execute_compiled_command(then_cmd)
-        return True
+        branch = then_cmds if cond_result else else_cmds
+        for command in branch:
+            result = self._execute_compiled_command(command)
+            if result is _RETURN_SIGNAL:
+                return _RETURN_SIGNAL
+        return cond_result
 
     @classmethod
     def get_available_commands(cls):
@@ -402,6 +440,29 @@ class CustomChar(BaseChar):
         手动定义对用户可视化/输入框提示的出招表指令及文档说明。
         """
         return cls.get_command_definitions()
+
+    @staticmethod
+    def get_combo_syntax_guide() -> str:
+        return (
+            "流程指令:\n\n"
+            "▶ 【 if 】\n"
+            "    • 参数: 条件, 分支命令, 必填\n"
+            "    • 说明: 仅支持可用作条件的指令, 如 ultimate 或 skill(0.5)\n"
+            "    • 示例: if ultimate: skill\n\n"
+            "▶ 【 else 】\n"
+            "    • 参数: 分支命令, 必填\n"
+            "    • 说明: 必须紧跟 if; if 条件为假时执行此分支\n"
+            "    • 示例: else: r_click\n\n"
+            "▶ 【 return 】\n"
+            "    • 参数: 无参数\n"
+            "    • 说明: 只能作为 if 或 else 分支的唯一动作, 用于结束后续出招\n"
+            "    • 示例: if ultimate: return\n\n"
+            "流程组合示例:\n"
+            "    l_click\n"
+            "    if skill(0.5): l_click(2), wait(0.1)\n"
+            "    else: r_click\n"
+            "    arc, wait(0.2)"
+        )
 
     def jump(self):
         self.send_key("space")

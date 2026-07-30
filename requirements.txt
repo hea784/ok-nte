@@ -46,6 +46,8 @@ mouse==0.7.1 ; sys_platform == 'win32'
     # via ok-script
 msgpack==1.2.1 ; sys_platform == 'win32'
     # via librosa
+msvc-runtime==14.44.35112 ; sys_platform == 'win32'
+    # via ok-nte
 narwhals==2.24.0 ; sys_platform == 'win32'
     # via scikit-learn
 networkx==3.6.1 ; sys_platform == 'win32'

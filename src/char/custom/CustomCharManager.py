@@ -8,7 +8,8 @@ import cv2
 import numpy as np
 from ok import Logger, og
 
-import src.char.custom.CustomCharDb as CustomCharDb
+from src.char.custom.CustomCharDb import CustomCharDb
+from src.char.custom.CustomCharDbMigrator import MigrationContext
 from src.Labels import Labels
 
 if TYPE_CHECKING:
@@ -19,7 +20,6 @@ logger = Logger.get_logger(__name__)
 CUSTOM_CHARS_DIR = "custom_chars"
 FEATURES_DIR = os.path.join(CUSTOM_CHARS_DIR, "features")
 DB_PATH = os.path.join(CUSTOM_CHARS_DIR, "db.json")
-DB_SCHEMA_VERSION = CustomCharDb.DB_SCHEMA_VERSION
 
 
 class CustomCharManager:
@@ -38,7 +38,13 @@ class CustomCharManager:
             return
         self._data_lock = RLock()
         os.makedirs(FEATURES_DIR, exist_ok=True)
-        self.db = CustomCharDb.default_db()
+        context = MigrationContext(
+            is_builtin_combo=self.is_builtin_combo,
+            get_builtin_prefix=self.get_builtin_prefix,
+            iter_builtin_combo_items=self.iter_builtin_combo_items,
+            generate_combo_id=lambda _existing: f"combo_{uuid.uuid4().hex}",
+        )
+        self._db = CustomCharDb(DB_PATH, FEATURES_DIR, context, logger)
         self._feature_cache = {}
         self._raw_feature_cache = {}
         self._cache_mask = None
@@ -46,19 +52,9 @@ class CustomCharManager:
         self._cache_scr_h = -1
         self._cache_fids = set()
         self._preheat_started = False
-        self.load_db()
-        self.migrate_db_schema()
-        self.validate_db()
+        self._db.reload()
         self.initialized = True
         self.preheat_feature_cache_async()
-
-    @staticmethod
-    def _as_text(value) -> str:
-        return CustomCharDb.as_text(value)
-
-    @classmethod
-    def _is_blank_text(cls, value) -> bool:
-        return CustomCharDb.is_blank_text(value)
 
     @staticmethod
     def _builtin_entries() -> dict:
@@ -85,82 +81,34 @@ class CustomCharManager:
 
     @classmethod
     def is_builtin_combo(cls, combo_id: str) -> bool:
-        return cls._as_text(combo_id) in cls._builtin_entries()
+        return ("" if combo_id is None else str(combo_id)) in cls._builtin_entries()
 
     @classmethod
     def get_builtin_combo_name(cls, combo_id: str) -> str:
         entries = cls._builtin_entries()
-        meta = entries.get(cls._as_text(combo_id))
+        combo_id = "" if combo_id is None else str(combo_id)
+        meta = entries.get(combo_id)
         if not isinstance(meta, dict):
-            return cls._as_text(combo_id)
+            return combo_id
         if cls._locale_name() == "zh_CN" and meta.get("cn_name"):
-            return cls._as_text(meta["cn_name"])
+            return str(meta["cn_name"])
         char_cls = meta.get("cls")
-        return getattr(char_cls, "__name__", cls._as_text(combo_id))
+        return getattr(char_cls, "__name__", combo_id)
 
     @classmethod
     def iter_builtin_combo_items(cls):
         for combo_id in cls._builtin_entries().keys():
             yield cls.get_builtin_combo_name(combo_id), combo_id
 
-    @staticmethod
-    def _default_fixed_team():
-        return CustomCharDb.default_fixed_team()
-
-    @classmethod
-    def _normalize_fixed_team_slot(cls, slot) -> dict:
-        return CustomCharDb.normalize_fixed_team_slot(slot)
-
-    @classmethod
-    def _normalize_fixed_team_config(cls, config) -> dict:
-        return CustomCharDb.normalize_fixed_team_config(config)
-
-    @staticmethod
-    def _default_db():
-        return CustomCharDb.default_db()
-
-    def _character_name_from_record(self, char_id: str, char_data: dict) -> str:
-        return CustomCharDb.character_name_from_record(char_id, char_data)
-
-    def _find_character_id_by_name(self, char_name: str) -> str | None:
-        target = self._as_text(char_name).strip()
-        if self._is_blank_text(target):
-            return None
-        for char_id, char_data in self.db.get("characters", {}).items():
-            if not isinstance(char_data, dict):
-                continue
-            if self._character_name_from_record(char_id, char_data) == target:
-                return char_id
-        return None
-
-    def _generate_character_id(self) -> str:
-        while True:
-            char_id = f"char_{uuid.uuid4().hex}"
-            if char_id not in self.db["characters"]:
-                return char_id
-
-    def _generate_combo_id(self, existing_ids: set[str] | None = None) -> str:
-        existing_ids = existing_ids or set(self.db.get("combos", {}).keys())
-        while True:
-            combo_id = f"combo_{uuid.uuid4().hex}"
-            if combo_id not in existing_ids and not self.is_builtin_combo(combo_id):
-                return combo_id
-
     def load_db(self):
-        with self._data_lock:
-            self.db = CustomCharDb.load_db(DB_PATH, logger)
+        self._db.reload()
 
     def validate_db(self):
-        with self._data_lock:
-            modified = CustomCharDb.validate_db(self.db, FEATURES_DIR, self.is_builtin_combo)
-
-            if modified:
-                self._invalidate_feature_cache()
-                self.save_db()
+        self._db.reload()
+        self._invalidate_feature_cache()
 
     def save_db(self):
-        with self._data_lock:
-            CustomCharDb.save_db(DB_PATH, self.db, logger)
+        self._db.save()
 
     def _invalidate_feature_cache(self):
         self._feature_cache.clear()
@@ -175,12 +123,7 @@ class CustomCharManager:
             self._raw_feature_cache.pop(feature_id, None)
 
     def _get_feature_ids_snapshot(self):
-        with self._data_lock:
-            feature_ids = set(self.db.get("features", {}).keys())
-            for char_data in self.db.get("characters", {}).values():
-                if isinstance(char_data, dict):
-                    feature_ids.update(char_data.get("feature_ids", []))
-            return list(feature_ids)
+        return self._db.get_feature_ids()
 
     def preheat_feature_cache(self):
         feature_ids = self._get_feature_ids_snapshot()
@@ -214,92 +157,36 @@ class CustomCharManager:
         ).start()
 
     def migrate_db_schema(self):
-        with self._data_lock:
-            self.db, modified = CustomCharDb.migrate_db_schema(
-                self.db,
-                self.is_builtin_combo,
-                self.get_builtin_prefix,
-                self.iter_builtin_combo_items,
-                self._generate_combo_id,
-            )
-            if modified:
-                self.save_db()
+        self._db.reload()
+
+    def _find_character_id_by_name(self, char_name: str) -> str | None:
+        """Compatibility helper for existing callers; lookup ownership is in CustomCharDb."""
+        return self._db.find_character_id_by_name(char_name)
 
     def find_custom_combo_id_by_name(self, combo_name: str) -> str:
-        combo_name = self._as_text(combo_name)
-        if self._is_blank_text(combo_name):
-            return ""
-        for combo_id, combo_data in self.db.get("combos", {}).items():
-            if isinstance(combo_data, dict) and combo_data.get("name") == combo_name:
-                return combo_id
-        return ""
+        return self._db.find_combo_id_by_name(combo_name)
 
     def add_combo(self, combo_name: str, content: str, combo_id: str | None = None) -> str:
         """Add or update a custom combo and return its stable combo id."""
-        with self._data_lock:
-            combo_name = self._as_text(combo_name)
-            if self._is_blank_text(combo_name):
-                return ""
-
-            existing_id = self.find_custom_combo_id_by_name(combo_name)
-            combo_id = combo_id or existing_id or self._generate_combo_id()
-            if self.is_builtin_combo(combo_id):
-                return ""
-
-            self.db["combos"][combo_id] = {
-                "name": combo_name,
-                "content": self._as_text(content),
-            }
-            self.save_db()
-            return combo_id
+        return self._db.add_combo(combo_name, content, combo_id)
 
     def update_combo(self, combo_id: str, content: str, combo_name: str | None = None) -> bool:
-        with self._data_lock:
-            combo_id = self._as_text(combo_id)
-            if combo_id not in self.db["combos"] or self.is_builtin_combo(combo_id):
-                return False
-            record = self.db["combos"][combo_id]
-            if combo_name is not None and not self._is_blank_text(combo_name):
-                record["name"] = self._as_text(combo_name)
-            record["content"] = self._as_text(content)
-            self.save_db()
-            return True
+        return self._db.update_combo(combo_id, content, combo_name)
 
     def delete_combo(self, combo_id: str):
         """删除出招表"""
-        with self._data_lock:
-            combo_id = self._as_text(combo_id)
-            deleted = False
-            if combo_id in self.db["combos"]:
-                del self.db["combos"][combo_id]
-                deleted = True
-            fixed_team = self._normalize_fixed_team_config(self.db.get("fixed_team"))
-            fixed_team_changed = False
-            for slot in fixed_team["slots"]:
-                if slot["combo_id"] == combo_id:
-                    slot["combo_id"] = ""
-                    fixed_team_changed = True
-            if fixed_team_changed:
-                self.db["fixed_team"] = fixed_team
-            if deleted or fixed_team_changed:
-                self.save_db()
+        self._db.delete_combo(combo_id)
 
     def is_custom_combo_exist(self, combo_id: str):
         """判断出招表是否存在"""
-        with self._data_lock:
-            return self._as_text(combo_id) in self.db["combos"]
+        return self._db.has_custom_combo(combo_id)
 
     def get_combo(self, combo_id: str):
         """获取出招表"""
-        with self._data_lock:
-            combo_id = self._as_text(combo_id)
-            combo_data = self.db["combos"].get(combo_id)
-            if isinstance(combo_data, dict):
-                return combo_data.get("content", "")
-            return ""
+        return self._db.get_combo(combo_id)
 
     def get_combo_name(self, combo_id: str, with_builtin_prefix=False) -> str:
-        combo_id = self._as_text(combo_id)
+        combo_id = "" if combo_id is None else str(combo_id)
         if not combo_id:
             return ""
         if self.is_builtin_combo(combo_id):
@@ -307,139 +194,62 @@ class CustomCharManager:
             if with_builtin_prefix:
                 return f"{self.get_builtin_prefix()}{name}"
             return name
-        combo_data = self.db.get("combos", {}).get(combo_id)
-        if isinstance(combo_data, dict):
-            return self._as_text(combo_data.get("name", combo_id))
-        return combo_id
+        return self._db.get_custom_combo_name(combo_id) or combo_id
 
     def get_all_combos(self):
-        with self._data_lock:
-            combos = [data["name"] for data in self.db["combos"].values() if isinstance(data, dict)]
-            combos.extend([name for name, _ in self.iter_builtin_combo_items()])
-            return combos
+        combos = [name for name, _ in self._db.get_custom_combo_items()]
+        combos.extend(name for name, _ in self.iter_builtin_combo_items())
+        return combos
 
     def get_all_combo_items(self, with_builtin_prefix=False):
         """
         Return combo options as (name, id) tuples for UI binding.
         """
-        with self._data_lock:
-            items = []
-            for combo_id, data in self.db["combos"].items():
-                if isinstance(data, dict):
-                    items.append((data.get("name", combo_id), combo_id))
-            for combo_name, combo_id in self.iter_builtin_combo_items():
-                if with_builtin_prefix:
-                    combo_name = f"{self.get_builtin_prefix()}{combo_name}"
-                items.append((combo_name, combo_id))
-            return items
+        items = self._db.get_custom_combo_items()
+        for combo_name, combo_id in self.iter_builtin_combo_items():
+            if with_builtin_prefix:
+                combo_name = f"{self.get_builtin_prefix()}{combo_name}"
+            items.append((combo_name, combo_id))
+        return items
 
     def create_character(self, char_name, combo_id) -> str:
         """创建角色并返回 char_id"""
-        with self._data_lock:
-            char_name = self._as_text(char_name).strip()
-            combo_id = self._as_text(combo_id)
-            if self._is_blank_text(char_name):
-                return ""
-            existing_id = self._find_character_id_by_name(char_name)
-            if existing_id:
-                return existing_id
-            if (
-                combo_id
-                and not self.is_builtin_combo(combo_id)
-                and combo_id not in self.db["combos"]
-            ):
-                combo_id = ""
-            char_id = self._generate_character_id()
-            self.db["characters"][char_id] = {
-                "name": char_name,
-                "combo_id": combo_id,
-                "feature_ids": [],
-            }
+        char_id = self._db.create_character(char_name, combo_id)
+        if char_id:
             self._invalidate_feature_cache()
-            self.save_db()
-            return char_id
+        return char_id
 
     def update_character(self, char_id, char_name=None, combo_id=None) -> bool:
         """更新角色名称或出招表"""
-        with self._data_lock:
-            if char_id not in self.db["characters"]:
-                return False
-            char_data = self.db["characters"][char_id]
-            if char_name is not None:
-                char_name = self._as_text(char_name).strip()
-                if self._is_blank_text(char_name):
-                    return False
-                existing_id = self._find_character_id_by_name(char_name)
-                if existing_id and existing_id != char_id:
-                    return False
-                char_data["name"] = char_name
-            if combo_id is not None:
-                combo_id = self._as_text(combo_id)
-                if (
-                    combo_id
-                    and not self.is_builtin_combo(combo_id)
-                    and combo_id not in self.db["combos"]
-                ):
-                    combo_id = ""
-                char_data["combo_id"] = combo_id
+        updated = self._db.update_character(char_id, char_name, combo_id)
+        if updated:
             self._invalidate_feature_cache()
-            self.save_db()
-            return True
+        return updated
 
     def delete_character(self, char_id: str):
         """删除角色及其所有特征图，不影响出招表"""
-        with self._data_lock:
-            if char_id not in self.db["characters"]:
-                return
-            feature_ids = self.db["characters"][char_id].get("feature_ids", [])
-            for fid in feature_ids:
-                self.delete_feature_image(fid)
-            del self.db["characters"][char_id]
-            fixed_team = self._normalize_fixed_team_config(self.db.get("fixed_team"))
-            fixed_team_changed = False
-            for slot in fixed_team["slots"]:
-                if slot.get("char_id") == char_id:
-                    slot["char_id"] = ""
-                    slot["combo_id"] = ""
-                    fixed_team_changed = True
-            if fixed_team_changed:
-                self.db["fixed_team"] = fixed_team
-            self._invalidate_feature_cache()
-            self.save_db()
-
-
+        feature_ids = self._db.delete_character(char_id)
+        for feature_id in feature_ids:
+            self.delete_feature_image(feature_id)
+        self._invalidate_feature_cache()
 
     def add_feature_to_character(self, char_id: str, image_mat, width=0, height=0):
         """为角色保存一张截图并关联特征 UUID"""
-        with self._data_lock:
-            if char_id not in self.db["characters"]:
-                return ""
-            fid = f"feat_{uuid.uuid4().hex}"
-            self.save_feature_image(fid, image_mat)
-
-            if "features" not in self.db:
-                self.db["features"] = {}
-            self.db["features"][fid] = {"width": width, "height": height}
-
-            if "feature_ids" not in self.db["characters"][char_id]:
-                self.db["characters"][char_id]["feature_ids"] = []
-
-            self.db["characters"][char_id]["feature_ids"].append(fid)
-            self._invalidate_feature_cache()
-            self.save_db()
-            return fid
+        if self._db.get_character_record(char_id) is None:
+            return ""
+        feature_id = f"feat_{uuid.uuid4().hex}"
+        self.save_feature_image(feature_id, image_mat)
+        if not self._db.add_feature(char_id, feature_id, width, height):
+            self.delete_feature_image(feature_id)
+            return ""
+        self._invalidate_feature_cache()
+        return feature_id
 
     def remove_feature_from_character(self, char_id: str, feature_id: str):
         """从角色中移除某个特征"""
-        with self._data_lock:
-            if char_id not in self.db["characters"]:
-                return
-            feature_ids = self.db["characters"][char_id].get("feature_ids", [])
-            if feature_id in feature_ids:
-                feature_ids.remove(feature_id)
-                self.delete_feature_image(feature_id)
-                self._invalidate_feature_cache()
-                self.save_db()
+        if self._db.remove_feature(char_id, feature_id):
+            self.delete_feature_image(feature_id)
+            self._invalidate_feature_cache()
 
     def save_feature_image(self, feature_id, image_mat):
         """保存特征图"""
@@ -451,10 +261,8 @@ class CustomCharManager:
             self._invalidate_raw_feature_cache(feature_id)
 
     def delete_feature_image(self, feature_id):
-        """删除特征图文件并移除 DB 内独立的特征分辨率记录"""
+        """删除特征图文件；对应的 DB 元数据由 CustomCharDb 统一维护。"""
         with self._data_lock:
-            if "features" in self.db and feature_id in self.db["features"]:
-                del self.db["features"][feature_id]
             path = os.path.join(FEATURES_DIR, f"{feature_id}.png")
             if os.path.exists(path):
                 os.remove(path)
@@ -475,7 +283,7 @@ class CustomCharManager:
             cached = self._raw_feature_cache.get(feature_id)
             if cached and cached[0] == cache_key:
                 return cached[1], cached[2], cached[3]
-            feat_info = self.db.get("features", {}).get(feature_id, {})
+            feat_info = self._db.get_feature_info(feature_id)
             w = feat_info.get("width", 0)
             h = feat_info.get("height", 0)
 
@@ -510,8 +318,7 @@ class CustomCharManager:
             resized_saved = saved_img
 
         logger.debug(
-            f"loaded {char_id} resized width {current_scr_w} / "
-            f"original_width:{w}, scale_x:{scale}"
+            f"loaded {char_id} resized width {current_scr_w} / original_width:{w}, scale_x:{scale}"
         )
         return char_id, feature_id, resized_saved
 
@@ -520,11 +327,7 @@ class CustomCharManager:
         current_scr_h, current_scr_w = task.height, task.width
 
         with self._data_lock:
-            character_snapshot = {}
-            for char_id, char_data in self.db["characters"].items():
-                if not isinstance(char_data, dict):
-                    continue
-                character_snapshot[char_id] = list(char_data.get("feature_ids", []))
+            character_snapshot = self._db.get_character_feature_snapshot()
             current_fids = set()
             for feature_ids in character_snapshot.values():
                 current_fids.update(feature_ids)
@@ -628,21 +431,17 @@ class CustomCharManager:
 
     def get_all_characters(self):
         """获取所有角色数据"""
-        with self._data_lock:
-            characters = {}
-            for char_id, char_data in self.db["characters"].items():
-                if not isinstance(char_data, dict):
-                    continue
-                out = dict(char_data)
-                char_name = self._character_name_from_record(char_id, char_data)
-                combo_id = self._as_text(out.get("combo_id", ""))
-                out.pop("name", None)
-                out["char_id"] = char_id
-                out["char_name"] = char_name
-                out["combo_id"] = combo_id
-                out["combo_name"] = self.get_combo_name(combo_id)
-                characters[char_id] = out
-            return characters
+        characters = {}
+        for char_id, char_data in self._db.get_character_records().items():
+            out = dict(char_data)
+            char_name = str(out.pop("name", char_id)).strip() or char_id
+            combo_id = "" if out.get("combo_id") is None else str(out.get("combo_id", ""))
+            out["char_id"] = char_id
+            out["char_name"] = char_name
+            out["combo_id"] = combo_id
+            out["combo_name"] = self.get_combo_name(combo_id)
+            characters[char_id] = out
+        return characters
 
     def get_character_combo_id_by_id(self, char_id: str) -> str:
         info = self.get_character_info_by_id(char_id)
@@ -652,42 +451,26 @@ class CustomCharManager:
         return self.get_combo_name(self.get_character_combo_id_by_id(char_id))
 
     def get_character_info_by_id(self, char_id: str) -> dict | None:
-        with self._data_lock:
-            char_info = self.db["characters"].get(char_id, None)
-            if isinstance(char_info, dict):
-                combo_id = self._as_text(char_info.get("combo_id", ""))
-                out = dict(char_info)
-                char_name = self._character_name_from_record(char_id, char_info)
-                out.pop("name", None)
-                out["char_id"] = char_id
-                out["char_name"] = char_name
-                out["combo_id"] = combo_id
-                out["combo_name"] = self.get_combo_name(combo_id)
-                return out
+        char_info = self._db.get_character_record(char_id)
+        if char_info is None:
             return None
+        combo_id = "" if char_info.get("combo_id") is None else str(char_info.get("combo_id", ""))
+        out = dict(char_info)
+        char_name = str(out.pop("name", char_id)).strip() or char_id
+        out["char_id"] = char_id
+        out["char_name"] = char_name
+        out["combo_id"] = combo_id
+        out["combo_name"] = self.get_combo_name(combo_id)
+        return out
 
     def get_fixed_team(self):
-        with self._data_lock:
-            fixed_team = self._normalize_fixed_team_config(self.db.get("fixed_team"))
-            return {
-                "enabled": fixed_team["enabled"],
-                "slots": [dict(slot) for slot in fixed_team["slots"]],
-            }
+        return self._db.get_fixed_team()
 
     def set_fixed_team(self, enabled: bool, slots):
-        with self._data_lock:
-            self.db["fixed_team"] = self._normalize_fixed_team_config(
-                {
-                    "enabled": enabled,
-                    "slots": slots,
-                }
-            )
-            self.save_db()
+        self._db.set_fixed_team(enabled, slots)
 
     def clear_fixed_team(self):
-        with self._data_lock:
-            self.db["fixed_team"] = self._default_fixed_team()
-            self.save_db()
+        self._db.clear_fixed_team()
 
 
 def create_ellipse_mask(w, h, rx, ry):

@@ -256,7 +256,7 @@ class HeistPathA(HeistPath):
         self.send_key_up("w")
         self.sleep(0.11)
         self.send_key_up("f")  # end pick
-        self.sleep(0.8)
+        self.sleep(2.93)
         self.send_key_down("w")  # 过镭射1
         self.sleep(2.01)
         self.send_key_up("w")

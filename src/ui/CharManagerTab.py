@@ -257,7 +257,7 @@ class CharManagerTab(CustomTab):
         self.combo_text = TextEdit()
         self.combo_text.setPlaceholderText("skill,wait(0.5),l_click(3),ultimate")
         self.combo_text.setMinimumHeight(20)
-        self.combo_text.setMaximumHeight(100)
+        self.combo_text.setMaximumHeight(150)
         self.detail_v_layout.addWidget(self.combo_text, 1)
 
         self.combo_actions_layout = QHBoxLayout()
@@ -908,6 +908,10 @@ class CharManagerTab(CustomTab):
                 translatable_text += f"    • 参数: {cmd.params or empty_text}\n"
                 translatable_text += f"    • 说明: {cmd_doc}\n"
                 translatable_text += f"    • 示例: {example_token}\n\n"
+
+            syntax_guide = CustomChar.get_combo_syntax_guide()
+            text += f"{syntax_guide}\n"
+            translatable_text += f"{syntax_guide}\n"
 
             self._doc_cache = text
             locale_name = self._locale_name()
