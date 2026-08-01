@@ -431,8 +431,9 @@ class TeamManagerTab(CustomTab):
         self.tr_scan_task_missing = og.app.tr("自动战斗任务不可用")
         self.tr_name_tab = TEAM_MANAGEMENT
         self.tr_scan_desc = og.app.tr(
-            "※ 关联角色特征后，软件将能自动识别角色并使用绑定的出招表；未关联时，将使用通用脚本。\n"
-            "游戏内换人/换队自动适配，无需手动调整"
+            "关联角色特征后，即可自动识别角色并使用绑定的出招表；"
+            "游戏内换人/换队无需手动调整。\n"
+            "未关联时，将使用通用脚本。"
         )
         self.tr_fixed_team_title = og.app.tr("固定队伍")
         self.tr_fixed_team_enabled = og.app.tr("已启用 {}/4")
@@ -462,7 +463,7 @@ class TeamManagerTab(CustomTab):
         )
         self.tr_clear_success_desc = og.app.tr("已清空槽位")
         self.tr_fixed_team_desc = tr_fmt(
-            "※ {fixed_team}会优先使用已填写槽位；未填写的槽位仍会自动识别。\n"
+            "{fixed_team}会优先使用已填写槽位；未填写的槽位仍会自动识别。\n"
             "如果游戏内切换队伍，已填写槽位需要在软件里手动修改。",
             fixed_team=self.tr_fixed_team_title,
         )

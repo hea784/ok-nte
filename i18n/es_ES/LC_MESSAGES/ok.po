@@ -618,20 +618,6 @@ msgstr "Introduce o selecciona un personaje"
 msgid "自动战斗任务不可用"
 msgstr "La tarea de combate automático no está disponible"
 
-msgid ""
-"※ 关联角色特征后，软件将能自动识别角色并使用绑定的出招表；未关联时，将使用通用脚本。\n"
-"游戏内换人/换队自动适配，无需手动调整"
-msgstr ""
-"※ Tras vincular rasgos de personaje, el software podrá identificar personajes automáticamente y usar la lista de combos vinculada; si no hay vínculo, usará el script genérico.\n"
-"Los cambios de personaje o equipo en el juego se adaptan automáticamente, sin ajustes manuales"
-
-msgid ""
-"※ {fixed_team}会优先使用已填写槽位；未填写的槽位仍会自动识别。\n"
-"如果游戏内切换队伍，已填写槽位需要在软件里手动修改。"
-msgstr ""
-"※ {fixed_team} prioriza los espacios completados; los espacios vacíos seguirán usando el reconocimiento automático.\n"
-"Si cambias de equipo en el juego, actualiza manualmente los espacios completados en el software."
-
 msgid "<span style=\"color: #2ecc71;\">● 自动识别：已启用</span>"
 msgstr "<span style=\"color: #2ecc71;\">● Reconocimiento automático: activado</span>"
 
@@ -1202,3 +1188,13 @@ msgstr "Evitar que NTE mueva el cursor"
 
 msgid "后台运行时，在 NTE 将鼠标移动到屏幕中心后，自动恢复鼠标位置。"
 msgstr "Cuando se ejecuta en segundo plano, restablece automáticamente la posición del cursor después de que NTE lo mueva al centro de la pantalla."
+
+msgid ""
+"关联角色特征后，即可自动识别角色并使用绑定的出招表；游戏内换人/换队无需手动调整。\n"
+"未关联时，将使用通用脚本。"
+msgstr "Tras vincular los rasgos del personaje, se identificará automáticamente y usará la lista de combos vinculada; los cambios de personaje/equipo en el juego no requieren ajustes manuales.\nSi no hay vínculo, se usará el script genérico."
+
+msgid ""
+"{fixed_team}会优先使用已填写槽位；未填写的槽位仍会自动识别。\n"
+"如果游戏内切换队伍，已填写槽位需要在软件里手动修改。"
+msgstr "{fixed_team} priorizará los espacios completados; los espacios sin completar se seguirán reconociendo automáticamente.\nSi cambia de equipo en el juego, los espacios completados deberán modificarse manualmente en el software."

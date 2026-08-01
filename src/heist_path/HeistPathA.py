@@ -522,6 +522,7 @@ class HeistPathA(HeistPath):
 
     def lg2_wp1_to_exit1(self):
         self.log_round_info("LG2 WP1尝试出口1")
+        self.sleep(0.20)
         self.send_key_down("w")
         self.sleep(5.00)
         self.send_key_up("w")
@@ -531,7 +532,7 @@ class HeistPathA(HeistPath):
         self.send_key_down("a")
         self.sleep(2.00)
         self.send_key_up("a")
-        self.sleep(3.00)
+        self.sleep(2.80)
         self.send_key_down("a")
         self.sleep(6.07)
         self.send_key_up("a")

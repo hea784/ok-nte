@@ -226,7 +226,7 @@ class NTEInteraction(PostMessageInteraction):
         self._cursor_sync.mark_internal_move()
         mi = MOUSEINPUT(dx, dy, 0, 1, 0, None)
         i = INPUT(0, mi)  # type=0 indicates a mouse event
-        SendInput(1, ctypes.pointer(i), ctypes.sizeof(INPUT))
+        return SendInput(1, ctypes.pointer(i), ctypes.sizeof(INPUT))
 
     def try_activate(self):
         now = time.monotonic()

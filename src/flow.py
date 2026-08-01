@@ -8,7 +8,6 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Any
 
-
 Detector = Callable[[], bool]
 Action = Callable[[], Any]
 ErrorHandler = Callable[[Exception], bool]
@@ -110,8 +109,12 @@ class Flow:
         if not exception_types:
             raise FlowConfigurationError("Flow requires at least one exception type to propagate")
         for exception_type in exception_types:
-            if not isinstance(exception_type, type) or not issubclass(exception_type, BaseException):
-                raise FlowConfigurationError("Flow propagated exceptions must inherit BaseException")
+            if not isinstance(exception_type, type) or not issubclass(
+                exception_type, BaseException
+            ):
+                raise FlowConfigurationError(
+                    "Flow propagated exceptions must inherit BaseException"
+                )
         self._passthrough_exceptions += exception_types
         return self
 
@@ -139,7 +142,9 @@ class Flow:
         if timeout <= 0:
             raise FlowConfigurationError("Flow fallback timeout must be greater than zero")
         if grace < 0 or grace >= timeout:
-            raise FlowConfigurationError("Flow fallback grace must be non-negative and less than timeout")
+            raise FlowConfigurationError(
+                "Flow fallback grace must be non-negative and less than timeout"
+            )
         self._fallback = _Fallback(action, timeout, grace)
         return self
 
@@ -340,6 +345,7 @@ class Flow:
     def _validate(self) -> None:
         if not self._nodes:
             raise FlowConfigurationError("Flow requires at least one registered node")
+
     def _next_order(self) -> int:
         order = self._order
         self._order += 1

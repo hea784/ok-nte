@@ -107,7 +107,6 @@ class BaseNTETask(
         self.next_monthly_card_start = 0
         self._last_interval_action_time = {}
         self._action_interval_lock = threading.Lock()
-        self._init_log_gate()
         self._round_state = RoundState()
         self.flow.interrupt(self.check_monthly_card, self.handle_monthly_card)
 

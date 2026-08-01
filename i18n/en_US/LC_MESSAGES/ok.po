@@ -618,20 +618,6 @@ msgstr "Enter or select a character"
 msgid "自动战斗任务不可用"
 msgstr "Auto combat task is unavailable"
 
-msgid ""
-"※ 关联角色特征后，软件将能自动识别角色并使用绑定的出招表；未关联时，将使用通用脚本。\n"
-"游戏内换人/换队自动适配，无需手动调整"
-msgstr ""
-"※ After linking character features, the software can automatically identify characters and use the bound combo; when not linked, it will use the generic script.\n"
-"In-game character and team switches adapt automatically, with no manual adjustment needed"
-
-msgid ""
-"※ {fixed_team}会优先使用已填写槽位；未填写的槽位仍会自动识别。\n"
-"如果游戏内切换队伍，已填写槽位需要在软件里手动修改。"
-msgstr ""
-"※ {fixed_team} will prioritize filled slots; empty slots will still use auto recognition.\n"
-"If you switch teams in game, update the filled slots manually in the software."
-
 msgid "<span style=\"color: #2ecc71;\">● 自动识别：已启用</span>"
 msgstr "<span style=\"color: #2ecc71;\">● Auto recognition: enabled</span>"
 
@@ -1202,3 +1188,13 @@ msgstr "Prevent NTE From Moving the Cursor"
 
 msgid "后台运行时，在 NTE 将鼠标移动到屏幕中心后，自动恢复鼠标位置。"
 msgstr "When running in the background, automatically restore the cursor position after NTE moves it to the screen center."
+
+msgid ""
+"关联角色特征后，即可自动识别角色并使用绑定的出招表；游戏内换人/换队无需手动调整。\n"
+"未关联时，将使用通用脚本。"
+msgstr "After linking character features, characters are automatically recognized and use their bound combos; in-game character/team switches require no manual adjustment.\nWhen not linked, generic scripts will be used."
+
+msgid ""
+"{fixed_team}会优先使用已填写槽位；未填写的槽位仍会自动识别。\n"
+"如果游戏内切换队伍，已填写槽位需要在软件里手动修改。"
+msgstr "{fixed_team} will prioritize filled slots; unfilled slots will still use automatic recognition.\nIf switching teams in-game, filled slots must be updated manually in the software."

@@ -203,7 +203,8 @@ class LogGate:
 
 
 class LogGateMixin:
-    def _init_log_gate(self):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self._log_gate = LogGate(self)
 
     def log_gated(
