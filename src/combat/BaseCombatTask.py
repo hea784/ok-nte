@@ -11,7 +11,7 @@ from ok import Box, Logger, safe_get
 
 from src import text_white_color
 from src.char.BaseChar import BaseChar, Element
-from src.char.CharFactory import get_char_by_id, get_char_by_pos
+from src.char.core.CharFactory import get_char_by_id, get_char_by_pos
 from src.char.custom.CustomCharManager import CustomCharManager
 from src.combat.CombatCheck import CombatCheck
 from src.combat.planner import CombatPlanner
@@ -453,11 +453,6 @@ class BaseCombatTask(CharElementUIMixin, CombatCheck):
 
         return team_status
 
-    def _get_char_log_name(self, char: "BaseChar"):
-        if hasattr(char, "char_name"):
-            return char.char_name
-        return getattr(char, "name", "None")
-
     def _decide_switch_to(
         self,
         current_char: "BaseChar",
@@ -519,7 +514,7 @@ class BaseCombatTask(CharElementUIMixin, CombatCheck):
         log_prefix="switch char",
         time_out=10,
     ):
-        current_char_name = self._get_char_log_name(current_char) if current_char else "None"
+        current_char_name = current_char.ufn_name if current_char else "None"
         switch_to.has_intro = has_intro
         intro_replanned = False
         start_time = time.time()
@@ -528,8 +523,7 @@ class BaseCombatTask(CharElementUIMixin, CombatCheck):
         last_index_check = 0
 
         logger.info(
-            f"{log_prefix} {current_char_name} -> {self._get_char_log_name(switch_to)}, "
-            f"has_intro {has_intro}"
+            f"{log_prefix} {current_char_name} -> {switch_to.ufn_name}, has_intro {has_intro}"
         )
 
         with self.skip_sleep_checks() as skip:
@@ -538,7 +532,7 @@ class BaseCombatTask(CharElementUIMixin, CombatCheck):
             while True:
                 current_time = time.time()
                 elapsed = current_time - start_time
-                switch_to_name = self._get_char_log_name(switch_to)
+                switch_to_name = switch_to.ufn_name
                 frame = self.next_frame()
 
                 if self.is_in_team(frame=frame):
@@ -587,7 +581,7 @@ class BaseCombatTask(CharElementUIMixin, CombatCheck):
                         switch_to = new_switch_to
                         has_intro = new_has_intro
                         switch_to.has_intro = True
-                        switch_to_name = self._get_char_log_name(switch_to)
+                        switch_to_name = switch_to.ufn_name
                         logger.info(
                             f"{log_prefix} updated target to {switch_to_name}, "
                             f"has_intro {switch_to.has_intro}"
@@ -730,7 +724,7 @@ class BaseCombatTask(CharElementUIMixin, CombatCheck):
 
         next_char = str(target.index + 1)
         current_char.logger.debug(
-            f"{current_char.char_name} on_combat_end {current_char.index} "
+            f"{current_char.ufn_name} on_combat_end {current_char.index} "
             f"switch next char: {next_char}"
         )
         start = time.time()
@@ -846,7 +840,7 @@ class BaseCombatTask(CharElementUIMixin, CombatCheck):
                 try:
                     self.get_current_char().on_combat_end(self.chars)
                 except Exception as e:
-                    self.log_error(f"{current_char.char_name} on_combat_end error", e)
+                    self.log_error(f"{current_char.ufn_name} on_combat_end error", e)
 
             self._clear_dead_chars()
         finally:
@@ -954,23 +948,23 @@ class BaseCombatTask(CharElementUIMixin, CombatCheck):
     def _do_load_char(self, index: int, fixed_slots) -> "BaseChar":
         fixed_slot = safe_get(fixed_slots, index)
         fixed_char_id = ""
-        fixed_combo_id = ""
+        fixed_impl_id = ""
         if isinstance(fixed_slot, dict):
             fixed_char_id = fixed_slot.get("char_id", "")
-            fixed_combo_id = fixed_slot.get("combo_id", "")
+            fixed_impl_id = fixed_slot.get("impl_id", "")
             if fixed_char_id:
                 char_info = CustomCharManager().get_character_info_by_id(fixed_char_id)
                 if not char_info:
                     self.logger.warning(f"Fixed char {index} not found: {fixed_char_id}")
                     fixed_char_id = ""
-                    fixed_combo_id = ""
+                    fixed_impl_id = ""
                 else:
                     fixed_char_name = char_info["char_name"]
                     self.logger.info(
-                        f"Using fixed char {index}: {fixed_char_name} {fixed_combo_id}"
+                        f"Using fixed char {index}: {fixed_char_name} {fixed_impl_id}"
                     )
                     return get_char_by_id(
-                        self, index, fixed_char_id, confidence=1, combo_id=fixed_combo_id
+                        self, index, fixed_char_id, confidence=1, impl_id=fixed_impl_id
                     )
 
         box_scaled = self.get_char_box(index).scale(1.1, 1.1)
@@ -1020,11 +1014,11 @@ class BaseCombatTask(CharElementUIMixin, CombatCheck):
                     char.is_current_char = True
                 else:
                     char.is_current_char = False
-                name = char.char_name
+                name = char.ufn_name
                 conf = char.confidence
                 elem = char.element
                 self.log_info(f"load char success {char} {name} {conf:.2f} {elem}")
-                self.info_add_to_list("chars", f"{char.char_name}: {char.combo_name}")
+                self.info_add_to_list("chars", f"{char.ufn_name}: {char.impl_id or 'BaseChar'}")
 
         if self.team_size > 0:
             ret = True

@@ -1225,3 +1225,23 @@ msgstr "Ciclo personalizado"
 
 msgid "副本类型"
 msgstr "Tipo de mazmorra"
+
+msgid "签到方式"
+msgstr "Método de registro"
+
+msgid "签到"
+msgstr "Registrarse"
+
+msgid "捞币"
+msgstr "Sacar monedas"
+
+msgid ""
+"导入数据会完整覆盖当前用户资料.\n"
+"导出数据会导出完整用户资料."
+msgstr "Importar datos sobrescribirá por completo los perfiles de usuario actuales.\nExportar datos exportará los perfiles de usuario completos."
+
+msgid "资料管理"
+msgstr "Gestión de datos"
+
+msgid "关闭"
+msgstr "Cerrar"

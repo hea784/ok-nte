@@ -29,23 +29,31 @@ class CustomChar(BaseChar):
     它从 CustomCharManager 获取出招表，并作为 planner 动作执行。
     """
 
-    def __init__(self, task, index, char_id="", combo_id: str = "", confidence=1):
+    def __init__(self, task, index, char_id="", impl_id: str = "", confidence=1):
         super().__init__(task, index, char_id, confidence)
         self.manager = CustomCharManager()
-        self.combo_id = combo_id
+        self.impl_id = impl_id
         self.combo_str = ""
         self.parsed_combo = []
         self._held_keys = set()
         self._held_mouse_buttons = set()
         self._load_combo()
 
+    @property
+    def name(self):
+        """获取角色类名作为其名称。
+
+        Returns:
+            str: 角色类名字符串。
+        """
+        return super().name + "_" + str(self.index)
+
     def _load_combo(self):
-        if self.combo_id:
-            self.combo_name = self.manager.get_combo_name(self.combo_id)
-            self.combo_str = self.manager.get_combo(self.combo_id)
+        if self.impl_id:
+            self.combo_str = self.manager.get_combo(self.impl_id)
             self._compile_combo()
         else:
-            self.logger.warning(f"No custom char info found for {self.char_name}")
+            self.logger.warning(f"No custom char info found for {self.ufn_name}")
 
     def describe_role(self):
         return RoleProfile(

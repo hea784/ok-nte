@@ -4,6 +4,9 @@ from src.combat.planner import Planner, RoleProfile
 
 
 class Sakiri(BaseChar):
+    cn_name = "早雾"
+    element = BaseChar.Element.RED
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 

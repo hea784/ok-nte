@@ -1225,3 +1225,23 @@ msgstr "自訂循環"
 
 msgid "副本类型"
 msgstr "副本類型"
+
+msgid "签到方式"
+msgstr "簽到方式"
+
+msgid "签到"
+msgstr "簽到"
+
+msgid "捞币"
+msgstr "撈取硬幣"
+
+msgid ""
+"导入数据会完整覆盖当前用户资料.\n"
+"导出数据会导出完整用户资料."
+msgstr "匯入資料會完整覆蓋當前使用者資料。\n匯出資料會匯出完整使用者資料。"
+
+msgid "资料管理"
+msgstr "資料管理"
+
+msgid "关闭"
+msgstr "關閉"

@@ -950,3 +950,23 @@ msgstr "Ciclo Personalizado"
 
 msgid "副本类型"
 msgstr "Tipo de Masmorra"
+
+msgid "签到方式"
+msgstr "Modo de check-in"
+
+msgid "签到"
+msgstr "Check-in"
+
+msgid "捞币"
+msgstr "Pegar moedas"
+
+msgid ""
+"导入数据会完整覆盖当前用户资料.\n"
+"导出数据会导出完整用户资料."
+msgstr "A importação de dados substituirá completamente os perfis de usuário atuais.\nA exportação de dados exportará perfis de usuário completos."
+
+msgid "资料管理"
+msgstr "Gerenciamento de Dados"
+
+msgid "关闭"
+msgstr "Fechar"

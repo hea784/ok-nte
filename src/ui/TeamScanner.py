@@ -1,6 +1,6 @@
 from typing import TYPE_CHECKING
 
-from src.char.CharFactory import get_char_feature_by_pos
+from src.char.core.CharFactory import get_char_feature_by_pos
 from src.char.custom.CustomCharManager import CustomCharManager
 
 if TYPE_CHECKING:

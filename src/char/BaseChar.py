@@ -40,9 +40,18 @@ class Element(StrEnum):
 class BaseChar:
     """角色基类，定义了游戏角色的通用属性和行为。"""
 
+    Element = Element
     INTRO_MOTION_FREEZE_DURATION = 1.5
+    en_name = ""
+    cn_name = ""
+    element = Element.DEFAULT
 
-    def __init__(self, task, index, char_id="", confidence=1):
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+        cls.en_name = cls.__dict__.get("en_name", "") or cls.__name__
+        cls.cn_name = cls.__dict__.get("cn_name", "") or cls.en_name
+
+    def __init__(self, task, index: int, char_id="", confidence=1):
         """初始化角色基础属性。
 
         Args:
@@ -52,10 +61,8 @@ class BaseChar:
         """
         self.task: "BaseCombatTask" = task
         self.char_name = "default"
-        self.combo_name = "default"
         self.char_id = char_id
-        self.combo_id = ""
-        self.builtin = False
+        self.impl_id = ""
         self.index = index
         self.last_switch_time = -1
         self.last_ultimate_time = -1
@@ -69,7 +76,7 @@ class BaseChar:
         self.confidence = confidence
         self.logger = Logger.get_logger(self.name)
         self.cycle_start_time = 0.0
-        self.element = Element.DEFAULT
+        self.element = type(self).element
         self.planner_handles_arc = False
         self.is_dead = False
 
@@ -103,6 +110,18 @@ class BaseChar:
             str: 角色类名字符串。
         """
         return f"{self.__class__.__name__}"
+
+    @property
+    def ufn_name(self) -> str:
+        """获取用户友好的角色名称。
+
+        优先使用用户为当前角色实例配置的名称; 未初始化或未知时回退到角色元数据。
+        """
+        char_name = str(self.char_name).strip()
+        if char_name and char_name not in {"default", "unknown"}:
+            return char_name
+        _name = type(self).cn_name if self.task.is_chinese() else type(self).en_name
+        return _name or self.name
 
     def __eq__(self, other):
         """比较两个角色对象是否相同 (基于名称和索引)。"""

@@ -1,26 +1,26 @@
-import json
 import platform
-import shutil
-import subprocess
 import threading
 import time
-import zipfile
 from pathlib import Path
 
 import requests
 from ok import og
 from ok.gui.widget.CustomTab import CustomTab
+from ok.util.explorer import reveal_in_explorer
 from PySide6.QtCore import QEvent, Qt, QTimer, Signal, Slot
+from PySide6.QtGui import QColor
 from PySide6.QtWidgets import (
     QFileDialog,
     QGraphicsBlurEffect,
     QHBoxLayout,
+    QListWidgetItem,
     QSizePolicy,
     QSpacerItem,
     QVBoxLayout,
     QWidget,
 )
 from qfluentwidgets import (
+    CaptionLabel,
     FlowLayout,
     FluentIcon,
     Flyout,
@@ -33,7 +33,6 @@ from qfluentwidgets import (
     PrimaryPushButton,
     PrimaryToolButton,
     PushButton,
-    QColor,
     SimpleCardWidget,
     SmoothScrollArea,
     SubtitleLabel,
@@ -56,11 +55,6 @@ from src.ui.common import (
 from src.ui.util import tr_fmt
 
 
-def get_builtin_prefix():
-    # Backward-compatible export for modules that still import this symbol.
-    return CustomCharManager.get_builtin_prefix()
-
-
 class CharManagerTab(CustomTab):
     doc_translation_ready = Signal(str, str)
 
@@ -77,6 +71,9 @@ class CharManagerTab(CustomTab):
         self.tr_unbind_success = og.app.tr("解除绑定")
         self.tr_unbind_msg = tr_fmt("已解除 {} 的{combo}绑定", combo=COMBO)
         self.tr_import_data = og.app.tr("导入数据")
+        self.tr_data_manager_hint = og.app.tr(
+            "导入数据会完整覆盖当前用户资料.\n导出数据会导出完整用户资料."
+        )
         self.tr_import_failed = og.app.tr("导入失败")
         self.tr_import_success = og.app.tr("导入成功")
         self.tr_import_msg = og.app.tr("已导入 {} 个文件")
@@ -146,18 +143,13 @@ class CharManagerTab(CustomTab):
         self.delete_char_btn.clicked.connect(self.on_delete_char)
         self.delete_char_btn.setEnabled(False)
 
-        self.import_btn = PushButton(FluentIcon.DOWNLOAD, self.tr_import_data, self)
-        self.import_btn.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-        self.import_btn.clicked.connect(self.on_import_data)
-
-        self.export_btn = PushButton(FluentIcon.SHARE, og.app.tr("导出数据"), self)
-        self.export_btn.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-        self.export_btn.clicked.connect(self.on_export_data)
+        self.data_manager_btn = PushButton(FluentIcon.FOLDER, og.app.tr("资料管理"), self)
+        self.data_manager_btn.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        self.data_manager_btn.clicked.connect(self.show_data_manager)
 
         self.left_v_layout.addWidget(self.refresh_btn)
         self.left_v_layout.addWidget(self.delete_char_btn)
-        self.left_v_layout.addWidget(self.import_btn)
-        self.left_v_layout.addWidget(self.export_btn)
+        self.left_v_layout.addWidget(self.data_manager_btn)
         self.left_v_layout.addWidget(self.char_list_widget, 1)
 
         # Right side: Detail View
@@ -322,8 +314,6 @@ class CharManagerTab(CustomTab):
         self.char_list_widget.setUpdatesEnabled(False)
         self.char_list_widget.clear()
         for char_id, char_data in self._all_characters.items():
-            from PySide6.QtWidgets import QListWidgetItem
-
             item = QListWidgetItem(char_data["char_name"])
             item.setData(Qt.ItemDataRole.UserRole, char_id)
             self.char_list_widget.addItem(item)
@@ -376,17 +366,31 @@ class CharManagerTab(CustomTab):
             zip_path = downloads_path / f"{base_name} ({counter}){extension}"
             counter += 1
 
-        source_dir = Path.cwd() / "custom_chars"
-
-        if not source_dir.is_dir():
+        if not self.manager.export_custom_data(zip_path):
             return
 
-        with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zipf:
-            for file_path in source_dir.rglob("*"):
-                if file_path.is_file():
-                    zipf.write(file_path, file_path.relative_to(Path.cwd()))
+        reveal_in_explorer(zip_path)
 
-        subprocess.run(f'explorer /select,"{zip_path.resolve()}"')
+    def show_data_manager(self):
+        dialog = MessageBoxBase(self)
+        dialog.widget.setMinimumWidth(460)
+        dialog.viewLayout.addWidget(SubtitleLabel(og.app.tr("资料管理"), dialog))
+
+        backup_layout = QHBoxLayout()
+        import_data_btn = PushButton(FluentIcon.DOWNLOAD, self.tr_import_data, dialog)
+        export_data_btn = PushButton(FluentIcon.SHARE, og.app.tr("导出数据"), dialog)
+        backup_layout.addWidget(import_data_btn)
+        backup_layout.addWidget(export_data_btn)
+        dialog.viewLayout.addLayout(backup_layout)
+        data_manager_hint = CaptionLabel(self.tr_data_manager_hint, dialog)
+        data_manager_hint.setWordWrap(True)
+        dialog.viewLayout.addWidget(data_manager_hint)
+
+        import_data_btn.clicked.connect(self.on_import_data)
+        export_data_btn.clicked.connect(self.on_export_data)
+        dialog.yesButton.setText(og.app.tr("关闭"))
+        dialog.cancelButton.hide()
+        dialog.exec()
 
     def on_import_data(self):
         downloads_path = Path.home() / "Downloads"
@@ -397,7 +401,7 @@ class CharManagerTab(CustomTab):
             return
 
         try:
-            imported = self._import_custom_data_zip(Path(file_path))
+            imported = self.manager.import_custom_data(file_path)
         except Exception as e:
             InfoBar.error(
                 title=self.tr_import_failed,
@@ -428,49 +432,6 @@ class CharManagerTab(CustomTab):
             parent=self.window(),
         )
 
-    def _import_custom_data_zip(self, zip_path: Path) -> int:
-        if not zip_path.is_file():
-            raise ValueError("文件不存在")
-
-        with zipfile.ZipFile(zip_path, "r") as zipf:
-            custom_infos = []
-            for info in (i for i in zipf.infolist() if not i.is_dir()):
-                name = info.filename.replace("\\", "/").lstrip("/")
-                if name.startswith("custom_chars/"):
-                    custom_infos.append((info, [p for p in name.split("/") if p]))
-
-            if any(not parts or parts[0] != "custom_chars" for _, parts in custom_infos):
-                raise ValueError("不支持的导入格式")
-            if any(p == ".." or ":" in p for _, parts in custom_infos for p in parts):
-                raise ValueError("不安全的压缩包路径")
-
-            db_info = next(
-                (info for info, parts in custom_infos if "/".join(parts) == "custom_chars/db.json"),
-                None,
-            )
-            if db_info is None:
-                raise ValueError("仅支持导入导出数据的 zip（缺少 custom_chars/db.json）")
-            if not custom_infos:
-                raise ValueError("压缩包内没有可导入的数据")
-
-            try:
-                json.loads(zipf.read(db_info).decode("utf-8"))
-            except Exception:
-                raise ValueError("仅支持导入导出数据的 zip（custom_chars/db.json 无效）")
-
-            dest_root = Path.cwd().resolve()
-            imported = 0
-            for info, parts in custom_infos:
-                target = (dest_root / Path(*parts)).resolve()
-                if not target.is_relative_to(dest_root):
-                    raise ValueError("不安全的压缩包路径")
-                target.parent.mkdir(parents=True, exist_ok=True)
-                with zipf.open(info, "r") as src, open(target, "wb") as dst:
-                    shutil.copyfileobj(src, dst)
-                imported += 1
-
-        return imported
-
     def on_char_selected(self, item):
         if not item:
             self.current_char_id = None
@@ -488,7 +449,7 @@ class CharManagerTab(CustomTab):
     def _reload_combo_options(self):
         self.combo_select.blockSignals(True)
         self.combo_select.clear()
-        for combo_name, combo_id in self.manager.get_all_combo_items(with_builtin_prefix=True):
+        for combo_name, combo_id in self.manager.get_all_impl_items(with_builtin_prefix=True):
             self.combo_select.addItem(combo_name, userData=combo_id)
         self.combo_select.setCurrentIndex(-1)
         self.combo_select.blockSignals(False)
@@ -505,7 +466,7 @@ class CharManagerTab(CustomTab):
         return ""
 
     def _set_combo_selection_by_id(self, combo_id: str):
-        combo_name = self.manager.get_combo_name(combo_id, with_builtin_prefix=True)
+        combo_name = self.manager.get_impl_name(combo_id, with_builtin_prefix=True)
         self.combo_select.blockSignals(True)
         idx = self.combo_select.findData(combo_id)
         if idx >= 0:
@@ -527,8 +488,8 @@ class CharManagerTab(CustomTab):
         self.title_spacer.changeSize(0, 0, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
         self.title_h_layout.invalidate()
         self.char_name_edit_btn.show()
-        combo_id = char_info["combo_id"]
-        combo_name = self.manager.get_combo_name(combo_id, with_builtin_prefix=True)
+        combo_id = char_info["impl_id"]
+        combo_name = self.manager.get_impl_name(combo_id, with_builtin_prefix=True)
         self._set_combo_selection_by_id(combo_id)
 
         # Manually trigger the text change logic to ensure built-in warnings render
@@ -578,7 +539,7 @@ class CharManagerTab(CustomTab):
         if combo_id is None:
             combo_id = self._resolve_combo_id(combo_name)
 
-        is_builtin = self.manager.is_builtin_combo(combo_id)
+        is_builtin = self.manager.is_builtin_impl(combo_id)
         if is_builtin:
             self.combo_text.setText(self.tr_builtin_text)
             self.combo_text.setReadOnly(True)
@@ -610,7 +571,7 @@ class CharManagerTab(CustomTab):
     def on_test_combo(self):
         combo_input = self.combo_select.currentText().strip()
         combo_id = self._resolve_combo_id(combo_input)
-        is_builtin = self.manager.is_builtin_combo(combo_id)
+        is_builtin = self.manager.is_builtin_impl(combo_id)
 
         if not is_builtin:
             combo_content = self.combo_text.toPlainText().strip()
@@ -634,7 +595,7 @@ class CharManagerTab(CustomTab):
 
     def _run_combo_test(self):
         og.app.start_controller.do_start()
-        from src.char.CharFactory import get_char_by_id
+        from src.char.core.CharFactory import get_char_by_id
         from src.char.custom.CustomChar import CustomChar
         from src.tasks.trigger.AutoCombatTask import AutoCombatTask
 
@@ -646,7 +607,7 @@ class CharManagerTab(CustomTab):
         combo_id = self._resolve_combo_id(combo_input)
         if combo_id:
             test_char = get_char_by_id(
-                task, index=0, char_id=self.current_char_id, combo_id=combo_id
+                task, index=0, char_id=self.current_char_id, impl_id=combo_id
             )
         else:
             test_char = CustomChar(task, index=0, char_id=self.current_char_id)
@@ -688,11 +649,11 @@ class CharManagerTab(CustomTab):
         combo_input = self.combo_select.currentText().strip()
         combo_content = self.combo_text.toPlainText().strip()
         combo_id = self._resolve_combo_id(combo_input)
-        combo_name = self.manager.get_combo_name(combo_id, with_builtin_prefix=True)
+        combo_name = self.manager.get_impl_name(combo_id, with_builtin_prefix=True)
         if not combo_name:
             combo_name = combo_input
 
-        is_builtin = self.manager.is_builtin_combo(combo_id)
+        is_builtin = self.manager.is_builtin_impl(combo_id)
 
         if is_builtin and not self.current_char_id:
             return
@@ -826,7 +787,7 @@ class CharManagerTab(CustomTab):
         if not self.current_char_id:
             return
 
-        self.manager.update_character(self.current_char_id, combo_id="")
+        self.manager.update_character(self.current_char_id, impl_id="")
 
         # 刷新列表和右侧界面
         self._render_right_panel()
@@ -845,15 +806,15 @@ class CharManagerTab(CustomTab):
     def on_delete_combo(self):
         combo_name = self.combo_select.currentText().strip()
         combo_id = self._resolve_combo_id(combo_name)
-        if not combo_id or self.manager.is_builtin_combo(combo_id):
+        if not combo_id or self.manager.is_builtin_impl(combo_id):
             return
 
         self.manager.delete_combo(combo_id)
 
         # 解绑所有正在使用该出招表的角色
         for c_id, c_data in self.manager.get_all_characters().items():
-            if c_data.get("combo_id", "") == combo_id:
-                self.manager.update_character(c_id, combo_id="")
+            if c_data.get("impl_id", "") == combo_id:
+                self.manager.update_character(c_id, impl_id="")
 
         # 刷新出招表下拉列表
         self._reload_combo_options()

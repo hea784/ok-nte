@@ -1,12 +1,16 @@
+import json
 import os
+import shutil
 import uuid
+import zipfile
 from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
 from threading import Lock, RLock, Thread
 from typing import TYPE_CHECKING
 
 import cv2
 import numpy as np
-from ok import Logger, og
+from ok import Logger, get_path_relative_to_exe, og
 
 from src.char.custom.CustomCharDb import CustomCharDb
 from src.char.custom.CustomCharDbMigrator import MigrationContext
@@ -17,9 +21,9 @@ if TYPE_CHECKING:
 
 logger = Logger.get_logger(__name__)
 
-CUSTOM_CHARS_DIR = "custom_chars"
-FEATURES_DIR = os.path.join(CUSTOM_CHARS_DIR, "features")
-DB_PATH = os.path.join(CUSTOM_CHARS_DIR, "db.json")
+CUSTOM_CHARS_DIR = get_path_relative_to_exe("custom_chars")
+FEATURES_DIR = get_path_relative_to_exe("custom_chars", "features")
+DB_PATH = get_path_relative_to_exe("custom_chars", "db.json")
 
 
 class CustomCharManager:
@@ -39,9 +43,9 @@ class CustomCharManager:
         self._data_lock = RLock()
         os.makedirs(FEATURES_DIR, exist_ok=True)
         context = MigrationContext(
-            is_builtin_combo=self.is_builtin_combo,
+            is_builtin_impl=self.is_registered_impl,
             get_builtin_prefix=self.get_builtin_prefix,
-            iter_builtin_combo_items=self.iter_builtin_combo_items,
+            iter_builtin_impl_items=self.iter_builtin_impl_items,
             generate_combo_id=lambda _existing: f"combo_{uuid.uuid4().hex}",
         )
         self._db = CustomCharDb(DB_PATH, FEATURES_DIR, context, logger)
@@ -57,10 +61,14 @@ class CustomCharManager:
         self.preheat_feature_cache_async()
 
     @staticmethod
-    def _builtin_entries() -> dict:
-        from src.char.CharFactory import char_dict
+    def _implementation_entries():
+        from src.char.core.CharRegistry import char_registry
 
-        return {key: value for key, value in char_dict.items() if key != "char_default"}
+        return char_registry.get_all()
+
+    @classmethod
+    def _builtin_entries(cls):
+        return (entry for entry in cls._implementation_entries() if entry.source == "builtin")
 
     @staticmethod
     def _locale_name() -> str:
@@ -80,25 +88,32 @@ class CustomCharManager:
         return "[内置代码] "
 
     @classmethod
-    def is_builtin_combo(cls, combo_id: str) -> bool:
-        return ("" if combo_id is None else str(combo_id)) in cls._builtin_entries()
+    def is_builtin_impl(cls, impl_id: str) -> bool:
+        impl_id = "" if impl_id is None else str(impl_id)
+        return any(entry.impl_id == impl_id for entry in cls._builtin_entries())
 
     @classmethod
-    def get_builtin_combo_name(cls, combo_id: str) -> str:
-        entries = cls._builtin_entries()
-        combo_id = "" if combo_id is None else str(combo_id)
-        meta = entries.get(combo_id)
-        if not isinstance(meta, dict):
-            return combo_id
-        if cls._locale_name() == "zh_CN" and meta.get("cn_name"):
-            return str(meta["cn_name"])
-        char_cls = meta.get("cls")
-        return getattr(char_cls, "__name__", combo_id)
+    def is_registered_impl(cls, impl_id: str) -> bool:
+        impl_id = "" if impl_id is None else str(impl_id)
+        return any(entry.impl_id == impl_id for entry in cls._implementation_entries())
 
     @classmethod
-    def iter_builtin_combo_items(cls):
-        for combo_id in cls._builtin_entries().keys():
-            yield cls.get_builtin_combo_name(combo_id), combo_id
+    def get_registered_impl_name(cls, impl_id: str) -> str:
+        impl_id = "" if impl_id is None else str(impl_id)
+        for entry in cls._implementation_entries():
+            if entry.impl_id == impl_id:
+                return entry.display_name(cls._locale_name())
+        return ""
+
+    @classmethod
+    def get_builtin_impl_name(cls, impl_id: str) -> str:
+        impl_id = "" if impl_id is None else str(impl_id)
+        return cls.get_registered_impl_name(impl_id) or impl_id
+
+    @classmethod
+    def iter_builtin_impl_items(cls):
+        for entry in cls._builtin_entries():
+            yield cls.get_builtin_impl_name(entry.impl_id), entry.impl_id
 
     def load_db(self):
         self._db.reload()
@@ -159,10 +174,6 @@ class CustomCharManager:
     def migrate_db_schema(self):
         self._db.reload()
 
-    def _find_character_id_by_name(self, char_name: str) -> str | None:
-        """Compatibility helper for existing callers; lookup ownership is in CustomCharDb."""
-        return self._db.find_character_id_by_name(char_name)
-
     def find_custom_combo_id_by_name(self, combo_name: str) -> str:
         return self._db.find_combo_id_by_name(combo_name)
 
@@ -185,43 +196,39 @@ class CustomCharManager:
         """获取出招表"""
         return self._db.get_combo(combo_id)
 
-    def get_combo_name(self, combo_id: str, with_builtin_prefix=False) -> str:
-        combo_id = "" if combo_id is None else str(combo_id)
-        if not combo_id:
+    def get_impl_name(self, impl_id: str, with_builtin_prefix=False) -> str:
+        impl_id = "" if impl_id is None else str(impl_id)
+        if not impl_id:
             return ""
-        if self.is_builtin_combo(combo_id):
-            name = self.get_builtin_combo_name(combo_id)
-            if with_builtin_prefix:
+        name = self.get_registered_impl_name(impl_id)
+        if name:
+            if with_builtin_prefix and self.is_builtin_impl(impl_id):
                 return f"{self.get_builtin_prefix()}{name}"
             return name
-        return self._db.get_custom_combo_name(combo_id) or combo_id
+        return self._db.get_custom_combo_name(impl_id) or impl_id
 
-    def get_all_combos(self):
-        combos = [name for name, _ in self._db.get_custom_combo_items()]
-        combos.extend(name for name, _ in self.iter_builtin_combo_items())
-        return combos
-
-    def get_all_combo_items(self, with_builtin_prefix=False):
+    def get_all_impl_items(self, with_builtin_prefix=False):
         """
         Return combo options as (name, id) tuples for UI binding.
         """
         items = self._db.get_custom_combo_items()
-        for combo_name, combo_id in self.iter_builtin_combo_items():
-            if with_builtin_prefix:
-                combo_name = f"{self.get_builtin_prefix()}{combo_name}"
-            items.append((combo_name, combo_id))
+        for entry in self._implementation_entries():
+            impl_name = self.get_registered_impl_name(entry.impl_id)
+            if with_builtin_prefix and entry.source == "builtin":
+                impl_name = f"{self.get_builtin_prefix()}{impl_name}"
+            items.append((impl_name, entry.impl_id))
         return items
 
-    def create_character(self, char_name, combo_id) -> str:
+    def create_character(self, char_name, impl_id) -> str:
         """创建角色并返回 char_id"""
-        char_id = self._db.create_character(char_name, combo_id)
+        char_id = self._db.create_character(char_name, impl_id)
         if char_id:
             self._invalidate_feature_cache()
         return char_id
 
-    def update_character(self, char_id, char_name=None, combo_id=None) -> bool:
+    def update_character(self, char_id, char_name=None, impl_id=None) -> bool:
         """更新角色名称或出招表"""
-        updated = self._db.update_character(char_id, char_name, combo_id)
+        updated = self._db.update_character(char_id, char_name, impl_id)
         if updated:
             self._invalidate_feature_cache()
         return updated
@@ -435,32 +442,32 @@ class CustomCharManager:
         for char_id, char_data in self._db.get_character_records().items():
             out = dict(char_data)
             char_name = str(out.pop("name", char_id)).strip() or char_id
-            combo_id = "" if out.get("combo_id") is None else str(out.get("combo_id", ""))
+            impl_id = "" if out.get("impl_id") is None else str(out.get("impl_id", ""))
             out["char_id"] = char_id
             out["char_name"] = char_name
-            out["combo_id"] = combo_id
-            out["combo_name"] = self.get_combo_name(combo_id)
+            out["impl_id"] = impl_id
+            out["impl_name"] = self.get_impl_name(impl_id)
             characters[char_id] = out
         return characters
 
-    def get_character_combo_id_by_id(self, char_id: str) -> str:
+    def get_character_impl_id_by_id(self, char_id: str) -> str:
         info = self.get_character_info_by_id(char_id)
-        return info["combo_id"] if info else ""
+        return info["impl_id"] if info else ""
 
-    def get_character_combo_name_by_id(self, char_id: str) -> str:
-        return self.get_combo_name(self.get_character_combo_id_by_id(char_id))
+    def get_character_impl_name_by_id(self, char_id: str) -> str:
+        return self.get_impl_name(self.get_character_impl_id_by_id(char_id))
 
     def get_character_info_by_id(self, char_id: str) -> dict | None:
         char_info = self._db.get_character_record(char_id)
         if char_info is None:
             return None
-        combo_id = "" if char_info.get("combo_id") is None else str(char_info.get("combo_id", ""))
+        impl_id = "" if char_info.get("impl_id") is None else str(char_info.get("impl_id", ""))
         out = dict(char_info)
         char_name = str(out.pop("name", char_id)).strip() or char_id
         out["char_id"] = char_id
         out["char_name"] = char_name
-        out["combo_id"] = combo_id
-        out["combo_name"] = self.get_combo_name(combo_id)
+        out["impl_id"] = impl_id
+        out["impl_name"] = self.get_impl_name(impl_id)
         return out
 
     def get_fixed_team(self):
@@ -471,6 +478,64 @@ class CustomCharManager:
 
     def clear_fixed_team(self):
         self._db.clear_fixed_team()
+
+    def export_custom_data(self, zip_path: str | Path) -> bool:
+        """Export custom-character data using a stable archive layout."""
+        source_dir = Path(CUSTOM_CHARS_DIR)
+        if not source_dir.is_dir():
+            return False
+
+        with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zipf:
+            for file_path in source_dir.rglob("*"):
+                if file_path.is_file():
+                    archive_path = Path("custom_chars") / file_path.relative_to(source_dir)
+                    zipf.write(file_path, archive_path.as_posix())
+        return True
+
+    def import_custom_data(self, zip_path: str | Path) -> int:
+        """Validate and import a custom-character archive into the managed data directory."""
+        zip_path = Path(zip_path)
+        if not zip_path.is_file():
+            raise ValueError("文件不存在")
+
+        destination_dir = Path(CUSTOM_CHARS_DIR).resolve()
+        with zipfile.ZipFile(zip_path, "r") as zipf:
+            custom_infos = []
+            for info in (item for item in zipf.infolist() if not item.is_dir()):
+                name = info.filename.replace("\\", "/").lstrip("/")
+                if name.startswith("custom_chars/"):
+                    custom_infos.append((info, [part for part in name.split("/") if part]))
+
+            if any(not parts or parts[0] != "custom_chars" for _, parts in custom_infos):
+                raise ValueError("不支持的导入格式")
+            if any(part == ".." or ":" in part for _, parts in custom_infos for part in parts):
+                raise ValueError("不安全的压缩包路径")
+
+            db_info = next(
+                (info for info, parts in custom_infos if "/".join(parts) == "custom_chars/db.json"),
+                None,
+            )
+            if db_info is None:
+                raise ValueError("仅支持导入导出数据的 zip（缺少 custom_chars/db.json）")
+            if not custom_infos:
+                raise ValueError("压缩包内没有可导入的数据")
+
+            try:
+                json.loads(zipf.read(db_info).decode("utf-8"))
+            except Exception as error:
+                raise ValueError("仅支持导入导出数据的 zip（custom_chars/db.json 无效）") from error
+
+            imported = 0
+            for info, parts in custom_infos:
+                target = (destination_dir / Path(*parts[1:])).resolve()
+                if not target.is_relative_to(destination_dir):
+                    raise ValueError("不安全的压缩包路径")
+                target.parent.mkdir(parents=True, exist_ok=True)
+                with zipf.open(info, "r") as source, target.open("wb") as destination:
+                    shutil.copyfileobj(source, destination)
+                imported += 1
+
+        return imported
 
 
 def create_ellipse_mask(w, h, rx, ry):

@@ -6,9 +6,9 @@ from dataclasses import dataclass, field
 
 @dataclass(frozen=True)
 class MigrationContext:
-    is_builtin_combo: Callable[[str], bool]
+    is_builtin_impl: Callable[[str], bool]
     get_builtin_prefix: Callable[[], str]
-    iter_builtin_combo_items: Callable[[], Iterable[tuple[str, str]]]
+    iter_builtin_impl_items: Callable[[], Iterable[tuple[str, str]]]
     generate_combo_id: Callable[[set[str] | None], str]
 
 
@@ -26,6 +26,19 @@ class CustomCharDbMigrator:
     LEGACY_LAYOUT_SCHEMA_VERSION = 5
     LEGACY_BUILTIN_PREFIX = "builtin:"
     LEGACY_KEY_PATTERN = re.compile(r"\(([^)]+)\)\s*$")
+    LEGACY_BUILTIN_IDS = {
+        "char_zero": "builtin:zero",
+        "char_mint": "builtin:mint",
+        "char_jiuyuan": "builtin:jiuyuan",
+        "char_sakiri": "builtin:sakiri",
+        "char_nanally": "builtin:nanally",
+        "char_hotori": "builtin:hotori",
+        "char_chiz": "builtin:chiz",
+        "char_lacrimosa": "builtin:lacrimosa",
+        "char_fadia": "builtin:fadia",
+        "char_shinku": "builtin:shinku",
+        "char_iroi": "builtin:iroi",
+    }
 
     def __init__(self, context: MigrationContext, target_schema_version: int):
         self._context = context
@@ -41,7 +54,25 @@ class CustomCharDbMigrator:
             db = self._migrate_legacy_layout_to_v5(db)
 
         db, diagnostics = self._migrate_combo_syntax_to_current(db)
+        self._migrate_impl_ids(db)
         return MigrationResult(db=db, modified=True, needs_backup=True, diagnostics=diagnostics)
+
+    def _migrate_impl_ids(self, db: dict) -> None:
+        def impl_id(value) -> str:
+            value = self._as_text(value).strip()
+            return self.LEGACY_BUILTIN_IDS.get(value, value)
+
+        characters = db.get("characters", {})
+        if isinstance(characters, dict):
+            for record in characters.values():
+                if isinstance(record, dict):
+                    record["impl_id"] = impl_id(record.pop("combo_id", ""))
+
+        fixed_team = db.get("fixed_team", {})
+        if isinstance(fixed_team, dict) and isinstance(fixed_team.get("slots"), list):
+            for slot in fixed_team["slots"]:
+                if isinstance(slot, dict):
+                    slot["impl_id"] = impl_id(slot.pop("combo_id", ""))
 
     @staticmethod
     def _as_text(value) -> str:
@@ -81,15 +112,15 @@ class CustomCharDbMigrator:
         match = self.LEGACY_KEY_PATTERN.search(label)
         if match:
             key = match.group(1).strip()
-            if self._context.is_builtin_combo(key):
+            if self._context.is_builtin_impl(key):
                 return key
 
-        if self._context.is_builtin_combo(label):
+        if self._context.is_builtin_impl(label):
             return label
 
         matched_ids = [
             combo_id
-            for combo_name, combo_id in self._context.iter_builtin_combo_items()
+            for combo_name, combo_id in self._context.iter_builtin_impl_items()
             if combo_name == label
         ]
         return matched_ids[0] if len(matched_ids) == 1 else None
@@ -102,9 +133,11 @@ class CustomCharDbMigrator:
             return combo_id_remap[value]
         if value.startswith(self.LEGACY_BUILTIN_PREFIX):
             key = value[len(self.LEGACY_BUILTIN_PREFIX) :].strip()
-            if self._context.is_builtin_combo(key):
+            if key in self.LEGACY_BUILTIN_IDS:
+                return self.LEGACY_BUILTIN_IDS[key]
+            if self._context.is_builtin_impl(key):
                 return key
-        if self._context.is_builtin_combo(value):
+        if self._context.is_builtin_impl(value):
             return value
         legacy_builtin_id = self._legacy_builtin_label_to_combo_id(value)
         return legacy_builtin_id or value
@@ -171,7 +204,7 @@ class CustomCharDbMigrator:
             combo_id = self._legacy_value_to_combo_id(combo_value, combo_id_remap)
             if (
                 combo_id
-                and not self._context.is_builtin_combo(combo_id)
+                and not self._context.is_builtin_impl(combo_id)
                 and combo_id not in normalized_combos
             ):
                 combo_id = ""

@@ -298,27 +298,13 @@ class LauncherTask(BaseNTETask):
         return per > 0.8, box
 
     def _ensure_launcher_visible(self):
-        launcher_proc = self._find_process(LAUNCHER_EXE)
-        if not launcher_proc:
-            return False
-        launcher_hwnd = self._find_window_for_process(
-            launcher_proc,
-            hwnd_class=self.capture_config.LAUNCHER_CAPTURE_CONFIG["windows"]["hwnd_class"],
-            require_title=True,
-        )
+        _, launcher_hwnd = self._find_process_window(LAUNCHER_EXE, require_title=True)
         if not launcher_hwnd:
             return False
         return self._restore_window_if_minimized(launcher_hwnd, LAUNCHER_EXE)
 
     def _is_launcher_hidden_or_minimized(self):
-        launcher_proc = self._find_process(LAUNCHER_EXE)
-        if not launcher_proc:
-            return False
-        launcher_hwnd = self._find_window_for_process(
-            launcher_proc,
-            hwnd_class=self.capture_config.LAUNCHER_CAPTURE_CONFIG["windows"]["hwnd_class"],
-            require_title=True,
-        )
+        _, launcher_hwnd = self._find_process_window(LAUNCHER_EXE, require_title=True)
         if not launcher_hwnd:
             return False
         return bool(win32gui.IsIconic(launcher_hwnd) or not win32gui.IsWindowVisible(launcher_hwnd))
@@ -373,9 +359,11 @@ class LauncherTask(BaseNTETask):
         )
         start = time.time()
         while time.time() - start < time_out:
-            proc = self._find_process(exe_name)
+            proc, hwnd = self._find_process_window(
+                exe_name,
+                require_title=exe_name == LAUNCHER_EXE,
+            )
             if proc:
-                hwnd = self._find_window_for_process(proc)
                 if hwnd:
                     self._restore_window_if_minimized(hwnd, exe_name)
                     size = self._get_window_size(hwnd)
@@ -385,12 +373,6 @@ class LauncherTask(BaseNTETask):
                             f"Window for {exe_label} exists but is too small; "
                             f"hwnd={hwnd}, size={size[0]}x{size[1]}, elapsed={elapsed}s",
                         )
-                        if exe_name == LAUNCHER_EXE and elapsed > 0 and elapsed % 10 == 0:
-                            self.log_warning(
-                                f"Launcher window remains too small after {elapsed}s; "
-                                "attempting force restore"
-                            )
-                            self._restore_window_if_minimized(hwnd, exe_name, force=True)
                         self.sleep(1)
                         continue
 
@@ -432,6 +414,20 @@ class LauncherTask(BaseNTETask):
             except (psutil.NoSuchProcess, psutil.AccessDenied):
                 continue
         return None
+
+    def _find_process_window(self, exe_name, require_title=False):
+        proc = self._find_process(exe_name)
+        if not proc:
+            return None, 0
+
+        capture_config = (
+            self.capture_config.GAME_CAPTURE_CONFIG
+            if exe_name == GAME_EXE
+            else self.capture_config.LAUNCHER_CAPTURE_CONFIG
+        )["windows"]
+        return proc, self._find_window_for_process(
+            proc, hwnd_class=capture_config["hwnd_class"], require_title=require_title
+        )
 
     def _find_window_for_process(self, proc_info, hwnd_class=None, require_title=False):
         pid = proc_info.get("pid")
@@ -514,18 +510,15 @@ class LauncherTask(BaseNTETask):
         self.log_warning(f"Timed out while waiting for {exe_name} window size to settle")
         return False
 
-    def _restore_window_if_minimized(self, hwnd, exe_name, force=False):
+    def _restore_window_if_minimized(self, hwnd, exe_name):
         is_minimized = bool(win32gui.IsIconic(hwnd))
         is_visible = bool(win32gui.IsWindowVisible(hwnd))
-        if not force and not is_minimized and is_visible:
+        if not is_minimized and is_visible:
             return True
 
-        state = "minimized" if is_minimized else "hidden" if not is_visible else "too small"
+        state = "minimized" if is_minimized else "hidden"
         self.log_info(f"Window for {_format_exe_names(exe_name)} is {state}; restoring hwnd={hwnd}")
-        if force:
-            win32gui.ShowWindow(hwnd, win32con.SW_MINIMIZE)
-            self.sleep(0.2)
-        if is_minimized or force:
+        if is_minimized:
             win32gui.ShowWindow(hwnd, win32con.SW_RESTORE)
         else:
             win32gui.ShowWindow(hwnd, win32con.SW_SHOW)

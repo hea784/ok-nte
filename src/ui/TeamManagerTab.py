@@ -81,7 +81,7 @@ class NewCharDialog(MessageBoxBase):
         self.combo_list = SearchableComboBox()
         self.combo_list.setPlaceholderText(self.tr_list_ph)
         self.combo_list.addItem("", userData="")
-        for combo_name, combo_id in self.manager.get_all_combo_items(with_builtin_prefix=True):
+        for combo_name, combo_id in self.manager.get_all_impl_items(with_builtin_prefix=True):
             self.combo_list.addItem(combo_name, userData=combo_id)
         self.viewLayout.addWidget(self.combo_list)
 
@@ -93,14 +93,14 @@ class NewCharDialog(MessageBoxBase):
         idx = self.char_combo.findText(text)
         char_id = self.char_combo.itemData(idx) if idx >= 0 else ""
         char_info = self.manager.get_character_info_by_id(char_id)
-        combo_id = char_info["combo_id"] if char_info else ""
+        combo_id = char_info["impl_id"] if char_info else ""
         if combo_id:
             idx = self.combo_list.findData(combo_id)
             if idx >= 0:
                 self.combo_list.setCurrentIndex(idx)
             else:
                 self.combo_list.setCurrentText(
-                    self.manager.get_combo_name(combo_id, with_builtin_prefix=True)
+                    self.manager.get_impl_name(combo_id, with_builtin_prefix=True)
                 )
         elif char_info:
             self.combo_list.setCurrentIndex(0)
@@ -278,7 +278,7 @@ class SlotCard(BorderCardWidget):
                 if not char_id and char_name:
                     char_id = self.manager.create_character(char_name, combo_id)
                 elif char_id:
-                    self.manager.update_character(char_id, combo_id=combo_id)
+                    self.manager.update_character(char_id, impl_id=combo_id)
 
                 self.manager.add_feature_to_character(
                     char_id,
@@ -336,7 +336,7 @@ class FixedTeamSlotCard(BorderCardWidget):
         return ""
 
     def _set_combo_by_id(self, combo_id: str):
-        combo_name = self.manager.get_combo_name(combo_id, with_builtin_prefix=True)
+        combo_name = self.manager.get_impl_name(combo_id, with_builtin_prefix=True)
         idx = self.combo_list.findData(combo_id)
         if idx >= 0:
             self.combo_list.setCurrentIndex(idx)
@@ -363,7 +363,7 @@ class FixedTeamSlotCard(BorderCardWidget):
         self.combo_list.blockSignals(True)
         self.combo_list.clear()
         self.combo_list.addItem("", userData="")
-        for combo_name, combo_id in self.manager.get_all_combo_items(with_builtin_prefix=True):
+        for combo_name, combo_id in self.manager.get_all_impl_items(with_builtin_prefix=True):
             self.combo_list.addItem(combo_name, userData=combo_id)
         if current_combo_id:
             self._set_combo_by_id(current_combo_id)
@@ -377,7 +377,7 @@ class FixedTeamSlotCard(BorderCardWidget):
         idx = self.char_combo.findText(text)
         char_id = self.char_combo.itemData(idx) if idx >= 0 else ""
         char_info = self.manager.get_character_info_by_id(char_id)
-        combo_id = char_info["combo_id"] if char_info else ""
+        combo_id = char_info["impl_id"] if char_info else ""
         if combo_id:
             self._set_combo_by_id(combo_id)
         elif char_info:
@@ -660,14 +660,14 @@ class TeamManagerTab(CustomTab):
                     if not char_id and char_name:
                         char_id = self.manager.create_character(char_name, combo_id)
                     if char_id:
-                        self.manager.update_character(char_id, combo_id=combo_id)
+                        self.manager.update_character(char_id, impl_id=combo_id)
             else:
                 combo_id = ""
                 char_id = ""
             slots.append(
                 {
                     "char_id": char_id,
-                    "combo_id": combo_id,
+                    "impl_id": combo_id,
                 }
             )
         return slots, filled_count
@@ -700,7 +700,7 @@ class TeamManagerTab(CustomTab):
         for i, card in enumerate(self.fixed_team_slots):
             slot = slots[i] if i < len(slots) else {}
             char_id = slot.get("char_id", "")
-            card.set_data(char_id, slot.get("combo_id", ""))
+            card.set_data(char_id, slot.get("impl_id", ""))
         self.update_fixed_team_status()
 
     def on_scan_clicked(self):
@@ -749,7 +749,7 @@ class TeamManagerTab(CustomTab):
             if not (0 <= idx < 4) or not match_char_id:
                 continue
             char_info = self.manager.get_character_info_by_id(match_char_id)
-            combo_id = char_info["combo_id"] if char_info else ""
+            combo_id = char_info["impl_id"] if char_info else ""
             self.fixed_team_slots[idx].set_data(match_char_id, combo_id)
             filled_count += 1
 

@@ -42,7 +42,6 @@ class DailyTask(NTEOneTimeTask, CinemaDateMixin, BaseNTETask):
     DAILY_STAMINA_TARGET = "目标消耗体力"
 
     # --- 一咖舍任务选项 ---
-    COFFEE_MODE_NONE = "不执行"
     COFFEE_MODE_CLAIM_AND_RESTOCK = "领取/补货一咖舍"
     COFFEE_MODE_AUTO = "运行一咖舍自动化"
 
@@ -61,10 +60,10 @@ class DailyTask(NTEOneTimeTask, CinemaDateMixin, BaseNTETask):
             {
                 self.CONF_TASK: self.TASK[1],
                 self.DAILY_STAMINA_TARGET: 180,
-                self.CONF_COFFEE_TASK: self.COFFEE_MODE_NONE,
+                self.CONF_COFFEE_TASK: self.TASK_NONE,
                 self.CONF_CINEMA_DATE: False,
                 self.CINEMA_DATE_TARGET: "",
-                self.CONF_FOUNTAIN_SIGN: False,
+                self.CONF_FOUNTAIN_SIGN: self.TASK_NONE,
                 self.CONF_FURNITURE: False,
                 self.CONF_GIFT: False,
             }
@@ -74,7 +73,7 @@ class DailyTask(NTEOneTimeTask, CinemaDateMixin, BaseNTETask):
                 self.CONF_COFFEE_TASK: "选择日常任务中的一咖舍处理方式",
             }
         )
-        coffee_options = [self.COFFEE_MODE_NONE, self.COFFEE_MODE_CLAIM_AND_RESTOCK]
+        coffee_options = [self.TASK_NONE, self.COFFEE_MODE_CLAIM_AND_RESTOCK]
         # 一咖舍自动化页面 OCR 仅匹配简体中文; 在非 zh_CN 下不向用户暴露自动化选项.
         if self.get_app_locale() == "zh_CN":
             coffee_options.append(self.COFFEE_MODE_AUTO)
@@ -102,6 +101,14 @@ class DailyTask(NTEOneTimeTask, CinemaDateMixin, BaseNTETask):
                         ]
                     },
                 },
+                self.CONF_FOUNTAIN_SIGN: {
+                    "type": "drop_down",
+                    "options": [
+                        self.TASK_NONE,
+                        FountainTask.SIGN_MODE_SIGN,
+                        FountainTask.SIGN_MODE_COIN,
+                    ],
+                },
             }
         )
 
@@ -123,8 +130,6 @@ class DailyTask(NTEOneTimeTask, CinemaDateMixin, BaseNTETask):
         self.ensure_main()
         self.log_info("开始执行日常任务")
 
-        coffee_mode = [self.COFFEE_MODE_CLAIM_AND_RESTOCK, self.COFFEE_MODE_AUTO]
-
         tasks: List[Tuple[str, bool, Callable]] = [
             (
                 self.CONF_CLAIM_MAIL,
@@ -143,7 +148,7 @@ class DailyTask(NTEOneTimeTask, CinemaDateMixin, BaseNTETask):
             ),
             (
                 self.CONF_COFFEE_TASK,
-                self.config.get(self.CONF_COFFEE_TASK) in coffee_mode,
+                self._task_enabled(self.CONF_COFFEE_TASK, self.TASK_NONE, self.TASK_NONE),
                 self.run_coffee_task,
             ),
             (
@@ -158,7 +163,7 @@ class DailyTask(NTEOneTimeTask, CinemaDateMixin, BaseNTETask):
             ),
             (
                 self.CONF_FOUNTAIN_SIGN,
-                self._task_enabled(self.CONF_FOUNTAIN_SIGN, False),
+                self._task_enabled(self.CONF_FOUNTAIN_SIGN, self.TASK_NONE, self.TASK_NONE),
                 self.run_fountain_sign_task,
             ),
             (
@@ -182,8 +187,13 @@ class DailyTask(NTEOneTimeTask, CinemaDateMixin, BaseNTETask):
         self._print_result()
         self.log_info("结束执行日常任务", notify=True)
 
-    def _task_enabled(self, key, default):
-        return bool(self.config.get(key, default))
+    def _task_enabled(self, key, default, not_equal=None):
+        value = self.config.get(key, default)
+        if isinstance(value, bool):
+            return value
+        elif not_equal and value != not_equal:
+            return True
+        return False
 
     def execute_task(self, key, enabled, func):
         """执行单个子任务。
@@ -502,8 +512,9 @@ class DailyTask(NTEOneTimeTask, CinemaDateMixin, BaseNTETask):
         return True
 
     def run_fountain_sign_task(self):
+        sign_mode = self.config.get(self.CONF_FOUNTAIN_SIGN)
         with self.set_working_task(FountainTask) as task:
-            return task.do_run()
+            return task.do_run(sign_mode)
 
     def claim_anomaly_furniture(self):
         """领取异象家具奖励"""

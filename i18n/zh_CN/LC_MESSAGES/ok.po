@@ -1208,3 +1208,23 @@ msgstr ""
 
 msgid "副本类型"
 msgstr ""
+
+msgid "签到方式"
+msgstr ""
+
+msgid "签到"
+msgstr ""
+
+msgid "捞币"
+msgstr ""
+
+msgid ""
+"导入数据会完整覆盖当前用户资料.\n"
+"导出数据会导出完整用户资料."
+msgstr ""
+
+msgid "资料管理"
+msgstr ""
+
+msgid "关闭"
+msgstr ""

@@ -6,7 +6,7 @@ from threading import Lock, RLock
 
 from src.char.custom.CustomCharDbMigrator import CustomCharDbMigrator, MigrationContext
 
-DB_SCHEMA_VERSION = 6
+DB_SCHEMA_VERSION = 7
 
 
 class CustomCharDb:
@@ -48,17 +48,17 @@ class CustomCharDb:
 
     @staticmethod
     def _default_fixed_team() -> dict:
-        return {"enabled": False, "slots": [{"char_id": "", "combo_id": ""} for _ in range(4)]}
+        return {"enabled": False, "slots": [{"char_id": "", "impl_id": ""} for _ in range(4)]}
 
     @classmethod
     def _normalize_fixed_team_slot(cls, slot) -> dict:
         slot = slot if isinstance(slot, dict) else {}
         char_id = cls._as_text(slot.get("char_id", "")).strip()
-        combo_id = cls._as_text(slot.get("combo_id", "")).strip()
+        impl_id = cls._as_text(slot.get("impl_id", "")).strip()
         if cls._is_blank_text(char_id):
             char_id = ""
-            combo_id = ""
-        return {"char_id": char_id, "combo_id": combo_id}
+            impl_id = ""
+        return {"char_id": char_id, "impl_id": impl_id}
 
     @classmethod
     def _normalize_fixed_team_config(cls, config) -> dict:
@@ -122,11 +122,11 @@ class CustomCharDb:
         return self._default_data()
 
     def _backup_before_migration(self) -> bool:
-        """Preserve a pre-v6 source database once, before saving a migration."""
+        """Preserve a pre-v7 source database once, before saving a migration."""
         if not os.path.exists(self.db_path):
             return True
 
-        backup_path = f"{self.db_path}.pre-v6.bak"
+        backup_path = f"{self.db_path}.pre-v7.bak"
         if os.path.exists(backup_path):
             return True
 
@@ -155,7 +155,7 @@ class CustomCharDb:
                 raise
 
     def _normalize_current_data(self) -> bool:
-        """Normalize the current v6 record shape without interpreting historical fields."""
+        """Normalize the current v7 record shape without interpreting historical fields."""
         db = self._data
         modified = False
 
@@ -166,7 +166,7 @@ class CustomCharDb:
         valid_combos = {}
         for combo_id, combo_data in db["combos"].items():
             combo_id = self._as_text(combo_id).strip()
-            if self._is_blank_text(combo_id) or self.context.is_builtin_combo(combo_id):
+            if self._is_blank_text(combo_id) or self.context.is_builtin_impl(combo_id):
                 modified = True
                 continue
             if isinstance(combo_data, dict):
@@ -201,7 +201,7 @@ class CustomCharDb:
             if not isinstance(char_data, dict):
                 db["characters"][char_id] = {
                     "name": self._unique_name(self._as_text(char_id), used_names),
-                    "combo_id": "",
+                    "impl_id": "",
                     "feature_ids": [],
                 }
                 modified = True
@@ -214,16 +214,16 @@ class CustomCharDb:
                 char_data["name"] = char_name
                 modified = True
 
-            combo_id = self._as_text(char_data.get("combo_id", "")).strip()
+            impl_id = self._as_text(char_data.get("impl_id", "")).strip()
             if (
-                combo_id
-                and not self.context.is_builtin_combo(combo_id)
-                and combo_id not in db["combos"]
+                impl_id
+                and not self.context.is_builtin_impl(impl_id)
+                and impl_id not in db["combos"]
             ):
-                combo_id = ""
+                impl_id = ""
                 modified = True
-            if combo_id != char_data.get("combo_id", ""):
-                char_data["combo_id"] = combo_id
+            if impl_id != char_data.get("impl_id", ""):
+                char_data["impl_id"] = impl_id
                 modified = True
 
             feature_ids = char_data.get("feature_ids", [])
@@ -288,7 +288,7 @@ class CustomCharDb:
     def _generate_combo_id(self) -> str:
         while True:
             combo_id = f"combo_{uuid.uuid4().hex}"
-            if combo_id not in self._data["combos"] and not self.context.is_builtin_combo(combo_id):
+            if combo_id not in self._data["combos"] and not self.context.is_builtin_impl(combo_id):
                 return combo_id
 
     def find_combo_id_by_name(self, combo_name: str) -> str:
@@ -309,7 +309,7 @@ class CustomCharDb:
             combo_id = (
                 combo_id or self.find_combo_id_by_name(combo_name) or self._generate_combo_id()
             )
-            if self.context.is_builtin_combo(combo_id):
+            if self.context.is_builtin_impl(combo_id):
                 return ""
             self._data["combos"][combo_id] = {"name": combo_name, "content": self._as_text(content)}
             self._save_locked()
@@ -319,7 +319,7 @@ class CustomCharDb:
         combo_id = self._as_text(combo_id)
         with self._lock:
             record = self._data["combos"].get(combo_id)
-            if not isinstance(record, dict) or self.context.is_builtin_combo(combo_id):
+            if not isinstance(record, dict) or self.context.is_builtin_impl(combo_id):
                 return False
             if combo_name is not None and not self._is_blank_text(combo_name):
                 record["name"] = self._as_text(combo_name).strip()
@@ -334,8 +334,8 @@ class CustomCharDb:
             fixed_team = self._normalize_fixed_team_config(self._data.get("fixed_team"))
             fixed_team_changed = False
             for slot in fixed_team["slots"]:
-                if slot["combo_id"] == combo_id:
-                    slot["combo_id"] = ""
+                if slot["impl_id"] == combo_id:
+                    slot["impl_id"] = ""
                     fixed_team_changed = True
             if fixed_team_changed:
                 self._data["fixed_team"] = fixed_team
@@ -346,8 +346,8 @@ class CustomCharDb:
         with self._lock:
             return self._as_text(combo_id) in self._data["combos"]
 
-    def has_combo_id(self, combo_id: str) -> bool:
-        return self.context.is_builtin_combo(combo_id) or self.has_custom_combo(combo_id)
+    def has_impl_id(self, impl_id: str) -> bool:
+        return self.context.is_builtin_impl(impl_id) or self.has_custom_combo(impl_id)
 
     def get_combo(self, combo_id: str) -> str:
         with self._lock:
@@ -373,27 +373,27 @@ class CustomCharDb:
                 if isinstance(data, dict)
             ]
 
-    def create_character(self, char_name: str, combo_id: str) -> str:
+    def create_character(self, char_name: str, impl_id: str) -> str:
         char_name = self._as_text(char_name).strip()
-        combo_id = self._as_text(combo_id)
+        impl_id = self._as_text(impl_id)
         if self._is_blank_text(char_name):
             return ""
         with self._lock:
             existing_id = self.find_character_id_by_name(char_name)
             if existing_id:
                 return existing_id
-            if combo_id and not self.has_combo_id(combo_id):
-                combo_id = ""
+            if impl_id and not self.has_impl_id(impl_id):
+                impl_id = ""
             char_id = self._generate_character_id()
             self._data["characters"][char_id] = {
                 "name": char_name,
-                "combo_id": combo_id,
+                "impl_id": impl_id,
                 "feature_ids": [],
             }
             self._save_locked()
             return char_id
 
-    def update_character(self, char_id: str, char_name=None, combo_id=None) -> bool:
+    def update_character(self, char_id: str, char_name=None, impl_id=None) -> bool:
         with self._lock:
             record = self._data["characters"].get(char_id)
             if not isinstance(record, dict):
@@ -406,9 +406,9 @@ class CustomCharDb:
                 if existing_id and existing_id != char_id:
                     return False
                 record["name"] = char_name
-            if combo_id is not None:
-                combo_id = self._as_text(combo_id)
-                record["combo_id"] = combo_id if not combo_id or self.has_combo_id(combo_id) else ""
+            if impl_id is not None:
+                impl_id = self._as_text(impl_id)
+                record["impl_id"] = impl_id if not impl_id or self.has_impl_id(impl_id) else ""
             self._save_locked()
             return True
 
@@ -424,7 +424,7 @@ class CustomCharDb:
             for slot in fixed_team["slots"]:
                 if slot["char_id"] == char_id:
                     slot["char_id"] = ""
-                    slot["combo_id"] = ""
+                    slot["impl_id"] = ""
             self._data["fixed_team"] = fixed_team
             self._save_locked()
             return feature_ids

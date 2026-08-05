@@ -1225,3 +1225,23 @@ msgstr "Custom Cycle"
 
 msgid "副本类型"
 msgstr "Domain Type"
+
+msgid "签到方式"
+msgstr "Check-in Method"
+
+msgid "签到"
+msgstr "Check in"
+
+msgid "捞币"
+msgstr "Scoop Coins"
+
+msgid ""
+"导入数据会完整覆盖当前用户资料.\n"
+"导出数据会导出完整用户资料."
+msgstr "Importing data will completely overwrite current user profiles.\nExporting data will export complete user profiles."
+
+msgid "资料管理"
+msgstr "Data Management"
+
+msgid "关闭"
+msgstr "Close"
