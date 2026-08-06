@@ -1,10 +1,10 @@
 import time
 from dataclasses import dataclass
-from threading import Lock, Thread
+from types import MappingProxyType
 
 import cv2
 import numpy as np
-from ok import BaseTask, Box, Logger, get_path_relative_to_exe
+from ok import BaseTask, Box, get_path_relative_to_exe
 
 from src.char.BaseChar import Element
 from src.Labels import Labels
@@ -16,8 +16,7 @@ from src.utils.current_char_detector import (
     detect_current_char,
     normalize_char_count,
 )
-
-logger = Logger.get_logger(__name__)
+from src.utils.visual_template_cache import get_visual_template_cache
 
 
 @dataclass(frozen=True)
@@ -25,6 +24,10 @@ class ElementTemplate:
     image: np.ndarray
     mask: np.ndarray
     color_signature: tuple[float, float, float] | None
+
+    def __post_init__(self):
+        self.image.setflags(write=False)
+        self.mask.setflags(write=False)
 
 
 class CharUIMixin(BaseTask):
@@ -218,9 +221,7 @@ class CharUIMixin(BaseTask):
 
 
 class CharElementUIMixin(CharUIMixin):
-    _element_template_cache = {}
-    _element_template_cache_lock = Lock()
-    _element_template_preheat_started = False
+    _ELEMENT_TEMPLATE_CACHE_KEY = "element_templates"
     _element_match_weight = 0.6
     _element_color_weight = 0.4
     _element_min_score = 0.45
@@ -319,44 +320,32 @@ class CharElementUIMixin(CharUIMixin):
         )
 
     @classmethod
-    def build_element_template_cache(cls):
-        with cls._element_template_cache_lock:
-            if cls._element_template_cache:
-                return
-
-        built_cache = {}
+    def _build_element_templates(cls):
+        templates = {}
         for element in cls.element_ring:
             template_data = cls._load_element_template(element)
             if template_data is not None:
-                built_cache[element] = template_data
-
-        with cls._element_template_cache_lock:
-            if not cls._element_template_cache:
-                cls._element_template_cache = built_cache
+                templates[element] = template_data
+        return MappingProxyType(templates) if templates else None
 
     @classmethod
-    def _preheat_element_template_cache_worker(cls):
-        try:
-            cls.build_element_template_cache()
-            logger.debug(f"preheated {len(cls._element_template_cache)} element templates")
-        except Exception as e:
-            logger.error("Failed to preheat element templates", e)
+    def _get_element_templates(cls):
+        template_cache = get_visual_template_cache().get_or_build(
+            cls._ELEMENT_TEMPLATE_CACHE_KEY, cls._build_element_templates
+        )
+        return template_cache if template_cache is not None else MappingProxyType({})
 
     @classmethod
     def preheat_element_template_cache_async(cls):
-        with cls._element_template_cache_lock:
-            if cls._element_template_preheat_started or cls._element_template_cache:
-                return
-            cls._element_template_preheat_started = True
-        Thread(
-            target=cls._preheat_element_template_cache_worker,
-            name="element-template-cache-preheat",
-            daemon=True,
-        ).start()
+        get_visual_template_cache().preheat_async(
+            cls._ELEMENT_TEMPLATE_CACHE_KEY,
+            cls._build_element_templates,
+            thread_name="element-template-cache-preheat",
+        )
 
     def load_chars_element(self, indices: list[int]) -> dict:
         results = {}
-        self.build_element_template_cache()
+        template_cache = self._get_element_templates()
 
         base_box = self.get_base_char_element_box()
 
@@ -383,7 +372,7 @@ class CharElementUIMixin(CharUIMixin):
             best_color_score = 0.0
 
             for element in self.element_ring:
-                template_data = self._element_template_cache.get(element)
+                template_data = template_cache.get(element)
                 if template_data is None:
                     continue
                 template_img = template_data.image

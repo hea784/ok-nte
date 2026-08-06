@@ -81,7 +81,7 @@ class NewCharDialog(MessageBoxBase):
         self.combo_list = SearchableComboBox()
         self.combo_list.setPlaceholderText(self.tr_list_ph)
         self.combo_list.addItem("", userData="")
-        for combo_name, combo_id in self.manager.get_all_impl_items(with_builtin_prefix=True):
+        for combo_name, combo_id in self.manager.get_all_impl_items(with_source_prefix=True):
             self.combo_list.addItem(combo_name, userData=combo_id)
         self.viewLayout.addWidget(self.combo_list)
 
@@ -100,7 +100,7 @@ class NewCharDialog(MessageBoxBase):
                 self.combo_list.setCurrentIndex(idx)
             else:
                 self.combo_list.setCurrentText(
-                    self.manager.get_impl_name(combo_id, with_builtin_prefix=True)
+                    self.manager.get_impl_name(combo_id, with_source_prefix=True)
                 )
         elif char_info:
             self.combo_list.setCurrentIndex(0)
@@ -336,7 +336,7 @@ class FixedTeamSlotCard(BorderCardWidget):
         return ""
 
     def _set_combo_by_id(self, combo_id: str):
-        combo_name = self.manager.get_impl_name(combo_id, with_builtin_prefix=True)
+        combo_name = self.manager.get_impl_name(combo_id, with_source_prefix=True)
         idx = self.combo_list.findData(combo_id)
         if idx >= 0:
             self.combo_list.setCurrentIndex(idx)
@@ -363,7 +363,7 @@ class FixedTeamSlotCard(BorderCardWidget):
         self.combo_list.blockSignals(True)
         self.combo_list.clear()
         self.combo_list.addItem("", userData="")
-        for combo_name, combo_id in self.manager.get_all_impl_items(with_builtin_prefix=True):
+        for combo_name, combo_id in self.manager.get_all_impl_items(with_source_prefix=True):
             self.combo_list.addItem(combo_name, userData=combo_id)
         if current_combo_id:
             self._set_combo_by_id(current_combo_id)

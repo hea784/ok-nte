@@ -23,7 +23,7 @@ from qfluentwidgets import (
 )
 
 from src.gifts.GiftManager import GiftManager
-from src.tasks.GiftTask import GiftTask
+from src.tasks.daily.GiftTask import GiftTask
 from src.ui.common import BorderCardWidget, cv_to_pixmap
 from src.ui.util import ensure_scan_capture
 

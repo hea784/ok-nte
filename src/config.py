@@ -12,7 +12,7 @@ from src.process_feature import process_feature
 if "PATH" not in os.environ:
     os.environ["PATH"] = ""
 
-version = "v1.2.27"
+version = "v1.2.28"
 # 不需要修改version, Github Action打包会自动修改
 
 key_config_option = ConfigOption(
@@ -188,7 +188,6 @@ config = {
     "onetime_tasks": [  # 用户点击触发的任务
         ["src.tasks.LauncherTask", "LauncherTask"],
         ["src.tasks.DailyTask", "DailyTask"],
-        ["src.tasks.CoffeeTask", "CoffeeTask"],
         ["src.tasks.FishingTask", "FishingTask"],
         ["src.tasks.AnomalyTask", "AnomalyTask"],
         ["src.tasks.AnomalyHunter", "AnomalyHunter"],
@@ -199,8 +198,11 @@ config = {
         ["src.tasks.BagelAITools", "BagelAITools"],
         ["src.tasks.WhirlwindTask", "WhirlwindTask"],
         ["src.tasks.DSDFarmTask", "DSDFarmTask"],
-        ["src.tasks.GiftTask", "GiftTask"],
-        ["src.tasks.FountainTask", "FountainTask"],
+        ["src.tasks.daily.GiftTask", "GiftTask"],
+        ["src.tasks.daily.CoffeeTask", "CoffeeTask"],
+        ["src.tasks.daily.FountainTask", "FountainTask"],
+        ["src.tasks.daily.FurnitureTask", "FurnitureTask"],
+        ["src.tasks.daily.CinemaDateTask", "CinemaDateTask"],
         ["src.tasks.CombatDetectionTestTask", "CombatDetectionTestTask"],
         ["ok", "DiagnosisTask"],
         # ["src.tasks.custom.TeamScannerTask", "TeamScannerTask"],

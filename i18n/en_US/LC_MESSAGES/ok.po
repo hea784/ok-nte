@@ -252,10 +252,10 @@ msgid "关联特征"
 msgstr "Link Feature"
 
 msgid ""
-"此为内建 Python 脚本，不可在此修改。\n"
+"此为 Python 脚本，不可在此修改。\n"
 "请在对应的源文件中直接修改代码。"
 msgstr ""
-"This is a built-in Python script and cannot be modified here.\n"
+"This Python script cannot be modified here.\n"
 "Please modify the code directly in the corresponding source file."
 
 msgid "没有可用扫描结果"
@@ -1245,3 +1245,12 @@ msgstr "Data Management"
 
 msgid "关闭"
 msgstr "Close"
+
+msgid "[外置代码]"
+msgstr "[External Code]"
+
+msgid "打开外置代码目录"
+msgstr "Open External Code Folder"
+
+msgid "手动添加或修改 Python 代码后, 需点击 [{refresh}] 按钮以生效。<br>关于编写角色出招表的指南, 请参考 <a href='{doc_url}'>文档</a>。"
+msgstr "After manually adding or modifying Python code, click the [{refresh}] button for changes to take effect.<br>For a guide on writing character combo tables, please refer to the <a href='{doc_url}'>documentation</a>."

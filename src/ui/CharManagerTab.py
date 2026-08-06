@@ -6,7 +6,7 @@ from pathlib import Path
 import requests
 from ok import og
 from ok.gui.widget.CustomTab import CustomTab
-from ok.util.explorer import reveal_in_explorer
+from ok.util.explorer import open_explorer_folder, reveal_in_explorer
 from PySide6.QtCore import QEvent, Qt, QTimer, Signal, Slot
 from PySide6.QtGui import QColor
 from PySide6.QtWidgets import (
@@ -41,7 +41,8 @@ from qfluentwidgets import (
     TransparentToolButton,
 )
 
-from src.char.custom.CustomCharManager import CustomCharManager
+from src.char.core.CharRegistry import char_registry
+from src.char.custom.CustomCharManager import EXTERNAL_CHARS_DIR, CustomCharManager
 from src.ui.common import (
     COMBO,
     TEAM_MANAGEMENT,
@@ -50,6 +51,7 @@ from src.ui.common import (
     SearchableListWidget,
     SmoothSearchBar,
     char_manager_signals,
+    confirm_external_code_import,
     cv_to_pixmap,
 )
 from src.ui.util import tr_fmt
@@ -71,8 +73,17 @@ class CharManagerTab(CustomTab):
         self.tr_unbind_success = og.app.tr("解除绑定")
         self.tr_unbind_msg = tr_fmt("已解除 {} 的{combo}绑定", combo=COMBO)
         self.tr_import_data = og.app.tr("导入数据")
+        self.tr_open_external_chars_folder = og.app.tr("打开外置代码目录")
         self.tr_data_manager_hint = og.app.tr(
             "导入数据会完整覆盖当前用户资料.\n导出数据会导出完整用户资料."
+        )
+        self.tr_external_chars_hint = tr_fmt(
+            (
+                "手动添加或修改 Python 代码后, 需点击 [{refresh}] 按钮以生效。<br>"
+                "关于编写角色出招表的指南, 请参考 <a href='{doc_url}'>文档</a>。"
+            ),
+            refresh=og.app.tr("刷新列表"),
+            doc_url="https://cnb.cool/BnanZ0/ok-nte-update/-/tree/main/docs/combat_planner.md",
         )
         self.tr_import_failed = og.app.tr("导入失败")
         self.tr_import_success = og.app.tr("导入成功")
@@ -98,8 +109,8 @@ class CharManagerTab(CustomTab):
             "当前未绑定任何{combo}。\n遇到此角色将默认使用基础通用脚本(BaseChar)。",
             combo=COMBO,
         )
-        self.tr_builtin_text = og.app.tr(
-            "此为内建 Python 脚本，不可在此修改。\n请在对应的源文件中直接修改代码。"
+        self.tr_code_impl_text = og.app.tr(
+            "此为 Python 脚本，不可在此修改。\n请在对应的源文件中直接修改代码。"
         )
         self.tr_no_match_cmd = og.app.tr("没有找到匹配的指令。")
 
@@ -136,7 +147,7 @@ class CharManagerTab(CustomTab):
 
         self.refresh_btn = PushButton(FluentIcon.SYNC, og.app.tr("刷新列表"), self)
         self.refresh_btn.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-        self.refresh_btn.clicked.connect(self.refresh_list)
+        self.refresh_btn.clicked.connect(self.on_refresh_btn_clicked)
 
         self.delete_char_btn = PushButton(FluentIcon.DELETE, og.app.tr("删除角色"), self)
         self.delete_char_btn.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
@@ -355,6 +366,10 @@ class CharManagerTab(CustomTab):
 
         QTimer.singleShot(0, self._update_feature_widget_height)
 
+    def on_refresh_btn_clicked(self):
+        char_registry.rescan_external()
+        self.refresh_list()
+
     def on_export_data(self):
         downloads_path = Path.home() / "Downloads"
         base_name = "ok-nte-custom"
@@ -386,13 +401,28 @@ class CharManagerTab(CustomTab):
         data_manager_hint.setWordWrap(True)
         dialog.viewLayout.addWidget(data_manager_hint)
 
+        open_external_chars_folder_btn = PushButton(
+            FluentIcon.FOLDER, self.tr_open_external_chars_folder, dialog
+        )
+        dialog.viewLayout.addWidget(open_external_chars_folder_btn)
+        external_chars_hint = CaptionLabel(self.tr_external_chars_hint, dialog)
+        external_chars_hint.setOpenExternalLinks(True) 
+        external_chars_hint.setWordWrap(True)
+        dialog.viewLayout.addWidget(external_chars_hint)
+
         import_data_btn.clicked.connect(self.on_import_data)
         export_data_btn.clicked.connect(self.on_export_data)
+        open_external_chars_folder_btn.clicked.connect(self.on_open_external_chars_folder)
         dialog.yesButton.setText(og.app.tr("关闭"))
         dialog.cancelButton.hide()
         dialog.exec()
 
+    def on_open_external_chars_folder(self):
+        open_explorer_folder(EXTERNAL_CHARS_DIR)
+
     def on_import_data(self):
+        if not confirm_external_code_import(self):
+            return
         downloads_path = Path.home() / "Downloads"
         file_path, _ = QFileDialog.getOpenFileName(
             self, self.tr_import_data, str(downloads_path), "Zip Files (*.zip)"
@@ -419,7 +449,7 @@ class CharManagerTab(CustomTab):
         self.manager.load_db()
         self.manager.migrate_db_schema()
         self.manager.validate_db()
-        self.refresh_list()
+        self.on_refresh_btn_clicked()
         char_manager_signals.refresh_tab.emit()
 
         InfoBar.success(
@@ -449,7 +479,7 @@ class CharManagerTab(CustomTab):
     def _reload_combo_options(self):
         self.combo_select.blockSignals(True)
         self.combo_select.clear()
-        for combo_name, combo_id in self.manager.get_all_impl_items(with_builtin_prefix=True):
+        for combo_name, combo_id in self.manager.get_all_impl_items(with_source_prefix=True):
             self.combo_select.addItem(combo_name, userData=combo_id)
         self.combo_select.setCurrentIndex(-1)
         self.combo_select.blockSignals(False)
@@ -466,7 +496,7 @@ class CharManagerTab(CustomTab):
         return ""
 
     def _set_combo_selection_by_id(self, combo_id: str):
-        combo_name = self.manager.get_impl_name(combo_id, with_builtin_prefix=True)
+        combo_name = self.manager.get_impl_name(combo_id, with_source_prefix=True)
         self.combo_select.blockSignals(True)
         idx = self.combo_select.findData(combo_id)
         if idx >= 0:
@@ -489,7 +519,7 @@ class CharManagerTab(CustomTab):
         self.title_h_layout.invalidate()
         self.char_name_edit_btn.show()
         combo_id = char_info["impl_id"]
-        combo_name = self.manager.get_impl_name(combo_id, with_builtin_prefix=True)
+        combo_name = self.manager.get_impl_name(combo_id, with_source_prefix=True)
         self._set_combo_selection_by_id(combo_id)
 
         # Manually trigger the text change logic to ensure built-in warnings render
@@ -539,14 +569,14 @@ class CharManagerTab(CustomTab):
         if combo_id is None:
             combo_id = self._resolve_combo_id(combo_name)
 
-        is_builtin = self.manager.is_builtin_impl(combo_id)
-        if is_builtin:
-            self.combo_text.setText(self.tr_builtin_text)
+        is_code_impl = self.manager.is_registered_impl(combo_id)
+        if is_code_impl:
+            self.combo_text.setText(self.tr_code_impl_text)
             self.combo_text.setReadOnly(True)
             self.combo_text.setEnabled(False)
             self.combo_save_btn.setEnabled(self.current_char_id is not None)
             self.combo_unbind_btn.setEnabled(self.current_char_id is not None)
-            self.combo_delete_btn.setEnabled(False)  # Built-ins cannot be deleted
+            self.combo_delete_btn.setEnabled(False)  # Python implementations cannot be deleted here
             self.combo_test_btn.setEnabled(getattr(og.app, "debug", False))
             self.combo_select.setReadOnly(False)
             return
@@ -571,9 +601,9 @@ class CharManagerTab(CustomTab):
     def on_test_combo(self):
         combo_input = self.combo_select.currentText().strip()
         combo_id = self._resolve_combo_id(combo_input)
-        is_builtin = self.manager.is_builtin_impl(combo_id)
+        is_code_impl = self.manager.is_registered_impl(combo_id)
 
-        if not is_builtin:
+        if not is_code_impl:
             combo_content = self.combo_text.toPlainText().strip()
             if not combo_content:
                 return
@@ -649,17 +679,17 @@ class CharManagerTab(CustomTab):
         combo_input = self.combo_select.currentText().strip()
         combo_content = self.combo_text.toPlainText().strip()
         combo_id = self._resolve_combo_id(combo_input)
-        combo_name = self.manager.get_impl_name(combo_id, with_builtin_prefix=True)
+        combo_name = self.manager.get_impl_name(combo_id, with_source_prefix=True)
         if not combo_name:
             combo_name = combo_input
 
-        is_builtin = self.manager.is_builtin_impl(combo_id)
+        is_code_impl = self.manager.is_registered_impl(combo_id)
 
-        if is_builtin and not self.current_char_id:
+        if is_code_impl and not self.current_char_id:
             return
 
         if combo_input:
-            if not is_builtin:
+            if not is_code_impl:
                 from src.char.custom.CustomChar import CustomChar
 
                 is_valid, error = CustomChar.validate_combo_syntax(combo_content)
@@ -806,7 +836,7 @@ class CharManagerTab(CustomTab):
     def on_delete_combo(self):
         combo_name = self.combo_select.currentText().strip()
         combo_id = self._resolve_combo_id(combo_name)
-        if not combo_id or self.manager.is_builtin_impl(combo_id):
+        if not combo_id or self.manager.is_registered_impl(combo_id):
             return
 
         self.manager.delete_combo(combo_id)

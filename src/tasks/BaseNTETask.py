@@ -583,7 +583,14 @@ class BaseNTETask(
         box = box.copy(y_offset=y, width_offset=w, height_offset=-y)
         return self.find_one(Labels.teleport, box=box)
 
-    def click_nearest_map_teleport(self, threshold=0.7, time_out=5):
+    def _execute_map_teleport(self, find_func, zoom="mid", time_out=5):
+        """
+        通用的地图传送核心逻辑
+        :param find_func: 查找传送点的具体策略函数
+        :param time_out: 查找超时时间
+        :param action_name: 动作名称（用于日志和点击操作）
+        """
+        # 1. 确保在主界面并打开地图
         self.ensure_main()
         self.wait_until(
             lambda: self.find_one(Labels.map_city_tycoon_activities),
@@ -591,6 +598,35 @@ class BaseNTETask(
             pre_action=lambda: self.send_key("m", interval=2),
             raise_if_not_found=True,
         )
+
+        if zoom is not None:
+            self.sleep(0.5)
+            if isinstance(zoom, str):
+                if zoom == "max":
+                    self.operate_click(0.050, 0.372)
+                elif zoom == "mid":
+                    self.operate_click(0.050, 0.525)
+                elif zoom == "min":
+                    self.operate_click(0.050, 0.680)
+            elif callable(zoom):
+                zoom()
+            self.sleep(0.5)
+
+        # 2. 执行传入的自定义查找策略
+        teleport = self.wait_until(find_func, time_out=time_out, raise_if_not_found=True)
+        self.log_info(f"found map teleport {teleport}")
+
+        # 3. 点击传送点并执行传送(Travel)
+        self.operate_click(teleport)
+        self.sleep(0.5)
+        self.click_traval_button()
+
+        return teleport
+
+    def click_nearest_map_teleport(self, zoom="mid", threshold=0.7, time_out=5):
+        """
+        从屏幕中心向外延展搜索，点击最近的传送点
+        """
         to_find = [Labels.map_big_teleport, Labels.map_small_teleport]
         template_boxes = [self.get_box_by_name(label) for label in to_find]
         max_template_size = max(
@@ -601,7 +637,8 @@ class BaseNTETask(
         center_y = self.height_of_screen(0.5)
         max_radius = max(self.width, self.height)
 
-        def find_teleport():
+        # 定义中心向外扩展的查找策略
+        def find_nearest_teleport():
             radius = step
             while radius <= max_radius:
                 x = max(0, center_x - radius)
@@ -614,12 +651,26 @@ class BaseNTETask(
                     return teleport
                 radius += step
 
-        teleport = self.wait_until(find_teleport, time_out=time_out, raise_if_not_found=True)
-        self.log_info(f"found nearest map teleport {teleport}")
-        self.operate_click(teleport, action_name="click_nearest_map_teleport", interval=1)
-        self.sleep(0.5)
-        self.click_traval_button()
-        return teleport
+        # 调用通用方法
+        return self._execute_map_teleport(
+            find_func=find_nearest_teleport, zoom=zoom, time_out=time_out
+        )
+
+    def click_map_teleport(self, box, zoom="mid", threshold=0.7, time_out=5):
+        """
+        在指定的 box 区域内搜索并点击传送点
+        :param box: Box 对象，指定查找的固定范围
+        """
+        to_find = [Labels.map_big_teleport, Labels.map_small_teleport]
+
+        # 定义特定区域的查找策略
+        def find_teleport_in_box():
+            return self.find_best_match_in_box(box, to_find, threshold=threshold)
+
+        # 调用通用方法
+        return self._execute_map_teleport(
+            find_func=find_teleport_in_box, zoom=zoom, time_out=time_out
+        )
 
     def click_traval_button(self, travel_btn=None, raise_if_not_found=True):
         if not isinstance(travel_btn, Box):
@@ -1046,6 +1097,7 @@ class BaseNTETask(
         ):
             return False
         return True
+
 
 def interac_mask(image):
     mask = iu.create_color_mask(image, interac_pink_color, to_bgr=False)

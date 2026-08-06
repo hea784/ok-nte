@@ -252,10 +252,10 @@ msgid "关联特征"
 msgstr "關聯特徵"
 
 msgid ""
-"此为内建 Python 脚本，不可在此修改。\n"
+"此为 Python 脚本，不可在此修改。\n"
 "请在对应的源文件中直接修改代码。"
 msgstr ""
-"此為內建 Python 腳本，不可在此修改。\n"
+"此為 Python 腳本，不可在此修改。\n"
 "請在對應的源文件中直接修改代碼。"
 
 msgid "没有可用扫描结果"
@@ -1245,3 +1245,12 @@ msgstr "資料管理"
 
 msgid "关闭"
 msgstr "關閉"
+
+msgid "[外置代码]"
+msgstr "[外置代碼]"
+
+msgid "打开外置代码目录"
+msgstr "開啟外置程式碼目錄"
+
+msgid "手动添加或修改 Python 代码后, 需点击 [{refresh}] 按钮以生效。<br>关于编写角色出招表的指南, 请参考 <a href='{doc_url}'>文档</a>。"
+msgstr "手動新增或修改 Python 程式碼後，需點擊 [{refresh}] 按鈕以生效。<br>關於編寫角色出招表的指南，請參考 <a href='{doc_url}'>文件</a>。"

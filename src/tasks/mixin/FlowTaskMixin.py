@@ -4,8 +4,6 @@ from src.flow import Flow
 
 
 class FlowTaskMixin(BaseTask):
-    """Adapt Flow to tasks that provide frame refresh and monthly-card handling."""
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.flow = Flow()

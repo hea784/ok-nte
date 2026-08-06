@@ -264,10 +264,10 @@ msgid "关联特征"
 msgstr "Vincular característica"
 
 msgid ""
-"此为内建 Python 脚本，不可在此修改。\n"
+"此为 Python 脚本，不可在此修改。\n"
 "请在对应的源文件中直接修改代码。"
 msgstr ""
-"Este é um script Python interno e não pode ser modificado aqui.\n"
+"Este script Python não pode ser modificado aqui.\n"
 "Modifique o código diretamente no arquivo de origem correspondente."
 
 msgid "没有可用扫描结果"
@@ -970,3 +970,12 @@ msgstr "Gerenciamento de Dados"
 
 msgid "关闭"
 msgstr "Fechar"
+
+msgid "[外置代码]"
+msgstr "[Código externo]"
+
+msgid "打开外置代码目录"
+msgstr "Abrir pasta de código externo"
+
+msgid "手动添加或修改 Python 代码后, 需点击 [{refresh}] 按钮以生效。<br>关于编写角色出招表的指南, 请参考 <a href='{doc_url}'>文档</a>。"
+msgstr "Após adicionar ou modificar manualmente o código Python, clique no botão [{refresh}] para que as alterações entrem em vigor.<br>Para obter um guia sobre como escrever tabelas de combos de personagens, consulte a <a href='{doc_url}'>documentação</a>."

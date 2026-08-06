@@ -20,7 +20,7 @@ class FountainTask(BaseNTETask):
     BOOKSHOP_LOGO_BOX = (0.092, 0.170, 0.113, 0.206)
     BOOKSHOP_LOGO_SECOND_BOX = (0.080, 0.180, 0.096, 0.210)
     ICECAR_LIGHT_BOX = (0.650, 0.350, 0.885, 0.600)
-    FOUNTAIN_SIGN_COUNT_BOX = (0.695, 0.528, 0.730, 0.565)
+    FOUNTAIN_SIGN_COUNT_BOX = (0.695, 0.492, 0.730, 0.650)
     FOUNTAIN_SIGN_BTN_BOX = (0.655, 0.570, 0.790, 0.645)
     BOOKSHOP_LOGO_TIMEOUT = 15
     ICECAR_LIGHT_TIMEOUT = 40
@@ -28,7 +28,7 @@ class FountainTask(BaseNTETask):
     SIGN_SKIP_TIMEOUT = 20
     TASK_TIMEOUT = 180
     TASK_RETRY_COUNT = 1
-    FOUNTAIN_SIGN_COUNT_RE = re.compile(r"\d")
+    FOUNTAIN_SIGN_COUNT_RE = re.compile(r"(\d+)/(\d+)")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -109,15 +109,16 @@ class FountainTask(BaseNTETask):
         self.click_traval_button()
         self.wait_in_team(time_out=30, settle_time=0.25)
         self.sleep(0.5)
-        self.click_fountain_map_teleport(time_out=5)
+        box = self.box_of_screen(*self.PHONE_BOOTH_BOX, name="fountain_phone_booth")
+        self.click_map_teleport(box)
         self.wait_in_team(time_out=30, settle_time=0.25)
         self.sleep(0.5)
 
     def run_to_fountain(self):
         self.middle_click(after_sleep=1)
-        self.send_key_down("a", after_sleep=0.4)
-        self.send_key("lshift", after_sleep=0.4)
         try:
+            self.send_key_down("a", after_sleep=0.4)
+            self.send_key("lshift", after_sleep=0.4)
             self.wait_until(
                 self.find_bookshop_logo,
                 time_out=self.BOOKSHOP_LOGO_TIMEOUT,
@@ -128,8 +129,8 @@ class FountainTask(BaseNTETask):
             self.send_key_up("a")
 
         self.middle_click(after_sleep=1)
-        self.send_key_down("a", after_sleep=0.2)
         try:
+            self.send_key_down("a", after_sleep=0.2)
             self.wait_until(
                 self.find_second_bookshop_logo,
                 time_out=self.BOOKSHOP_LOGO_TIMEOUT,
@@ -138,10 +139,10 @@ class FountainTask(BaseNTETask):
         finally:
             self.send_key_up("a")
 
-        self.send_key_down("w", after_sleep=0.4)
-        self.send_key("lshift", after_sleep=0.4)
-        self.sleep(20)
         try:
+            self.send_key_down("w", after_sleep=0.4)
+            self.send_key("lshift", after_sleep=0.4)
+            self.sleep(20)
             self.wait_until(
                 self.find_icecar_light,
                 time_out=self.ICECAR_LIGHT_TIMEOUT,
@@ -152,30 +153,44 @@ class FountainTask(BaseNTETask):
 
         self.send_key("d", down_time=0.5, after_sleep=0.2)
         self.middle_click(after_sleep=1)
-        self.send_key_down("w", after_sleep=0.4)
-        self.send_key("lshift", after_sleep=2)
-        self.send_key("a", down_time=0.5, after_sleep=0.4)
-        self.sleep(5)
-        self.send_key("d", down_time=1, after_sleep=0.4)
-        self.send_key("space", after_sleep=0.4)
-        self.sleep(5)
+
+        def find_sign():
+            ret = self.find_interac() and self.ocr(
+                *self.FOUNTAIN_SIGN_COUNT_BOX, match=self.FOUNTAIN_SIGN_COUNT_RE
+            )
+            return bool(ret)
+
         try:
-            return self.wait_until(
-                self.find_interac,
+            self.send_key_down("w", after_sleep=0.4)
+            self.send_key("lshift", after_sleep=2)
+            self.send_key("a", down_time=0.7, after_sleep=0.4)
+            self.sleep(5)
+            self.send_key("d", down_time=1, after_sleep=0.4)
+            self.send_key("space", after_sleep=0.4)
+            self.sleep(5)
+            self.wait_until(
+                find_sign,
                 time_out=self.INTERAC_TIMEOUT,
                 raise_if_not_found=True,
             )
         finally:
             self.send_key_up("w")
+        self.sleep(1)
+
+        def action():
+            if find_sign():
+                return True
+            self.send_key("w", down_time=0.5)
+            self.sleep(1)
+
+        self.retry_on_action(action=action, attempt=5, raise_if_failed=True)
 
     def find_bookshop_logo(self):
         box = self.box_of_screen(*self.BOOKSHOP_LOGO_BOX, name="bookshop_logo_area")
         return self.find_one(Labels.bookshop_logo, box=box)
 
     def find_second_bookshop_logo(self):
-        box = self.box_of_screen(
-            *self.BOOKSHOP_LOGO_SECOND_BOX, name="bookshop_logo_second_area"
-        )
+        box = self.box_of_screen(*self.BOOKSHOP_LOGO_SECOND_BOX, name="bookshop_logo_second_area")
         return self.find_one(Labels.bookshop_logo, box=box)
 
     def find_icecar_light(self):
@@ -183,7 +198,7 @@ class FountainTask(BaseNTETask):
         return self.find_one(Labels.icecar_lights, box=box, threshold=0.75)
 
     def fountain_sign_in(self, sign_mode):
-        sign_count = self.read_fountain_sign_count()
+        sign_count, _ = self.read_fountain_sign_count()
         if sign_count == -1:
             self.log_warning("喷泉签到OCR识别次数失败")
             return False
@@ -194,9 +209,22 @@ class FountainTask(BaseNTETask):
             self.log_warning(f"识别到未知喷泉签到次数 {sign_count}, 喷泉签到失败")
             return False
 
-        self.send_key("f", after_sleep=0.4)
+        def merged_action(click):
+            self.send_key_down("lalt")
+            time.sleep(0.1)
+            self.click(click, move=True)
+            time.sleep(0.1)
+            self.send_key_up("lalt")
+
+        def pre_action():
+            if box := self.read_fountain_sign_count()[1]:
+                self.run_with_interval(
+                    lambda: self.operate(lambda: merged_action(box), block=True), interval=2
+                )
+
         sign_btn = self.wait_until(
             self.find_sign_in_btn,
+            pre_action=pre_action,
             time_out=self.INTERAC_TIMEOUT,
             raise_if_not_found=True,
         )
@@ -204,8 +232,9 @@ class FountainTask(BaseNTETask):
         if not self.wait_skip_dialog_until_world(self.SIGN_SKIP_TIMEOUT):
             self.log_warning("对话异常，无法返回大世界")
             return False
-        signed_count = self.read_fountain_sign_count()
+        signed_count, _ = self.read_fountain_sign_count()
         if signed_count == 0:
+            self.click_nearest_map_teleport()
             self.log_info("喷泉签到完成")
             return True
 
@@ -213,9 +242,7 @@ class FountainTask(BaseNTETask):
         return False
 
     def find_sign_in_btn(self):
-        box = self.box_of_screen(
-            *self.FOUNTAIN_SIGN_BTN_BOX, name="fountain_sign_btn_area"
-        )
+        box = self.box_of_screen(*self.FOUNTAIN_SIGN_BTN_BOX, name="fountain_sign_btn_area")
         regions = iu.find_color_enriched_regions(
             interac_pink_color,
             box,
@@ -268,45 +295,10 @@ class FountainTask(BaseNTETask):
         )
         if not results:
             self.log_warning("fountain sign OCR raw results: []")
-            return -1
+            return -1, None
 
-        recognized_texts = [str(result.name).strip() for result in results]
-        self.log_info(f"fountain sign OCR raw results: {recognized_texts}")
-        for text in recognized_texts:
-            match = self.FOUNTAIN_SIGN_COUNT_RE.search(text)
-            if match:
-                sign_count = int(match.group(0))
-                self.log_info(f"fountain sign OCR parsed digit: {sign_count}")
-                return sign_count
-        return -1
-
-    def click_fountain_map_teleport(self, threshold=0.7, time_out=5):
-        self.ensure_main(time_out=30)
-        self.wait_until(
-            lambda: self.find_one(Labels.map_city_tycoon_activities),
-            time_out=10,
-            pre_action=lambda: self.send_key("m", interval=2),
-            raise_if_not_found=True,
-        )
-
-        def find_near_fountain_teleport():
-            self.log_info("click init mid map zoom")
-            self.sleep(0.5)
-            self.operate_click(0.050, 0.527)
-            box = self.box_of_screen(*self.PHONE_BOOTH_BOX, name="fountain_phone_booth")
-            return self.find_best_match_in_box(
-                box, [Labels.map_small_teleport], threshold=threshold
-            )
-
-        teleport = self.wait_until(
-            find_near_fountain_teleport,
-            time_out=time_out,
-            raise_if_not_found=True,
-        )
-        self.log_info(f"找到喷泉最近的电话亭 {teleport}")
-        self.operate_click(
-            teleport, action_name="click_fountain_map_teleport", interval=1
-        )
-        self.sleep(0.5)
-        self.click_traval_button()
-        return teleport
+        if match := self.FOUNTAIN_SIGN_COUNT_RE.search(results[0].name):
+            sign_count = int(match.group(1))
+            self.log_info(f"fountain sign OCR parsed digit: {sign_count}")
+            return sign_count, results[0]
+        return -1, None

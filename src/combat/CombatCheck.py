@@ -16,6 +16,7 @@ from src.Labels import Labels
 from src.tasks.BaseNTETask import BaseNTETask
 from src.utils import game_filters as gf
 from src.utils import image_utils as iu
+from src.utils.visual_template_cache import get_visual_template_cache
 
 if TYPE_CHECKING:
     from src.char.BaseChar import BaseChar
@@ -58,6 +59,20 @@ class CombatDetectState:
     @property
     def uncertain(self) -> bool:
         return self.uncertain_until is not None
+
+
+@dataclass(frozen=True)
+class LvTemplateFeatures:
+    l_fingerprint: tuple[float, float, float]
+    l_aspect: float
+    l_normalized: np.ndarray
+    v_fingerprint: tuple[float, float, float]
+    v_aspect: float
+    v_normalized: np.ndarray
+
+    def __post_init__(self):
+        self.l_normalized.setflags(write=False)
+        self.v_normalized.setflags(write=False)
 
 
 class CombatCheck(BaseNTETask):
@@ -521,7 +536,8 @@ class CombatCheck(BaseNTETask):
             return f"openvino=debug_failed({e})"
 
     def find_lv(self, frame=None, threshold=0.7):
-        if not self._init_lv_templates():
+        lv_templates = self._get_lv_template_features()
+        if lv_templates is None:
             return []
 
         if frame is None:
@@ -554,12 +570,15 @@ class CombatCheck(BaseNTETask):
 
             # 匹配 L
             if (
-                abs(solidity - self._lv_feat_L[0]) < 0.15
-                and abs(cx - self._lv_feat_L[1]) < 0.15
-                and abs(cy - self._lv_feat_L[2]) < 0.15
+                abs(solidity - lv_templates.l_fingerprint[0]) < 0.15
+                and abs(cx - lv_templates.l_fingerprint[1]) < 0.15
+                and abs(cy - lv_templates.l_fingerprint[2]) < 0.15
             ):
-                iou = self._match_contour_iou(self._lv_norm_L, cnt, x, y, w, h)
-                if (self._lv_aspect_L * 0.6 < aspect_ratio < self._lv_aspect_L * 1.5) and iou > 0.5:
+                iou = self._match_contour_iou(lv_templates.l_normalized, cnt, x, y, w, h)
+                if (
+                    lv_templates.l_aspect * 0.6 < aspect_ratio < lv_templates.l_aspect * 1.5
+                    and iou > 0.5
+                ):
                     area = cv2.countNonZero(binary[y : y + h, x : x + w])
                     l_candidates.append(
                         {"x": x, "y": y, "w": w, "h": h, "score": iou, "area": area}
@@ -567,12 +586,15 @@ class CombatCheck(BaseNTETask):
 
             # 匹配 v
             elif (
-                abs(solidity - self._lv_feat_v[0]) < 0.15
-                and abs(cx - self._lv_feat_v[1]) < 0.15
-                and abs(cy - self._lv_feat_v[2]) < 0.15
+                abs(solidity - lv_templates.v_fingerprint[0]) < 0.15
+                and abs(cx - lv_templates.v_fingerprint[1]) < 0.15
+                and abs(cy - lv_templates.v_fingerprint[2]) < 0.15
             ):
-                iou = self._match_contour_iou(self._lv_norm_v, cnt, x, y, w, h)
-                if (self._lv_aspect_v * 0.6 < aspect_ratio < self._lv_aspect_v * 1.5) and iou > 0.5:
+                iou = self._match_contour_iou(lv_templates.v_normalized, cnt, x, y, w, h)
+                if (
+                    lv_templates.v_aspect * 0.6 < aspect_ratio < lv_templates.v_aspect * 1.5
+                    and iou > 0.5
+                ):
                     area = cv2.countNonZero(binary[y : y + h, x : x + w])
                     v_candidates.append(
                         {"x": x, "y": y, "w": w, "h": h, "score": iou, "area": area}
@@ -651,43 +673,34 @@ class CombatCheck(BaseNTETask):
         union = cv2.countNonZero(cv2.bitwise_or(tpl_norm, cand))
         return intersection / union if union > 0 else 0.0
 
-    def _init_lv_templates(self):
-        """初始化 LV 识别所需的模板特征数据"""
-        # 如果已经初始化且分辨率没变，直接返回
-        if hasattr(self, "_lv_feat_L") and getattr(self, "_lv_tpl_res", None) == (
-            self.width,
-            self.height,
-        ):
-            return True
-
+    def _build_lv_template_features(self):
         tpl_img = self.get_feature_by_name(Labels.lv).mat
         tpl_bin = gf.isolate_lv_to_white(tpl_img)
-
         contours, _ = cv2.findContours(tpl_bin, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         valid_cnts = [
             c for c in contours if cv2.boundingRect(c)[2] > 2 and cv2.boundingRect(c)[3] > 2
         ]
         valid_cnts.sort(key=lambda c: cv2.boundingRect(c)[0])
-
         if len(valid_cnts) < 2:
             self.log_error(f"[LV-Init] 模板切割失败，仅找到 {len(valid_cnts)} 个轮廓")
-            return False
+            return None
 
-        # 提取 L 和 v 的标准指纹
-        self._lv_tpl_res = (self.width, self.height)
-        self._lv_cnt_L = valid_cnts[0]
-        self._lv_cnt_v = valid_cnts[1]
+        l_contour, v_contour = valid_cnts[:2]
+        xl, yl, wl, hl = cv2.boundingRect(l_contour)
+        xv, yv, wv, hv = cv2.boundingRect(v_contour)
+        return LvTemplateFeatures(
+            l_fingerprint=self._extract_shape_fingerprint(l_contour, xl, yl, wl, hl),
+            l_aspect=wl / float(hl),
+            l_normalized=self._render_contour_normalized(l_contour, xl, yl, wl, hl),
+            v_fingerprint=self._extract_shape_fingerprint(v_contour, xv, yv, wv, hv),
+            v_aspect=wv / float(hv),
+            v_normalized=self._render_contour_normalized(v_contour, xv, yv, wv, hv),
+        )
 
-        xl, yl, wl, hl = cv2.boundingRect(self._lv_cnt_L)
-        self._lv_aspect_L = wl / float(hl)
-        self._lv_feat_L = self._extract_shape_fingerprint(self._lv_cnt_L, xl, yl, wl, hl)
-        self._lv_norm_L = self._render_contour_normalized(self._lv_cnt_L, xl, yl, wl, hl)
-
-        xv, yv, wv, hv = cv2.boundingRect(self._lv_cnt_v)
-        self._lv_aspect_v = wv / float(hv)
-        self._lv_feat_v = self._extract_shape_fingerprint(self._lv_cnt_v, xv, yv, wv, hv)
-        self._lv_norm_v = self._render_contour_normalized(self._lv_cnt_v, xv, yv, wv, hv)
-        return True
+    def _get_lv_template_features(self):
+        """Return process-wide LV template features for this screen resolution."""
+        cache_key = (Labels.lv, self.width, self.height)
+        return get_visual_template_cache().get_or_build(cache_key, self._build_lv_template_features)
 
 
 enemy_health_hsv = iu.HSVRange((0, 190, 175), (179, 255, 255))
