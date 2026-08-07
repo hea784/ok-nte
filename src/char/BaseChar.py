@@ -526,8 +526,7 @@ class BaseChar:
             if status != "continue":
                 result["status"] = status
                 return result
-
-            if available():
+            else:
                 self.logger.debug(f"{action_type} available click/send")
                 action_time = time.time()
                 sent = send_action()
@@ -537,7 +536,6 @@ class BaseChar:
                 if sent is not False:
                     result["clicked"] = True
                     result["action_time"] = action_time
-
             self.sleep(0.01, sleep_check=False)
 
     def _check_available_action_result(

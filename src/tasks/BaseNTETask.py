@@ -17,6 +17,7 @@ from ok import (
     safe_get,
 )
 
+from src import text_black_color
 from src.Labels import Labels
 from src.scene.NTEScene import NTEScene
 from src.scene.ScreenPosition import ScreenPosition
@@ -1017,7 +1018,10 @@ class BaseNTETask(
         if not isinstance(box, Box):
             box = self.main_viewport
         return self.find_best_match_in_box(
-            box=box, to_find=[Labels.confirm_btn_1, Labels.confirm_btn_2], threshold=threshold
+            box=box,
+            to_find=[Labels.confirm_btn_1, Labels.confirm_btn_2],
+            threshold=threshold,
+            mask_function=confirm_mask,
         )
 
     def find_confirms(self, box=None, threshold=0.7) -> list[Box]:
@@ -1025,7 +1029,12 @@ class BaseNTETask(
             box = self.main_viewport
         match_feature: list[list[Box]] = []
         for feature_name in [Labels.confirm_btn_1, Labels.confirm_btn_2]:
-            features = self.find_feature(feature_name=feature_name, box=box, threshold=threshold)
+            features = self.find_feature(
+                feature_name=feature_name,
+                box=box,
+                threshold=threshold,
+                mask_function=confirm_mask,
+            )
             if features:
                 match_feature.append(features)
 
@@ -1101,6 +1110,12 @@ class BaseNTETask(
 
 def interac_mask(image):
     mask = iu.create_color_mask(image, interac_pink_color, to_bgr=False)
+    dilated_mask = iu.morphology_mask(mask, kernel_size=5, to_bgr=False)
+    return dilated_mask
+
+
+def confirm_mask(image):
+    mask = iu.create_color_mask(image, text_black_color, to_bgr=False)
     dilated_mask = iu.morphology_mask(mask, kernel_size=5, to_bgr=False)
     return dilated_mask
 

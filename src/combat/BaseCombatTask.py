@@ -1004,8 +1004,7 @@ class BaseCombatTask(CharElementUIMixin, CombatCheck):
         elements = [char.element for char in new_chars]
         self.chars = new_chars
         self.combat_planner.reset(self.chars)
-        self.info_set("char elements", elements)
-
+        self.info_set("chars element", elements)
         self.info_set("chars", [])
         for char in self.chars:
             if char is not None:
