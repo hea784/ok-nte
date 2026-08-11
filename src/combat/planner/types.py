@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from enum import StrEnum
+from itertools import count
 from typing import TYPE_CHECKING, Callable, Generator, Iterable
 
 if TYPE_CHECKING:
@@ -511,6 +512,9 @@ EntryFlow = Generator["ActionIntent", ActionResult, None]
 EntryFactory = Callable[[], EntryFlow]
 
 
+_ENTRY_REPEAT_IDS = count()
+
+
 @dataclass(slots=True)
 class ActionIntent:
     """角色声明给 `CombatPlanner` 的候选动作。"""
@@ -522,18 +526,35 @@ class ActionIntent:
     reason: str = ""
     can_execute: ActionPredicate | None = None
     priority_ready: ActionPredicate | None = None
+    _entry_repeat_id: int | None = field(default=None, repr=False, compare=False)
 
     def identity_key(self) -> str:
         """返回 planner 内部使用的动作身份。"""
 
         if self.name:
-            return f"name:{self.name}"
-        if self.slot is not None:
+            identity = f"name:{self.name}"
+        elif self.slot is not None:
             if self.reason:
-                return f"slot:{self.slot}|reason:{self.reason}"
-            return f"slot:{self.slot}"
-        tag_key = ",".join(sorted(str(tag) for tag in self.tags))
-        return f"tags:{tag_key}|reason:{self.reason}"
+                identity = f"slot:{self.slot}|reason:{self.reason}"
+            else:
+                identity = f"slot:{self.slot}"
+        else:
+            tag_key = ",".join(sorted(str(tag) for tag in self.tags))
+            identity = f"tags:{tag_key}|reason:{self.reason}"
+        if self._entry_repeat_id is not None:
+            return f"{identity}|entry_repeat:{self._entry_repeat_id}"
+        return identity
+
+    def repeat_for_entry(self) -> "ActionIntent":
+        """返回可在同一次 entry 中再次 yield 的动作副本。
+
+        副本保留原 action 的执行器, 槽位, 标签和权限限制, 仅增加 entry 内部的
+        去重标识。每次调用都会生成一个新的标识, 因此循环中可以自然重试动作。
+        它适合大招窗口内再次施放 E 这类机制; 通常只在 entry flow 里 yield,
+        不加入 `CombatPlan.actions`, 因此不参与切人评分。
+        """
+
+        return replace(self, _entry_repeat_id=next(_ENTRY_REPEAT_IDS))
 
     def display_name(self) -> str:
         """返回仅用于日志的人类可读动作名。"""

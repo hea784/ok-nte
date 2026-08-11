@@ -18,6 +18,7 @@ from .requests import (
 from .state import CombatState, _PlanSnapshot
 from .types import (
     NEVER_EXPIRES,
+    ActionIntent,
     ActionReservation,
     ActionResult,
     ActionSlot,
@@ -127,6 +128,25 @@ class CombatContext:
             if request_reserves_action(active_request, char, action):
                 return False
         return True
+
+    def is_action_allowed(self, char: "BaseChar", action: ActionIntent) -> bool:
+        """返回 planner 是否允许指定角色执行完整 action 声明。
+
+        同时检查 action 自身的 `can_execute` 限制和 slot reservation。角色代码
+        需要在 entry flow 外预查询动作时可以使用此方法; 普通执行仍应直接
+        `yield action`，由 planner 在执行前统一检查。
+        """
+
+        if not action.is_allowed(self):
+            return False
+        if action.slot is None:
+            return True
+        return self.can_execute_action(
+            char,
+            action.name,
+            set(action.tags),
+            slot=action.slot,
+        )
 
     def request_route(
         self,

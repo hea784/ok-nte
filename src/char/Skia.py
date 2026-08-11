@@ -1,0 +1,38 @@
+from src.char.BaseChar import BaseChar
+from src.combat.planner import (
+    CombatContext,
+    FieldPreference,
+    Role,
+    RoleProfile,
+)
+
+SKILL_SHORT_TIMEOUT = 2.0
+
+
+class Skia(BaseChar):
+    """Skia - YELLOW sub DPS setup.
+
+    Casts Q then E to complete the aspect setup, then leaves the field.
+    Self-contained and independent of any specific team composition.
+    """
+
+    cn_name = "翳"
+    element = BaseChar.Element.YELLOW
+
+    def describe_role(self):
+        return RoleProfile(
+            role=Role.SUB_DPS,
+            field_preference=FieldPreference.SETUP_ONLY,
+        )
+
+    def combat_plan(self, context: CombatContext):
+        skill = self.click_skill_action()
+        ultimate = self.click_ultimate_action()
+
+        def entry():
+            skill_result = yield skill
+            if skill_result:
+                self.sleep(0.4)
+            yield ultimate
+
+        return self.plan(skill, ultimate, entry=entry)

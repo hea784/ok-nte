@@ -2,6 +2,7 @@ import time
 
 from src.char.BaseChar import BaseChar
 from src.combat.planner import (
+    ActionIntent,
     CombatContext,
     Planner,
     RoleProfile,
@@ -23,8 +24,8 @@ class Nanally(BaseChar):
         )
 
     def combat_plan(self, context):
-        skill = self.click_skill_action(reason="Nanally skill available")
-        ultimate = self.click_ultimate_action(reason="Nanally ultimate available")
+        skill = self.click_skill_action()
+        ultimate = self.click_ultimate_action()
 
         def entry():
             skill_result = yield skill
@@ -33,7 +34,7 @@ class Nanally(BaseChar):
 
             ultimate_result = yield ultimate
             if ultimate_result:
-                self.perform_in_ult(context)
+                self.perform_in_ult(context, skill)
 
         return self.plan(
             skill,
@@ -41,28 +42,17 @@ class Nanally(BaseChar):
             entry=entry,
         )
 
-    def perform_in_ult(self, context: CombatContext = None):
+    def perform_in_ult(self, context: CombatContext, skill: ActionIntent):
         start = time.time()
         skill_used = False
         while (elapsed := time.time() - start) < 6:
             if elapsed > 1 and not self.ultimate_available(False):
                 break
-            if not skill_used:
-                skill_used = self._try_skill_during_ultimate(context)
+            if not skill_used and context.is_action_allowed(self, skill):
+                skill_used = self.click_skill()
             self.normal_attack()
             self.sleep(0.2)
         return skill_used
-
-    def _try_skill_during_ultimate(self, context: CombatContext = None):
-        if context is not None and not context.can_execute_action(
-            self,
-            slot=Planner.ActionSlot.SKILL,
-        ):
-            self.logger.debug("not allow skill")
-            return False
-
-        clicked = self.click_skill()
-        return clicked
     
     def on_combat_end(self, chars):
         self.switch_other_char()

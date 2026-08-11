@@ -1,6 +1,6 @@
 # Combat Planner 开发指南
 
-> **提示**：角色的具体代码实现可在 [`src/char`](../src/char) 目录中找到。
+> **提示**：角色的具体代码实现可在 [`src/char`](../../src/char) 目录中找到。
 
 Planner 是队伍大脑。角色只声明一个 `CombatPlan`：
 
@@ -36,7 +36,8 @@ def combat_plan(self, context: CombatContext):
     )
 ```
 
-复杂动作顺序用同一个 plan 里的 action 变量写 entry flow，不要重复声明：
+复杂动作顺序用同一个 plan 里的 action 变量写 entry flow。一个 action 在一次 entry 中只能
+执行一次；有限次的额外执行使用 `repeat_for_entry()`：
 
 ```python
 def combat_plan(self, context: CombatContext):
@@ -50,7 +51,7 @@ def combat_plan(self, context: CombatContext):
 
         ultimate_result = yield ultimate
         if ultimate_result:
-            self.perform_in_ult(context)
+            yield skill.repeat_for_entry()
 
     return self.plan(skill, ultimate, entry=entry)
 ```
@@ -111,8 +112,20 @@ def combat_plan(self, context):
 - `can_execute: Callable[[CombatContext], bool] | None`：planner 层硬限制。
 - `priority_ready: Callable[[CombatContext], bool] | None`：只用于切人评分。
 
+`action.repeat_for_entry()` 返回一个可在同一次 entry 中再次 `yield` 的动作副本。
+它保留原 action 的执行、slot、标签和 `can_execute` 限制，并为每次调用自动生成独立
+的 entry 去重结果。因此它适合 `Q -> E -> 再尝试一次 E` 这类有限 entry flow；副本通常
+只在 entry flow 中 yield，不应加入 `CombatPlan.actions`。
+
+每次 `yield` 都会计入单次 entry 的动作上限。不要在需要持续运行的长时间循环中 yield
+它；此类循环应在调用已有动作 helper 前，先通过
+`context.is_action_allowed(self, action)` 检查完整 action 权限。这样循环保持由角色代码
+控制，同时仍遵守 planner 的 `can_execute` 和 reservation 规则。
+
 如果 action 设置了 `slot`，planner 会自动通过 `context.can_execute_action(...)`
-检查 reservation。开发者传入的 `can_execute` 只需要表达额外机制限制。
+检查 reservation。开发者传入的 `can_execute` 只需要表达额外机制限制。需要在 entry
+flow 外预查询完整 action 时，使用 `context.is_action_allowed(self, action)`；它同时检查
+`can_execute` 和 slot reservation。普通或有限 entry 动作仍直接 `yield action`。
 
 `execute` 返回规则：
 

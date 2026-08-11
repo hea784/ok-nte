@@ -146,7 +146,7 @@ class CombatPlanner:
         - `priority_ready` 只用于评分；`can_execute` 是硬限制。
     """
 
-    MAX_ACTIONS_PER_ENTRY = 5
+    MAX_ACTIONS_PER_ENTRY = 20
     LOG_THROTTLE_INTERVAL = 0.5
 
     def __init__(self, task: "BaseCombatTask") -> None:
@@ -897,21 +897,11 @@ class CombatPlanner:
     ) -> bool:
         """统一判断 planner 是否允许某角色执行某动作。
 
-        `ActionIntent.can_execute` 只表达角色声明的额外硬限制。slot reservation
-        属于 planner 状态，因此在这里统一解释，而不是让 `BaseChar` 或角色动作
-        自己重复查询。
+        公开的 `CombatContext.is_action_allowed()` 也是同一条判断路径，避免角色
+        预查询结果和真正执行规则不一致。
         """
 
-        if not action.is_allowed(context):
-            return False
-        if action.slot is None:
-            return True
-        return context.can_execute_action(
-            char,
-            action.name,
-            set(action.tags),
-            slot=action.slot,
-        )
+        return context.is_action_allowed(char, action)
 
     def _action_priority_ready(
         self, char: "BaseChar", action: ActionIntent, context: CombatContext
