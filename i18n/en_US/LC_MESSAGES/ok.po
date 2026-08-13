@@ -349,15 +349,6 @@ msgstr "Team size less than 2"
 msgid "队伍管理"
 msgstr "Team Mgmt"
 
-msgid "领取活跃度奖励"
-msgstr "Claim Activity Rewards"
-
-msgid "领取环期任务奖励"
-msgstr "Claim Periodic Task Rewards"
-
-msgid "领取邮件"
-msgstr "Claim Mail"
-
 msgid "使用ESC"
 msgstr "Use ESC"
 
@@ -566,9 +557,6 @@ msgstr "Automatically loop entering and exiting stages (requires an in-game AFK 
 
 msgid "自动登录游戏"
 msgstr "Auto Login"
-
-msgid "领取/补货一咖舍"
-msgstr "Claim/Restock Cafe"
 
 msgid "一咖舍任务"
 msgstr "Cafe Tasks"
@@ -1251,3 +1239,42 @@ msgstr "Open External Code Folder"
 
 msgid "手动添加或修改 Python 代码后, 需点击 [{refresh}] 按钮以生效。<br>关于编写角色出招表的指南, 请参考 <a href='{doc_url}'>文档</a>。"
 msgstr "After manually adding or modifying Python code, click the [{refresh}] button for changes to take effect.<br>For a guide on writing character combo tables, please refer to the <a href='{doc_url}'>documentation</a>."
+
+msgid "日常领取"
+msgstr "Daily Claim"
+
+msgid "领取每日邮件和奖励"
+msgstr "Claim daily mail and rewards"
+
+msgid "模式"
+msgstr "Mode"
+
+msgid "邮件"
+msgstr "Mail"
+
+msgid "活跃度奖励"
+msgstr "Activity Rewards"
+
+msgid "环期任务奖励"
+msgstr "Period Task Rewards"
+
+msgid "一咖舍"
+msgstr "Cafe"
+
+msgid "领取/补货"
+msgstr "Claim/Restock"
+
+msgid "全选"
+msgstr "Select All"
+
+msgid "取消全选"
+msgstr "Deselect All"
+
+msgid "全部折叠"
+msgstr "Collapse All"
+
+msgid "全部展开"
+msgstr "Expand All"
+
+msgid "重置配置"
+msgstr "Reset Config"

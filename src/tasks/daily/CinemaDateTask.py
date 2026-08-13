@@ -29,15 +29,15 @@ class CinemaDateTask(NTEOneTimeTask, BaseNTETask):
     def run(self):
         super().run()
         try:
-            target = self.config.get(self.CINEMA_DATE_TARGET, "")
-            self.do_run(target)
+            self.do_run()
         except TaskDisabledException:
             raise
         except Exception as e:
             self.log_error("CinemaDateTask error", e)
             raise
 
-    def do_run(self, target=""):
+    def do_run(self) -> bool:
+        target = self.config.get(self.CINEMA_DATE_TARGET, "")
         return self.run_cinema_date(target)
 
     def run_cinema_date(self, target=""):
@@ -60,7 +60,7 @@ class CinemaDateTask(NTEOneTimeTask, BaseNTETask):
 
             self.run_with_interval(lambda: self.operate(merged_action, block=True), interval=2)
 
-        self.wait_until(self.is_in_team, post_action=post, time_out=30)
+        return bool(self.wait_until(self.is_in_team, post_action=post, time_out=30))
 
     def _tp_to_cinema(self):
         self.open_f1_domain_page()
@@ -133,10 +133,12 @@ class CinemaDateTask(NTEOneTimeTask, BaseNTETask):
     def _select_date(self, target):
         target_box = None
         if target == "":
+            self.log_info("默认使用顶部可选目标")
             target_box = self._top_selectable_target()
         else:
-            page = 2
+            page = 20
             match = re.compile(target, re.IGNORECASE)
+            snap_box = self.box_of_screen(0.724, 0.723, 0.771, 0.892)
 
             for _ in range(page):
                 target_boxes = self.ocr(0.772, 0.228, 0.914, 0.905, match=match)
@@ -148,14 +150,20 @@ class CinemaDateTask(NTEOneTimeTask, BaseNTETask):
                             target_box = target_boxes[0]
                             break
                     if target_box:
+                        self.log_info(f"找到目标 {target_box}")
                         break
-                self.scroll_relative(0.8391, 0.5333, -40)
-                self.sleep(0.5)
-            else:
-                self.log_info(f"未找到 {target} 使用顶部可选目标")
-                target_box = self._top_selectable_target()
+                if self.scroll_and_is_end(0.8391, 0.5333, -19, snap_box):
+                    break
+
+            if not target_box:
+                self.log_info(f"未找到 {target} 尝试使用顶部可选目标")
+                for _ in range(page):
+                    target_box = self._top_selectable_target()
+                    if target_box or self.scroll_and_is_end(0.8391, 0.5333, 19, snap_box):
+                        break
 
         if not target_box:
+            self.log_info("未找到任何可选目标，结束任务")
             return False
 
         return self.wait_click_confirm(

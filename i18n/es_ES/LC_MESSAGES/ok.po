@@ -349,15 +349,6 @@ msgstr "Tamaño del equipo inferior a 2"
 msgid "队伍管理"
 msgstr "Gestión Equipo"
 
-msgid "领取活跃度奖励"
-msgstr "Reclamar recompensas de actividad"
-
-msgid "领取环期任务奖励"
-msgstr "Reclamar recompensas de tareas periódicas"
-
-msgid "领取邮件"
-msgstr "Reclamar correo"
-
 msgid "使用ESC"
 msgstr "Usar ESC"
 
@@ -560,9 +551,6 @@ msgstr "Entrar y salir de fases en bucle automáticamente (requiere una build AF
 
 msgid "自动登录游戏"
 msgstr "Inicio de sesión automático"
-
-msgid "领取/补货一咖舍"
-msgstr "Reclamar/reabastecer café"
 
 msgid "一咖舍任务"
 msgstr "Tareas del café"
@@ -1251,3 +1239,42 @@ msgstr "Abrir carpeta de código externo"
 
 msgid "手动添加或修改 Python 代码后, 需点击 [{refresh}] 按钮以生效。<br>关于编写角色出招表的指南, 请参考 <a href='{doc_url}'>文档</a>。"
 msgstr "Después de añadir o modificar código Python manualmente, haga clic en el botón [{refresh}] para que surta efecto.<br>Para obtener una guía sobre cómo escribir listas de combos de personajes, consulte la <a href='{doc_url}'>documentación</a>."
+
+msgid "日常领取"
+msgstr "Reclamación diaria"
+
+msgid "领取每日邮件和奖励"
+msgstr "Reclamar correo y recompensas diarias"
+
+msgid "模式"
+msgstr "Modo"
+
+msgid "邮件"
+msgstr "Correo"
+
+msgid "活跃度奖励"
+msgstr "Recompensas de actividad"
+
+msgid "环期任务奖励"
+msgstr "Recompensas de tarea de período"
+
+msgid "一咖舍"
+msgstr "Cafetería"
+
+msgid "领取/补货"
+msgstr "Reclamar/Reabastecer"
+
+msgid "全选"
+msgstr "Seleccionar todo"
+
+msgid "取消全选"
+msgstr "Deseleccionar todo"
+
+msgid "全部折叠"
+msgstr "Contraer todo"
+
+msgid "全部展开"
+msgstr "Expandir todo"
+
+msgid "重置配置"
+msgstr "Restablecer conf."

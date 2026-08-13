@@ -12,7 +12,7 @@ from src.process_feature import process_feature
 if "PATH" not in os.environ:
     os.environ["PATH"] = ""
 
-version = "v1.2.30"
+version = "v1.3.0"
 # 不需要修改version, Github Action打包会自动修改
 
 key_config_option = ConfigOption(
@@ -187,7 +187,7 @@ config = {
     ],  # 可选. 全局单例对象, 可以存放加载的模型, 使用og.my_app调用
     "onetime_tasks": [  # 用户点击触发的任务
         ["src.tasks.LauncherTask", "LauncherTask"],
-        ["src.tasks.DailyTask", "DailyTask"],
+        ["src.tasks.daily.DailyPlanTask", "DailyPlanTask"],
         ["src.tasks.FishingTask", "FishingTask"],
         ["src.tasks.AnomalyTask", "AnomalyTask"],
         ["src.tasks.AnomalyHunter", "AnomalyHunter"],
@@ -198,15 +198,17 @@ config = {
         ["src.tasks.BagelAITools", "BagelAITools"],
         ["src.tasks.WhirlwindTask", "WhirlwindTask"],
         ["src.tasks.DSDFarmTask", "DSDFarmTask"],
+        ["src.tasks.CombatDetectionTestTask", "CombatDetectionTestTask"],
+        # ["src.tasks.custom.TeamScannerTask", "TeamScannerTask"],
+        # ["src.tasks.DebugCharTask", "DebugCharTask"],
+        ["ok", "DiagnosisTask"],
+        # 日常相关
+        ["src.tasks.daily.DailyClaimTask", "DailyClaimTask"],
         ["src.tasks.daily.GiftTask", "GiftTask"],
         ["src.tasks.daily.CoffeeTask", "CoffeeTask"],
         ["src.tasks.daily.FountainTask", "FountainTask"],
         ["src.tasks.daily.FurnitureTask", "FurnitureTask"],
         ["src.tasks.daily.CinemaDateTask", "CinemaDateTask"],
-        ["src.tasks.CombatDetectionTestTask", "CombatDetectionTestTask"],
-        ["ok", "DiagnosisTask"],
-        # ["src.tasks.custom.TeamScannerTask", "TeamScannerTask"],
-        # ["src.tasks.DebugCharTask", "DebugCharTask"],
     ],
     "trigger_tasks": [  # 不断执行的触发式任务
         ["src.tasks.trigger.AutoCombatTask", "AutoCombatTask"],
@@ -217,8 +219,9 @@ config = {
         ["src.tasks.trigger.AutoLoginTask", "AutoLoginTask"],
     ],
     "custom_tabs": [
-        ["src.ui.CharHubTab", "CharHubTab"],
+        ["src.ui.DailyPlanTab", "DailyPlanTab"],
         ["src.ui.GiftManagerTab", "GiftManagerTab"],
+        ["src.ui.CharHubTab", "CharHubTab"],
         ["src.ui.MidiPlayerTab", "MidiPlayerTab"],
         # ['src.ui.MyTab', 'MyTab'], #可选, 自定义UI, 显示在侧边栏
     ],

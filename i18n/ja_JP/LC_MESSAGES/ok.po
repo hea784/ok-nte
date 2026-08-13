@@ -349,15 +349,6 @@ msgstr "チーム人数が2人未満です"
 msgid "队伍管理"
 msgstr "チーム管理"
 
-msgid "领取活跃度奖励"
-msgstr "アクティビティ報酬を受け取る"
-
-msgid "领取环期任务奖励"
-msgstr "定期任務報酬を受け取る"
-
-msgid "领取邮件"
-msgstr "メールを受け取る"
-
 msgid "使用ESC"
 msgstr "ESCを使用"
 
@@ -560,9 +551,6 @@ msgstr "ステージへの出入りを自動で繰り返す（ゲーム内の放
 
 msgid "自动登录游戏"
 msgstr "自動ログイン"
-
-msgid "领取/补货一咖舍"
-msgstr "カフェの受け取り/補充"
 
 msgid "一咖舍任务"
 msgstr "カフェタスク"
@@ -1251,3 +1239,42 @@ msgstr "外部コードフォルダーを開く"
 
 msgid "手动添加或修改 Python 代码后, 需点击 [{refresh}] 按钮以生效。<br>关于编写角色出招表的指南, 请参考 <a href='{doc_url}'>文档</a>。"
 msgstr "Pythonコードを手動で追加または修正した後は、[{refresh}]ボタンをクリックして反映させてください。<br>キャラクターのコンボ表の作成ガイドについては、<a href='{doc_url}'>ドキュメント</a>を参照してください。"
+
+msgid "日常领取"
+msgstr "デイリー受取"
+
+msgid "领取每日邮件和奖励"
+msgstr "デイリーメールと報酬を受け取る"
+
+msgid "模式"
+msgstr "モード"
+
+msgid "邮件"
+msgstr "メール"
+
+msgid "活跃度奖励"
+msgstr "活躍度報酬"
+
+msgid "环期任务奖励"
+msgstr "シーズン任務報酬"
+
+msgid "一咖舍"
+msgstr "カフェ"
+
+msgid "领取/补货"
+msgstr "受取/補充"
+
+msgid "全选"
+msgstr "すべて選択"
+
+msgid "取消全选"
+msgstr "選択を解除"
+
+msgid "全部折叠"
+msgstr "すべて折りたたむ"
+
+msgid "全部展开"
+msgstr "すべて展開"
+
+msgid "重置配置"
+msgstr "設定リセット"

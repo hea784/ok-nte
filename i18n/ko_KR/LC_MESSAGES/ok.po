@@ -349,15 +349,6 @@ msgstr "팀 인원이 2명 미만입니다"
 msgid "队伍管理"
 msgstr "팀 관리"
 
-msgid "领取活跃度奖励"
-msgstr "활성도 보상 수령"
-
-msgid "领取环期任务奖励"
-msgstr "정기 임무 보상 수령"
-
-msgid "领取邮件"
-msgstr "우편 수령"
-
 msgid "使用ESC"
 msgstr "ESC 사용"
 
@@ -560,9 +551,6 @@ msgstr "스테이지 입퇴장을 자동 반복 (게임 내 방치 빌드와 함
 
 msgid "自动登录游戏"
 msgstr "자동 로그인"
-
-msgid "领取/补货一咖舍"
-msgstr "카페 수령/보충"
 
 msgid "一咖舍任务"
 msgstr "카페 작업"
@@ -1251,3 +1239,42 @@ msgstr "외부 코드 폴더 열기"
 
 msgid "手动添加或修改 Python 代码后, 需点击 [{refresh}] 按钮以生效。<br>关于编写角色出招表的指南, 请参考 <a href='{doc_url}'>文档</a>。"
 msgstr "Python 코드를 수동으로 추가하거나 수정한 후에는 [{refresh}] 버튼을 클릭해야 적용됩니다.<br>캐릭터 콤보표 작성 가이드는 <a href='{doc_url}'>문서</a>를 참조하세요."
+
+msgid "日常领取"
+msgstr "일일 수령"
+
+msgid "领取每日邮件和奖励"
+msgstr "일일 메일 및 보상 수령"
+
+msgid "模式"
+msgstr "모드"
+
+msgid "邮件"
+msgstr "메일"
+
+msgid "活跃度奖励"
+msgstr "활성도 보상"
+
+msgid "环期任务奖励"
+msgstr "시즌 미션 보상"
+
+msgid "一咖舍"
+msgstr "카페"
+
+msgid "领取/补货"
+msgstr "수령/보충"
+
+msgid "全选"
+msgstr "전체 선택"
+
+msgid "取消全选"
+msgstr "전체 해제"
+
+msgid "全部折叠"
+msgstr "모두 접기"
+
+msgid "全部展开"
+msgstr "모두 펼치기"
+
+msgid "重置配置"
+msgstr "설정 리셋"

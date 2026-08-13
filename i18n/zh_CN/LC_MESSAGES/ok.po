@@ -341,15 +341,6 @@ msgstr ""
 msgid "队伍管理"
 msgstr ""
 
-msgid "领取活跃度奖励"
-msgstr ""
-
-msgid "领取环期任务奖励"
-msgstr ""
-
-msgid "领取邮件"
-msgstr ""
-
 msgid "使用ESC"
 msgstr ""
 
@@ -555,9 +546,6 @@ msgid "自动循环进出关卡（需配合游戏内挂机流派使用）"
 msgstr ""
 
 msgid "自动登录游戏"
-msgstr ""
-
-msgid "领取/补货一咖舍"
 msgstr ""
 
 msgid "一咖舍任务"
@@ -1233,4 +1221,43 @@ msgid "打开外置代码目录"
 msgstr ""
 
 msgid "手动添加或修改 Python 代码后, 需点击 [{refresh}] 按钮以生效。<br>关于编写角色出招表的指南, 请参考 <a href='{doc_url}'>文档</a>。"
+msgstr ""
+
+msgid "日常领取"
+msgstr ""
+
+msgid "领取每日邮件和奖励"
+msgstr ""
+
+msgid "模式"
+msgstr ""
+
+msgid "邮件"
+msgstr ""
+
+msgid "活跃度奖励"
+msgstr ""
+
+msgid "环期任务奖励"
+msgstr ""
+
+msgid "一咖舍"
+msgstr ""
+
+msgid "领取/补货"
+msgstr ""
+
+msgid "全选"
+msgstr ""
+
+msgid "取消全选"
+msgstr ""
+
+msgid "全部折叠"
+msgstr ""
+
+msgid "全部展开"
+msgstr ""
+
+msgid "重置配置"
 msgstr ""
