@@ -211,6 +211,7 @@ class DailyPlanTab(CustomTab):
         self.vBoxLayout.setSpacing(0)
 
         self.plan_scroll_area = ScrollArea(self.view)
+        self.plan_scroll_area.setObjectName("view")
         self.plan_scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.plan_scroll_area.setWidgetResizable(True)
         StyleSheet.TAB.apply(self.plan_scroll_area)
