@@ -175,9 +175,8 @@ class AnomalyTask(NTEOneTimeTask, BaseCombatTask):
         except Exception as e:
             self.log_error("AnomalyTask Error", e)
 
-    def do_run(self, config=NotImplemented) -> bool:
-        if config is None:
-            config = self.config
+    def do_run(self) -> bool:
+        config = self.config
         stamina_target = config.get(self.CONF_STAMINA_TARGET)
         task_type = config.get(self.CONF_TASK_TYPE)
         idx = self.get_sub_idx(config)

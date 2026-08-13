@@ -100,10 +100,8 @@ class AnomalyHunter(NTEOneTimeTask, BaseCombatTask):
         except Exception as e:
             self.log_error("AnomalyHunter Error", e)
 
-    def do_run(self, config=None) -> bool:
-        if config is None:
-            config = self.config
-
+    def do_run(self) -> bool:
+        config = self.config
         stamina_target = config.get(self.CONF_STAMINA_TARGET)
         target = self.normalize_target(config.get(self.CONF_HUNTER_TARGET, self.TARGET_SOUND_KING))
         target_idx = self.get_target_idx(target)
