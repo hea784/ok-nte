@@ -215,6 +215,18 @@
             "file_name": "images/0.png",
             "width": 2560,
             "height": 1440
+        },
+        {
+            "id": 38,
+            "file_name": "images/3.png",
+            "width": 2560,
+            "height": 1440
+        },
+        {
+            "id": 39,
+            "file_name": "images/4.png",
+            "width": 2560,
+            "height": 1440
         }
     ],
     "annotations": [
@@ -1077,6 +1089,19 @@
             "iscrowd": 0
         },
         {
+            "id": 67,
+            "image_id": 39,
+            "category_id": 71,
+            "bbox": [
+                2186,
+                1257,
+                99,
+                77
+            ],
+            "area": 7623,
+            "iscrowd": 0
+        },
+        {
             "id": 68,
             "image_id": 32,
             "category_id": 68,
@@ -1217,6 +1242,32 @@
                 13
             ],
             "area": 416,
+            "iscrowd": 0
+        },
+        {
+            "id": 79,
+            "image_id": 38,
+            "category_id": 64,
+            "bbox": [
+                2364,
+                1255,
+                104,
+                90
+            ],
+            "area": 9360,
+            "iscrowd": 0
+        },
+        {
+            "id": 80,
+            "image_id": 38,
+            "category_id": 80,
+            "bbox": [
+                2181,
+                1259,
+                105,
+                75
+            ],
+            "area": 7875,
             "iscrowd": 0
         }
     ],
@@ -1537,6 +1588,11 @@
             "supercategory": ""
         },
         {
+            "id": 64,
+            "name": "zankou_ult_purple",
+            "supercategory": ""
+        },
+        {
             "id": 65,
             "name": "f5_house_panel",
             "supercategory": ""
@@ -1564,6 +1620,11 @@
         {
             "id": 70,
             "name": "bond_panel",
+            "supercategory": ""
+        },
+        {
+            "id": 71,
+            "name": "zankou_skill_gold",
             "supercategory": ""
         },
         {
@@ -1604,6 +1665,11 @@
         {
             "id": 79,
             "name": "anomaly_mammon",
+            "supercategory": ""
+        },
+        {
+            "id": 80,
+            "name": "zankou_skill_purple",
             "supercategory": ""
         }
     ]
