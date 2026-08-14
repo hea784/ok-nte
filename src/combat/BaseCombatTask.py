@@ -133,7 +133,7 @@ class BaseCombatTask(CharElementUIMixin, CombatCheck):
         session = self.combat_session
         if session.start_char is None:
             session.combat_start = time.time()
-            self.click()
+            self.click(after_sleep=0.25)
             self.switch_to_combat_start_char()
             session.start_char = self.get_current_char(raise_exception=False)
             logger.info(f"combat session started, start char: {session.start_char}")

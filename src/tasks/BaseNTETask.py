@@ -1,4 +1,4 @@
-import inspect
+﻿import inspect
 import re
 import threading
 import time
@@ -619,7 +619,13 @@ class BaseNTETask(
 
         # 3. 点击传送点并执行传送(Travel)
         self.operate_click(teleport)
-        self.sleep(0.5)
+        if not self.wait_feature(Labels.close_button, threshold=0.8, time_out=1):
+            if box := self.find_best_match_in_box(
+                self.box_of_screen(0.578, 0.426, 0.607, 0.580),
+                [Labels.map_big_teleport, Labels.map_small_teleport],
+                threshold=0.7
+            ):
+                self.operate_click(box, after_sleep=1)
         self.click_traval_button()
 
         return teleport
@@ -983,8 +989,9 @@ class BaseNTETask(
 
     def wait_click_confirm(
         self,
-        action: Any | None = None,
+        pre_action: Any | None = None,
         range: tuple[float, float, float, float] | Box | None = None,
+        on_found: Any | None = None,
         time_out=10,
         settle_time=0.25,
         raise_if_not_found=True,
@@ -997,7 +1004,7 @@ class BaseNTETask(
             box = self.box_of_screen(*range, hcenter=True)
         button = self.wait_until(
             lambda: self.find_confirm(box=box),
-            pre_action=action,
+            pre_action=pre_action,
             time_out=time_out,
             settle_time=settle_time,
             raise_if_not_found=raise_if_not_found,
@@ -1005,6 +1012,9 @@ class BaseNTETask(
         if not button:
             return False
         self.sleep(0.1)
+        if callable(on_found):
+            on_found()
+            self.sleep(0.1)
         result = self.wait_until(
             lambda: not self.find_confirm(box=box),
             pre_action=lambda: self.operate_click(button, interval=1),
@@ -1107,6 +1117,24 @@ class BaseNTETask(
             return False
         return True
 
+    def run_and_check_changed(
+        self,
+        action,
+        snap_box: Box,
+        check_box: Box | None = None,
+        after_sleep=0.25,
+        threshold=0.85,
+    ):
+        if not callable(action):
+            return
+        if check_box is None:
+            check_box = snap_box.scale(1.2)
+        snapshot = snap_box.crop_frame(self.frame)
+        action()
+        self.sleep(after_sleep)
+        if not self.find_one("snapshot", template=snapshot, box=check_box, threshold=threshold):
+            return True
+
     def scroll_and_is_end(
         self,
         x,
@@ -1117,16 +1145,16 @@ class BaseNTETask(
         after_sleep=0.25,
         threshold=0.85,
     ):
-        if check_box is None:
-            check_box = snap_box.scale(1.2)
-        snapshot = snap_box.crop_frame(self.frame)
-        self.operate(
-            lambda: self.scroll(x, y, count=count),
-            block=True,
+        return not self.run_and_check_changed(
+            action=lambda: self.operate(
+                lambda: self.scroll(x, y, count=count),
+                block=True,
+            ),
+            snap_box=snap_box,
+            check_box=check_box,
+            after_sleep=after_sleep,
+            threshold=threshold,
         )
-        self.sleep(after_sleep)
-        if self.find_one("snapshot", template=snapshot, box=check_box, threshold=threshold):
-            return True
 
 
 def interac_mask(image):
