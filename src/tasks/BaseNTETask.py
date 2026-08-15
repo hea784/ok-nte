@@ -620,11 +620,16 @@ class BaseNTETask(
         # 3. 点击传送点并执行传送(Travel)
         self.operate_click(teleport)
         if not self.wait_feature(Labels.close_button, threshold=0.8, time_out=1):
-            if box := self.find_best_match_in_box(
-                self.box_of_screen(0.578, 0.426, 0.607, 0.580),
-                [Labels.map_big_teleport, Labels.map_small_teleport],
-                threshold=0.7
-            ):
+            box = self.box_of_screen(0.578, 0.426, 0.607, 0.580)
+            to_find = [Labels.map_big_teleport, Labels.map_small_teleport]
+            max_conf = 0
+            max_box = None
+            for feature_name in to_find:
+                feature = self.find_sift_feature(feature_name, box=box)
+                if feature and feature.confidence > max_conf:
+                    max_conf = feature.confidence
+                    max_box = feature
+            if max_box:
                 self.operate_click(box, after_sleep=1)
         self.click_traval_button()
 

@@ -233,6 +233,12 @@
             "file_name": "images/1.png",
             "width": 2560,
             "height": 1440
+        },
+        {
+            "id": 43,
+            "file_name": "images/0.png",
+            "width": 2560,
+            "height": 1440
         }
     ],
     "annotations": [
@@ -1301,6 +1307,19 @@
             ],
             "area": 5390,
             "iscrowd": 0
+        },
+        {
+            "id": 83,
+            "image_id": 43,
+            "category_id": 83,
+            "bbox": [
+                91,
+                1165,
+                65,
+                64
+            ],
+            "area": 4160,
+            "iscrowd": 0
         }
     ],
     "categories": [
@@ -1712,6 +1731,11 @@
         {
             "id": 82,
             "name": "in_domain_2",
+            "supercategory": ""
+        },
+        {
+            "id": 83,
+            "name": "volleyball_restart",
             "supercategory": ""
         }
     ]

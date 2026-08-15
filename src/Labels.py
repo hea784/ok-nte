@@ -81,6 +81,7 @@ class Labels(str, Enum):
     treasure = 'treasure'
     ult_ready = 'ult_ready'
     unlimit_gift = 'unlimit_gift'
+    volleyball_restart = 'volleyball_restart'
     zankou_skill_gold = 'zankou_skill_gold'
     zankou_skill_purple = 'zankou_skill_purple'
     zankou_ult_purple = 'zankou_ult_purple'

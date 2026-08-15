@@ -217,6 +217,7 @@ class AnomalyHunter(NTEOneTimeTask, BaseCombatTask):
         self.sleep(0.5)
 
     def enter_hunter(self, target: str):
+        self.sleep(3)
         self.walk_until_interac_or_combat(script=self.WALK_METHOD.get(target, ["w"]))
         if self.is_in_team() and self.find_interac():
             self.wait_until(
