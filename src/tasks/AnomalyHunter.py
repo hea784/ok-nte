@@ -365,24 +365,3 @@ class AnomalyHunter(NTEOneTimeTask, BaseCombatTask):
                 pre_action=lambda: self.operate_click(0.609, 0.659, after_sleep=2),
             ):
                 return True
-
-    def exit_anomaly(self):
-        deadline = time.time() + 10
-        while time.time() < deadline:
-            if self.is_in_team():
-                if self.find_best_match_in_box(
-                    self.box_of_screen(0.004, 0.012, 0.061, 0.082),
-                    [Labels.in_domain, Labels.in_domain_2],
-                    threshold=0.7
-                ):
-                    self.send_key("esc", after_sleep=2)
-                else:
-                    return True
-            else:
-                if self.wait_click_confirm(
-                    lambda: self.send_key("esc", interval=1),
-                    range=(0.637, 0.607, 0.697, 0.709),
-                    raise_if_not_found=False,
-                    time_out=1,
-                ):
-                    self.sleep(2)

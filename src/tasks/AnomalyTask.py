@@ -242,7 +242,7 @@ class AnomalyTask(NTEOneTimeTask, BaseCombatTask):
         completed_count = 0
         while completed_count < total_count:
             double = completed_count < double_count
-            self.wait_until(lambda: self.find_one(Labels.in_domain), time_out=30)
+            self.wait_until(self.find_exit, time_out=30)
             self.wait_in_team()
             self.sleep(1)
             if not self.do_combat_and_claim(double):
@@ -283,14 +283,6 @@ class AnomalyTask(NTEOneTimeTask, BaseCombatTask):
             pre_action=lambda: self.operate_click(0.8008, 0.9042),
             time_out=10,
         )
-
-    def exit_anomaly(self):
-        self.wait_click_confirm(
-            lambda: self.send_key("esc", interval=2),
-            range=(0.619, 0.609, 0.709, 0.708),
-            settle_time=0.4,
-        )
-        self.wait_in_team_and_world()
 
     def do_combat_and_claim(self, double: bool):
         self.log_info("开始执行战斗流程")

@@ -1161,6 +1161,36 @@ class BaseNTETask(
             threshold=threshold,
         )
 
+    def find_exit(self, box=None):
+        if box is None:
+            box = self.box_of_screen(0.004, 0.012, 0.061, 0.097)
+        return self.find_best_match_in_box(
+            box,
+            [Labels.exit_1, Labels.exit_2],
+            threshold=0.7,
+        )
+
+    def exit_anomaly(self):
+        deadline = time.time() + 30
+        while time.time() < deadline:
+            if self.is_in_team():
+                if not self.find_exit():
+                    if self.wait_until(
+                        lambda: self.is_in_team() and not self.find_exit(),
+                        settle_time=0.5,
+                        time_out=1,
+                    ):
+                        return True
+                else:
+                    self.send_key("esc")
+
+            if self.wait_click_confirm(
+                range=(0.619, 0.607, 0.709, 0.709),
+                raise_if_not_found=False,
+                time_out=1,
+            ):
+                self.sleep(2)
+
 
 def interac_mask(image):
     mask = iu.create_color_mask(image, interac_pink_color, to_bgr=False)

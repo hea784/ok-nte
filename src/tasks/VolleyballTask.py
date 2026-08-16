@@ -1,4 +1,3 @@
-
 from ok import TaskDisabledException
 
 from src.Labels import Labels
@@ -8,6 +7,8 @@ from src.tasks.trigger.SkipDialogTask import SkipDialogTask
 
 INST = "进入比赛后开始任务"
 EN_INST = "Start the mission after entering the game"
+
+
 class VolleyballTask(NTEOneTimeTask, BaseNTETask):
     CONF_MODE = "模式"
     MODE_EXP = "刷经验"
@@ -44,57 +45,78 @@ class VolleyballTask(NTEOneTimeTask, BaseNTETask):
             raise
 
     def do_run(self):
-        ret = None
-        match self.config.get(self.CONF_MODE):
-            case self.MODE_EXP:
-                ret = self.farm_exp()
-            # case self.MODE_SUP:
-            #     ret = self.support_mode()
-        return ret
+        return self.auto_play()
 
     def sleep_check(self):
         super().sleep_check()
         if self.check_monthly_card():
             self.handle_monthly_card()
 
-    def farm_exp(self):
+    def auto_play(self):
         skip_task = self.get_task_by_class(SkipDialogTask)
+        switch_key = False
+        key = "j"
+        in_game = True
         while True:
-            self.send_key("j")
-            self.sleep(0.5)
-            self.send_key("k")
-            self.sleep(0.5)
-            if box := self.find_one(Labels.volleyball_restart):
-                self.operate_click(box, after_sleep=1)
-            skip_task.check_skip()
+            if self.find_exit():
+                if not in_game:
+                    self.log_info("game begin")
+                    in_game = True
+                    self.wait_until(self.find_exit, settle_time=1, time_out=1.5)
+                    if self.is_service():
+                        self.log_info("is service")
+                        self.send_key("j")
+                        self.sleep(2.5)
+                        self.send_key("k")
+                    else:
+                        self.log_info("not service")
+
+                if self.is_spike():
+                    self.log_info("in spike")
+                    self.wait_until(lambda: not self.is_spike(), time_out=1)
+                    self.sleep(0.7)
+                    self.send_key("k")
+
+                key, switch_key = self.play_once(key, switch_key)
+            else:
+                in_game = False
+                self.handle_match_end()
+                skip_task.check_skip()
             self.sleep(0.1)
 
-    # def support_mode(self):
-    #     skip_task = self.get_task_by_class(SkipDialogTask)
-    #     while True:
-    #         if self.find_exit():
-    #             if self.is_service():
-    #                 self.send_key("j")
-    #                 self.sleep(2.5)
-    #                 self.send_key("k")
+    def play_once(self, key, switch_key):
+        match self.config.get(self.CONF_MODE):
+            case self.MODE_EXP:
+                if self.send_key(key, interval=0.5):
+                    return ("j" if switch_key else "k"), not switch_key
+            case self.MODE_SUP:
+                pass
+        return key, switch_key
 
-    #             if self.is_spike():
-    #                 self.send_key("space")
-    #                 self.sleep(1)
-    #                 self.send_key("k")
+    def handle_match_end(self):
+        match self.config.get(self.CONF_MODE):
+            case self.MODE_EXP:
+                if box := self.find_one(Labels.volleyball_restart):
+                    self.operate_click(box, after_sleep=0.5)
+            case self.MODE_SUP:
+                pass
 
-    #         if box := self.find_one(Labels.volleyball_restart):
-    #             self.operate_click(box, after_sleep=1)
-    #         skip_task.check_skip()
-    #         self.sleep(0.1)
+    def is_service(self):
+        from src import text_white_color
 
-    # def is_service(self):
-    #     from src import text_white_color
-    #     upper = self.box_of_screen(0.947, 0.405, 0.965, 0.419)
-    #     lower = self.box_of_screen(0.947, 0.514, 0.965, 0.530)
-    #     upper_white = self.calculate_color_percentage(text_white_color, upper)
-    #     lower_white = self.calculate_color_percentage(text_white_color, lower)
-    #     return upper_white > lower_white
+        upper = self.box_of_screen(0.947, 0.405, 0.965, 0.419)
+        lower = self.box_of_screen(0.947, 0.514, 0.965, 0.530)
+        upper_white = self.calculate_color_percentage(text_white_color, upper)
+        lower_white = self.calculate_color_percentage(text_white_color, lower)
+        return upper_white > lower_white
 
-    # def is_spike(self):
-    #     pass
+    def is_spike(self):
+        box = self.box_of_screen(0.8562, 0.8500, 0.9137, 0.9243, hcenter=True)
+        return self.calculate_color_percentage(spike_bule_color, box) > 0.06
+
+
+spike_bule_color = {
+    "r": (71, 100),
+    "g": (155, 175),
+    "b": (167, 187),
+}
