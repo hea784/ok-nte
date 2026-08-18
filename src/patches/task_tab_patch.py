@@ -11,7 +11,7 @@ def install_task_tab_patch():
         return
 
     from ok import og
-    from ok.gui.tasks.OneTimeTaskTab import OneTimeTaskTab
+    from ok.ui.qt.tasks.OneTimeTaskTab import OneTimeTaskTab
 
     original_refresh_ui = OneTimeTaskTab.refresh_ui
 

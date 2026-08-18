@@ -29,7 +29,7 @@ class DodgeCounterTrigger:
         self._execute_lock = threading.Lock()
         self._last_dodge_time = 0.0
         self._last_counter_time = 0.0
-        self._min_dodge_interval = 0.5
+        self._min_dodge_interval = 0.3
         self._min_counter_interval = 1.0
 
     def set_actions(

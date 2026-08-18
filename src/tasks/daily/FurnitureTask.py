@@ -1,3 +1,5 @@
+import re
+
 from ok import TaskDisabledException
 from qfluentwidgets import FluentIcon
 
@@ -7,12 +9,15 @@ from src.tasks.NTEOneTimeTask import NTEOneTimeTask
 
 
 class FurnitureTask(NTEOneTimeTask, BaseCombatTask):
+    CONF_MAMMON = "挑战玛门"
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.name = "异象家具"
         self.icon = FluentIcon.SHOPPING_CART
         self.group_name = "日常/周常"
         self.visible = False
+        self.default_config.update({self.CONF_MAMMON: True})
 
     def run(self):
         super().run()
@@ -34,8 +39,10 @@ class FurnitureTask(NTEOneTimeTask, BaseCombatTask):
 
         furniture_list = [
             Labels.anomaly_fluff,
-            # Labels.anomaly_mammon,
         ]
+
+        if self.config.get(self.CONF_MAMMON):
+            furniture_list.append(Labels.anomaly_mammon)
 
         furniture_results = {}
         for furniture in furniture_list:
@@ -217,12 +224,12 @@ class FurnitureTask(NTEOneTimeTask, BaseCombatTask):
         confirm = self.retry_on_action(action_2, attempt=10, raise_if_failed=True)
 
         if furniture == Labels.anomaly_fluff:
-            self.operate_click(confirm, after_sleep=0.5)
+            ret = self.operate_click(confirm, after_sleep=0.5)
         else:
-            self.click_furniture(furniture)
+            ret = self.click_furniture(furniture)
 
         self.ensure_main()
-        return True
+        return ret
 
     def click_furniture(self, furniture):
         box_left = self.box_of_screen(0.024, 0.181, 0.278, 0.775, hcenter=True)
@@ -235,11 +242,20 @@ class FurnitureTask(NTEOneTimeTask, BaseCombatTask):
         # 点击异象家具
         def action():
             box = self.find_sift_feature(furniture, box=box_left)
-            if box:
-                self.operate_click(box)
-                self.sleep(0.5)
-                if self.find_sift_feature(furniture, box=box_right):
-                    return True
+            if not box:
+                return False
+
+            self.operate_click(box, after_sleep=1)
+
+            if not self.find_sift_feature(furniture, box=box_right):
+                return
+
+            self.operate_click(0.978, 0.848, after_sleep=0.5)
+            self.operate_click(box, after_sleep=1)
+
+            if self.find_sift_feature(furniture, box=box_right):
+                return True
+
             self.sleep(0.5)
 
         self.retry_on_action(action, attempt=10, raise_if_failed=True)
@@ -260,15 +276,68 @@ class FurnitureTask(NTEOneTimeTask, BaseCombatTask):
             block=True,
         )
         self.sleep(0.5)
-        self.after_claim_action(furniture)
-        return True
+        return self.after_claim_action(furniture)
 
     def after_claim_action(self, furniture):
         match furniture:
             case Labels.anomaly_mammon:
-                self.claim_mammon()
+                return self.claim_mammon()
             case _:
-                pass
+                return True
 
     def claim_mammon(self):
-        pass
+        exc_msg = "mammon has record"
+
+        def check_record():
+            mammon_record = self.ocr(0.634, 0.609, 0.762, 0.674, name="mammon_record")
+            if self._parse_reward_number(mammon_record, "mammon_record") > 0:
+                raise Exception(exc_msg)
+
+        def action():
+            self.walk_to_treasure()
+            self.send_interac(handle_claim=False)
+            if self.wait_click_confirm(
+                range=(0.4168, 0.8153, 0.4609, 0.9049), raise_if_not_found=False, time_out=1.5
+            ):
+                return True
+
+        run_mammon = False
+        ret = False
+        try:
+            run_mammon = self.wait_click_confirm(
+                range=(0.628, 0.712, 0.682, 0.815),
+                time_out=10,
+                raise_if_not_found=False,
+                on_found=check_record,
+            )
+        except Exception as e:
+            if str(e) == exc_msg:
+                ret = True
+            else:
+                raise
+
+        if run_mammon:
+            if self.walk_until_combat(run=True):
+                self.combat_once()
+                self.rotate_and_find_treasure()
+                if self.retry_on_action(action):
+                    return True
+            self.exit_anomaly()
+        self.ensure_main()
+        return ret
+
+    def _parse_reward_number(self, ocr_result, log_name):
+        if not ocr_result:
+            return 0
+
+        result = "".join(item.name for item in ocr_result)
+        result = re.sub(r"[,.]", "", result)
+        match = re.search(r"(\d+)", result)
+        if not match:
+            return 0
+
+        try:
+            return int(match.group(1))
+        except ValueError:
+            self.log_warning(f"{log_name} error {result}")
+            return 0

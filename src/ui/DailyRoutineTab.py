@@ -1,8 +1,8 @@
 from ok import og
-from ok.gui.common.design_system import DesignToken, configure_page_layout
-from ok.gui.common.style_sheet import StyleSheet
-from ok.gui.tasks.TaskCard import TaskCard
-from ok.gui.widget.CustomTab import CustomTab
+from ok.ui.qt.common.design_system import DesignToken, configure_page_layout
+from ok.ui.qt.common.style_sheet import StyleSheet
+from ok.ui.qt.tasks.TaskCard import TaskCard
+from ok.ui.qt.widget.CustomTab import CustomTab
 from PySide6.QtCore import QEasingCurve, QPointF, QPropertyAnimation, Qt, Signal
 from PySide6.QtGui import QColor, QPainter
 from PySide6.QtWidgets import (

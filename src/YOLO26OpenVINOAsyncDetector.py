@@ -4,7 +4,7 @@ import time
 
 import numpy as np
 from ok import Box, Logger, og
-from ok.gui.Communicate import communicate
+from ok.ui.qt.Communicate import communicate
 
 logger = Logger.get_logger(__name__)
 

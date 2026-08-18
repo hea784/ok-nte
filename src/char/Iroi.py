@@ -1,5 +1,6 @@
 
 from src.char.Support import Support
+from src.combat.planner import Planner
 
 
 class Iroi(Support):
@@ -11,16 +12,10 @@ class Iroi(Support):
         self._mouse_pressed = False
 
     def combat_plan(self, context):
-        skill = self.click_skill_action()
+        skill = self.click_skill_action(add_tags=Planner.ActionTag.TEAM_BUFF)
         ultimate = self.click_ultimate_action()
 
-        def entry():
-            skill_result = yield skill
-            if skill_result and self.ultimate_available():
-                self.sleep(0.8)
-            yield ultimate
-
-        return self.plan(skill, ultimate, entry=entry)
+        return self.plan(skill, ultimate)
 
     def click_ultimate(self, send_click=True, wait_if_no_cd=0):
         try:

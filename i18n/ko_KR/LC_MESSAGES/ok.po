@@ -1284,3 +1284,6 @@ msgstr "경험치 파밍"
 
 msgid "点按G"
 msgstr "G키 탭"
+
+msgid "挑战玛门"
+msgstr "마몬 도전"

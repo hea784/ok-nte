@@ -5,7 +5,7 @@ from typing import Tuple
 import cv2
 import numpy as np
 from ok import Box, color_range_to_bound
-from ok.gui.Communicate import communicate
+from ok.ui.qt.Communicate import communicate
 
 
 def binarize_bgr_by_brightness(image, threshold=180, to_bgr: bool = True):

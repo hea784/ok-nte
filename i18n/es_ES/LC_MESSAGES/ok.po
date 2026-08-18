@@ -1284,3 +1284,6 @@ msgstr "Farmear EXP"
 
 msgid "点按G"
 msgstr "Pulsar G"
+
+msgid "挑战玛门"
+msgstr "Desafiar a Mammon"

@@ -1,5 +1,5 @@
 from ok import og
-from ok.gui.widget.CustomTab import CustomTab
+from ok.ui.qt.widget.CustomTab import CustomTab
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QFrame, QStackedWidget, QVBoxLayout
 from qfluentwidgets import FluentIcon, Pivot, isDarkTheme, qconfig

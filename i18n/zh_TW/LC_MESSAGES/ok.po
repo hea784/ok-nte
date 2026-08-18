@@ -1284,3 +1284,6 @@ msgstr "刷經驗"
 
 msgid "点按G"
 msgstr "點按G"
+
+msgid "挑战玛门"
+msgstr "挑戰瑪門"

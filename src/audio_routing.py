@@ -11,7 +11,7 @@ from typing import Any
 
 import psutil
 from ok import ConfigOption, og
-from ok.gui.Communicate import communicate
+from ok.ui.qt.Communicate import communicate
 from ok.util.logger import Logger
 
 from src import GAME_EXE
@@ -775,7 +775,7 @@ def _device_match_key(device: str) -> str:
 
 def _alert_error(message: str) -> None:
     try:
-        from ok.gui.util.Alert import alert_error
+        from ok.ui.qt.util.Alert import alert_error
 
         alert_error(message)
     except Exception:

@@ -48,6 +48,7 @@ class Planner:
         ULTIMATE_ACTION = "ultimate_action"
         ARC_ACTION = "arc_action"
         SUPPORT = "support"
+        TEAM_BUFF = "team_buff"
         COORDINATION = "coordination"
         SKILL_ACTION = "skill_action"
         FIELD_TIME = "field_time"
@@ -120,6 +121,7 @@ ACTION_TAG_SCORES = {
     ActionTag.ULTIMATE_ACTION: 200,
     ActionTag.ARC_ACTION: 0,
     ActionTag.SUPPORT: 45,
+    ActionTag.TEAM_BUFF: 260,
     ActionTag.COORDINATION: 80,
     ActionTag.SKILL_ACTION: 75,
     ActionTag.FIELD_TIME: 40,

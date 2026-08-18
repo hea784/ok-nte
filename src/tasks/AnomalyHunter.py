@@ -1,4 +1,3 @@
-import time
 
 import cv2
 import numpy as np
@@ -285,30 +284,8 @@ class AnomalyHunter(NTEOneTimeTask, BaseCombatTask):
                 ):
                     return result
 
-    def rotate_and_find_treasure(self, check_boss=False):
-        if result := self.find_boss_treasure():
-            return result
-        if check_boss:
-            if self.wait_until(self.is_boss, time_out=1):
-                return
-
-        def sleep(sec):
-            deadline = time.time() + sec
-            while time.time() < deadline:
-                if check_boss and self.is_boss():
-                    return True
-                self.sleep(0.1)
-
-        for i in range(4):
-            self.log_info(f"Boss宝箱查找次数：{i + 1}/4")
-            self.send_key("a")
-            if sleep(0.3):
-                return
-            self.middle_click()
-            if sleep(1):
-                return
-            if result := self.find_boss_treasure():
-                return result
+    def rotate_and_find_treasure(self):
+        return self.rotate_and_find(self.find_boss_treasure, self.is_boss)
 
     def walk_to_boss_treasure(self):
         if self.rotate_and_find_treasure():
@@ -337,7 +314,7 @@ class AnomalyHunter(NTEOneTimeTask, BaseCombatTask):
 
     def do_combat_and_claim(self):
         self.log_info("战斗前检查是否有上次未领取的BOSS宝箱")
-        if self.rotate_and_find_treasure(check_boss=True):
+        if self.rotate_and_find_treasure():
             self.log_info("发现BOSS宝箱, 跳过战斗")
         else:
             self.log_info("未发现BOSS宝箱, 调用战斗模块")

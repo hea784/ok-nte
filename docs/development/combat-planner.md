@@ -147,6 +147,7 @@ flow 外预查询完整 action 时，使用 `context.is_action_allowed(self, act
 - `SKILL_ACTION`：E。
 - `ARC_ACTION`：弧盘动作，评分为 0。
 - `SUPPORT`：辅助/治疗/增益类动作。
+- `TEAM_BUFF`：为全队提供增益的关键动作。仅在该增益应优先于主 DPS 终结技施放时使用。
 - `COORDINATION`：发布协作路线或窗口的动作。
 - `COORDINATION_FINISHER`：协作完成后的收尾动作。
 - `FIELD_TIME`：planner 内建站场动作，角色不应自己声明。
@@ -211,6 +212,7 @@ if self.consume_first_engage():
 self.click_ultimate_action(
     name=None,
     tags=None,
+    add_tags=None,
     reason="ultimate action available",
     can_execute=None,
 )
@@ -218,6 +220,7 @@ self.click_ultimate_action(
 
 - 自动设置 `slot=ActionSlot.ULTIMATE`。
 - 默认 `tags={ActionTag.ULTIMATE_ACTION}`。
+- `tags` 会完全指定基础标签；`add_tags` 可传单个 tag 或 tag 集合，并会追加到它，或在未传 `tags` 时追加到默认标签。
 - 默认 `name=f"{角色名}_ultimate"`。
 - `can_execute` 默认包含 `self.ultimate_available()`；传入的额外条件会与之合并。
 - `priority_ready` 自动使用 `self.ultimate_available()`。
@@ -229,6 +232,7 @@ self.click_ultimate_action(
 self.click_skill_action(
     name=None,
     tags=None,
+    add_tags=None,
     reason="skill action available",
     down_time=0.01,
     can_execute=None,
@@ -237,6 +241,7 @@ self.click_skill_action(
 
 - 自动设置 `slot=ActionSlot.SKILL`。
 - 默认 `tags={ActionTag.SKILL_ACTION}`。
+- `tags` 会完全指定基础标签；`add_tags` 可传单个 tag 或 tag 集合，并会追加到它，或在未传 `tags` 时追加到默认标签。
 - 默认 `name=f"{角色名}_skill"`。
 - `can_execute` 默认包含 `self.skill_available()`；传入的额外条件会与之合并。
 - `priority_ready` 自动使用 `self.skill_available()`。

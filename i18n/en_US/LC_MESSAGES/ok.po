@@ -1284,3 +1284,6 @@ msgstr "Farm EXP"
 
 msgid "点按G"
 msgstr "Tap G"
+
+msgid "挑战玛门"
+msgstr "Challenge Mammon"

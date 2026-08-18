@@ -2,7 +2,7 @@ import traceback
 from typing import Literal
 
 from ok import og
-from ok.gui.widget.CustomTab import CustomTab
+from ok.ui.qt.widget.CustomTab import CustomTab
 from PySide6.QtCore import QObject, Qt, QTimer, Signal
 from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import QHBoxLayout, QSizePolicy, QStackedLayout, QVBoxLayout, QWidget

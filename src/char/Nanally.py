@@ -28,10 +28,7 @@ class Nanally(BaseChar):
         ultimate = self.click_ultimate_action()
 
         def entry():
-            skill_result = yield skill
-            if skill_result and self.ultimate_available():
-                self.sleep(0.6)
-
+            yield skill
             ultimate_result = yield ultimate
             if ultimate_result:
                 self.perform_in_ult(context, skill)

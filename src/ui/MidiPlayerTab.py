@@ -5,7 +5,7 @@ import time
 from collections import Counter
 
 from ok import og
-from ok.gui.widget.CustomTab import CustomTab
+from ok.ui.qt.widget.CustomTab import CustomTab
 from ok.util.config import Config
 from PySide6.QtCore import QObject, Qt, QTime, QTimer, QUrl, Signal
 from PySide6.QtGui import QDesktopServices

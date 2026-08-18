@@ -1,6 +1,6 @@
 from ok import og, relative_box
-from ok.gui.Communicate import communicate
-from ok.gui.widget.CustomTab import CustomTab
+from ok.ui.qt.Communicate import communicate
+from ok.ui.qt.widget.CustomTab import CustomTab
 from PySide6.QtCore import QObject, Qt, Signal
 from PySide6.QtGui import QColor, QCursor
 from PySide6.QtWidgets import QGridLayout, QHBoxLayout, QListWidgetItem, QVBoxLayout, QWidget

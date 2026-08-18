@@ -8,7 +8,7 @@ import win32con
 import win32gui
 import win32process
 from ok import TaskDisabledException, og
-from ok.gui.Communicate import communicate
+from ok.ui.qt.Communicate import communicate
 from ok.util.process import execute, is_admin
 from qfluentwidgets import FluentIcon
 

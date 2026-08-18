@@ -1284,3 +1284,6 @@ msgstr "経験値周回"
 
 msgid "点按G"
 msgstr "Gキーをタップ"
+
+msgid "挑战玛门"
+msgstr "マモンに挑戦"

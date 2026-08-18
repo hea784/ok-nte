@@ -1012,3 +1012,6 @@ msgstr "Farmar EXP"
 
 msgid "点按G"
 msgstr "Pressionar G"
+
+msgid "挑战玛门"
+msgstr "Desafiar Mammon"

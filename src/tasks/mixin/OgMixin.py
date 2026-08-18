@@ -11,6 +11,13 @@ logger = Logger.get_logger(__name__)
 
 
 class OgMixin(BaseTask):
+    def sync_config(self, config=None):
+        """同步保存配置, 并刷新对应的配置 UI。"""
+        target_config = config if config is not None else self.config
+        if hasattr(target_config, "save_file"):
+            target_config.save_file()
+        self._refresh_config_ui(target_config)
+
     def _refresh_config_ui(self, config):
         """刷新指定配置对应的 UI 界面"""
         main_window = self._get_main_window()

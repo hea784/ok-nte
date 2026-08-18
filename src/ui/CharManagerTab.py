@@ -5,7 +5,7 @@ from pathlib import Path
 
 import requests
 from ok import og
-from ok.gui.widget.CustomTab import CustomTab
+from ok.ui.qt.widget.CustomTab import CustomTab
 from ok.util.explorer import open_explorer_folder, reveal_in_explorer
 from PySide6.QtCore import QEvent, Qt, QTimer, Signal, Slot
 from PySide6.QtGui import QColor
