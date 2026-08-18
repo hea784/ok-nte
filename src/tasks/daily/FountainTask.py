@@ -117,19 +117,22 @@ class FountainTask(NTEOneTimeTask, BaseNTETask):
         self.sleep(1)
 
     def run_to_fountain(self):
+        self.sleep(0.2)
+        self.middle_click(after_sleep=0.2)
         self.middle_click(after_sleep=1)
+        box = self.box_of_screen(0.0930, 0.1720, 0.1066, 0.1986, hcenter=True)
         try:
             self.send_key_down("a", after_sleep=0.4)
             self.send_key("lshift", after_sleep=0.4)
             self.wait_until(
-                self.find_bookshop_logo,
+                lambda: self.find_bookshop_logo(box=box),
                 time_out=self.BOOKSHOP_LOGO_TIMEOUT,
                 raise_if_not_found=True,
             )
-            self.sleep(1)
         finally:
             self.send_key_up("a")
-
+        self.sleep(0.2)
+        self.middle_click(after_sleep=0.2)
         self.middle_click(after_sleep=1)
         try:
             self.send_key_down("a", after_sleep=0.2)
@@ -153,7 +156,9 @@ class FountainTask(NTEOneTimeTask, BaseNTETask):
         finally:
             self.send_key_up("w")
 
-        self.send_key("d", down_time=0.5, after_sleep=0.2)
+        self.send_key("d", down_time=0.5)
+        self.sleep(0.2)
+        self.middle_click(after_sleep=0.2)
         self.middle_click(after_sleep=1)
 
         def find_sign():
@@ -163,11 +168,13 @@ class FountainTask(NTEOneTimeTask, BaseNTETask):
             return bool(ret)
 
         try:
-            self.send_key_down("w", after_sleep=0.4)
+            self.send_key_down("w", after_sleep=0.2)
+            self.send_key("lshift", after_sleep=0.2)
+            self.send_key("a", down_time=0.3)
             self.sleep(4)
-            self.send_key("d", down_time=0.5)
-            self.sleep(5)
-            self.send_key("lshift", after_sleep=1)
+            self.send_key("d", down_time=1.0)
+            self.sleep(1)
+            self.send_key("space")
             self.wait_until(
                 find_sign,
                 time_out=self.INTERAC_TIMEOUT,
@@ -185,8 +192,9 @@ class FountainTask(NTEOneTimeTask, BaseNTETask):
 
         self.retry_on_action(action=action, attempt=5, raise_if_failed=True)
 
-    def find_bookshop_logo(self):
-        box = self.box_of_screen(*self.BOOKSHOP_LOGO_BOX, name="bookshop_logo_area")
+    def find_bookshop_logo(self, box=None):
+        if box is None:
+            box = self.box_of_screen(*self.BOOKSHOP_LOGO_BOX, hcenter=True)
         return self.find_one(Labels.bookshop_logo, box=box)
 
     def find_second_bookshop_logo(self):
