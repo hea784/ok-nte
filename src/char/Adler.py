@@ -19,7 +19,7 @@ class Adler(BaseChar):
     """
 
     cn_name = "阿德勒"
-    element = BaseChar.Element.RED
+    element = BaseChar.ElementType.RED
 
     def describe_role(self):
         return RoleProfile(

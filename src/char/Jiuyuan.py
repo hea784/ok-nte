@@ -8,7 +8,7 @@ from src.combat.planner import (
 
 class Jiuyuan(BaseChar):
     cn_name = "九原"
-    element = BaseChar.Element.GREEN
+    element = BaseChar.ElementType.GREEN
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

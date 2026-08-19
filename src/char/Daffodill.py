@@ -17,7 +17,7 @@ class Daffodill(BaseChar):
     """
 
     cn_name = "达芙蒂尔"
-    element = BaseChar.Element.PURPLE
+    element = BaseChar.ElementType.PURPLE
     ULT_BURST_DURATION = 1.5
 
     def combat_plan(self, context: CombatContext):

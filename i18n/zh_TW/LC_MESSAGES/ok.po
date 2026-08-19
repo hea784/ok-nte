@@ -1287,3 +1287,6 @@ msgstr "點按G"
 
 msgid "挑战玛门"
 msgstr "挑戰瑪門"
+
+msgid "自动闯关"
+msgstr "自動闖關"

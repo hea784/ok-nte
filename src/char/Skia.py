@@ -17,7 +17,7 @@ class Skia(BaseChar):
     """
 
     cn_name = "翳"
-    element = BaseChar.Element.YELLOW
+    element = BaseChar.ElementType.YELLOW
 
     def describe_role(self):
         return RoleProfile(

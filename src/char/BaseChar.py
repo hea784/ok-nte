@@ -40,7 +40,7 @@ class Element(StrEnum):
 class BaseChar:
     """角色基类，定义了游戏角色的通用属性和行为。"""
 
-    Element = Element
+    ElementType = Element
     INTRO_MOTION_FREEZE_DURATION = 1.5
     en_name = ""
     cn_name = ""

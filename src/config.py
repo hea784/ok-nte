@@ -12,7 +12,7 @@ from src.process_feature import process_feature
 if "PATH" not in os.environ:
     os.environ["PATH"] = ""
 
-version = "v1.3.5"
+version = "v1.3.6"
 # 不需要修改version, Github Action打包会自动修改
 
 key_config_option = ConfigOption(
@@ -235,8 +235,8 @@ config = {
     ],
     "scene": ["src.scene.NTEScene", "NTEScene"],
     "update_pyappify": {
-        "to_version": "1.1.11",
-        "zip_url": "https://github.com/BnanZ0/ok-nte/releases/download/v1.2.25/ok-nte-win32.zip",
-        "sha256": "1ac3e1d566c7b8de670187e8d230992d3204c4f9b13187b0dc5b65a86ef1eb3d",
+        "to_version": "1.2.3",
+        "zip_url": "https://github.com/BnanZ0/ok-nte/releases/download/v1.3.5/ok-nte-win32.zip",
+        "sha256": "9e8c7ec1e1ab8af7824dd6ee1a5bdc8ec7c01d1b1007270ff8dec19fe9c14980",
     },
 }

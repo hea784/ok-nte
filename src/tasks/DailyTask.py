@@ -27,7 +27,7 @@ class DailyTask(NTEOneTimeTask, BaseNTETask):
     # --- 配置项键名 ---
     CONF_TASK = "副本类型"
     TASK_NONE = "不执行"
-    TASK = [TASK_NONE, AnomalyTask.NAME]
+    TASK = [TASK_NONE, AnomalyTask.TASK_NAME]
 
     CONF_CLAIM_MAIL = "领取邮件"
     CONF_COMPLETE_DAILY = "完成每日活跃度"
@@ -325,7 +325,7 @@ class DailyTask(NTEOneTimeTask, BaseNTETask):
 
         ret = False
         task_name = self.config.get(self.CONF_TASK)
-        if task_name == AnomalyTask.NAME:
+        if task_name == AnomalyTask.TASK_NAME:
             with self.set_working_task(AnomalyTask) as task:
                 if ret := task.do_run(self.config, stamina_target=must_use):
                     task.shift_id(self)

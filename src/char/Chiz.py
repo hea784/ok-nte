@@ -7,7 +7,7 @@ from src.combat.planner import Planner, RoleProfile
 
 class Chiz(BaseChar):
     cn_name = "小吱"
-    element = BaseChar.Element.WHITE
+    element = BaseChar.ElementType.WHITE
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

@@ -4,7 +4,7 @@ from src.combat.planner import CombatContext, Planner, RoleProfile
 
 class Zero(BaseChar):
     cn_name = "零"
-    element = BaseChar.Element.WHITE
+    element = BaseChar.ElementType.WHITE
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

@@ -51,7 +51,7 @@ class HotoriRecordTeam:
 
 class Hotori(BaseChar):
     cn_name = "浔"
-    element = BaseChar.Element.WHITE
+    element = BaseChar.ElementType.WHITE
 
     TEAM_SKILL_WINDOW = 5 + 1.2
     MAX_TEAM_SKILL_RECORDS = 3

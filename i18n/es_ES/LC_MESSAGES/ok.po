@@ -1287,3 +1287,6 @@ msgstr "Pulsar G"
 
 msgid "挑战玛门"
 msgstr "Desafiar a Mammon"
+
+msgid "自动闯关"
+msgstr "Desafío automático"

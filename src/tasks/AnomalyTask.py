@@ -9,7 +9,7 @@ from src.utils.i18n_format import register_i18n_format
 
 
 class AnomalyTask(NTEOneTimeTask, BaseCombatTask):
-    NAME = "异象界域"
+    TASK_NAME = "异象界域"
 
     # --- 配置项键名 ---
     CONF_TASK_TYPE = "任务类型"
@@ -89,7 +89,7 @@ class AnomalyTask(NTEOneTimeTask, BaseCombatTask):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.name = self.NAME
+        self.name = self.TASK_NAME
         self.description = "自动进行异象界域任务"
         self.icon = FluentIcon.FLAG
         self._outer_config = None

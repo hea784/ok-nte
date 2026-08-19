@@ -5,7 +5,7 @@ from src.combat.planner import Planner, RoleProfile
 
 class Fadia(BaseChar):
     cn_name = "法帝娅"
-    element = BaseChar.Element.BLUE
+    element = BaseChar.ElementType.BLUE
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

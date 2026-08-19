@@ -12,8 +12,9 @@ EN_INST = "Start the mission after entering the game"
 class VolleyballTask(NTEOneTimeTask, BaseNTETask):
     CONF_MODE = "模式"
     MODE_EXP = "刷经验"
+    MODE_AUTO = "自动闯关"
     MODE_SUP = "辅助扣发球"
-    MODES = [MODE_EXP]
+    MODES = [MODE_EXP, MODE_AUTO]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -86,7 +87,7 @@ class VolleyballTask(NTEOneTimeTask, BaseNTETask):
 
     def play_once(self, key, switch_key):
         match self.config.get(self.CONF_MODE):
-            case self.MODE_EXP:
+            case self.MODE_EXP | self.MODE_AUTO:
                 if self.send_key(key, interval=0.5):
                     return ("j" if switch_key else "k"), not switch_key
             case self.MODE_SUP:
@@ -98,6 +99,19 @@ class VolleyballTask(NTEOneTimeTask, BaseNTETask):
             case self.MODE_EXP:
                 if box := self.find_one(Labels.volleyball_restart):
                     self.operate_click(box, after_sleep=0.5)
+            case self.MODE_AUTO:
+                if box := self.find_one(Labels.volleyball_restart):
+                    boxes = self.find_feature(
+                        Labels.volleyball_star,
+                        box=self.get_box_by_name(Labels.box_volleyball_stars)
+                    )
+                    if len(boxes) == 3:
+                        box = self.find_one(Labels.volleyball_next) or self.find_one(
+                            Labels.volleyball_restart
+                        )
+                if box:
+                    self.operate_click(box, after_sleep=0.5)
+
             case self.MODE_SUP:
                 pass
 

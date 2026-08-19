@@ -451,6 +451,7 @@ class LauncherTask(BaseNTETask):
                 return True
 
             matches.append(hwnd)
+            # EnumWindows treats False as an aborted enumeration and pywin32 raises an error.
             return True
 
         win32gui.EnumWindows(callback, None)

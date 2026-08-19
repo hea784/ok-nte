@@ -24,7 +24,7 @@ class Baicang(BaseChar):
     """
 
     cn_name = "白藏"
-    element = BaseChar.Element.RED
+    element = BaseChar.ElementType.RED
 
     MAX_FIELD_TIME = 0
     ULT_FIELD_DURATION = 12.0

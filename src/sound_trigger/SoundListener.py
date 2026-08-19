@@ -168,11 +168,12 @@ class SoundListener:
             )
             try:
                 self._listener_thread.start()
-            except Exception:
+            except Exception as error:
                 self._running = False
                 self._stop_event = None
                 self._listener_thread = None
-                raise
+                logger.error(f"Failed to start SoundListener thread: {error}")
+                return False
 
         logger.info("SoundListener started successfully")
         return True

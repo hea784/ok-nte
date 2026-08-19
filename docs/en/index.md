@@ -12,7 +12,7 @@ ok-nte is a Windows automation tool for *Neverness To Everness*. It interacts th
 
 - [Feature overview](features/overview.md)
 - [FAQ and feedback](guides/troubleshooting.md)
-- [Development documentation](../development/contributing.md)
+- [Development documentation](development/contributing.md)
 
 !!! warning "Risk notice"
     This open-source external tool is for learning and personal use. It only interacts with the game's existing user interface and does not modify game files or code. Use of third-party tools may violate game rules and may put accounts at risk. You are responsible for understanding and accepting these risks.

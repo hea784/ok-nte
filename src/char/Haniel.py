@@ -13,7 +13,7 @@ class Haniel(Support):
     """
 
     cn_name = "哈妮娅"
-    element = Support.Element.BLUE
+    element = Support.ElementType.BLUE
 
     def combat_plan(self, context: CombatContext):
         ultimate = self.click_ultimate_action(add_tags=Planner.ActionTag.TEAM_BUFF)

@@ -1,29 +1,35 @@
-# Feature overview
+# Main Features
 
-Available functionality can change between releases. Refer to the application task list and release notes for the current set.
+- **Background Operation**: Automate game actions while in the background.
 
-## Dailies and weeklies
+### 📅 Dailies/Weeklies
+- **One-click Dailies**: Automatically complete daily routines. Supports sub-items: EXP & Beetle Coins, Ability Upgrade, Arc Ascension, Console, Cafe Tasks, Cinema Date, and Bond Gifts.
+- **Bond Gifts**: Automatically send gifts to characters.
 
-- One-click dailies for EXP and Beetle Coins, Ability Upgrade, Arc Ascension, Console, Cafe Tasks, Cinema Date, and Bond Gifts.
-- Automated Bond Gifts.
+### 🍹 Hobbies
+- **Auto Fishing**: Fully automated fishing process.
+- **Auto Drum Rhythm Game**: Automatically complete drum rhythm games.
+- **Owner's Selection**: Automatically loop entering and exiting stages (requires an in-game AFK build).
+- **Auto Pink Paws Heist**: Automatically complete Pink Paws Heist (410,000+ Force/hour, 2500+ Pink Paws Coins/hour).
+- **Pink Paws Heist Convenience Features**
+    - **Quick Pickup**: Quickly pick up items in stages.
+    - **Auto Character Switch for Sprinting**: Automatically switch characters to maintain fast running.
 
-## Hobbies
+### 📋 Specific AFK & Instances (Tasks)
+- **999 Nights**: AFK farming for EXP.
+- **Anomaly Domain**: Automate Anomaly Domain.
+- **Anomaly Hunts**：Automate Anomaly Hunts。
+- **Auto Whirlwind**: Automatically completes 'Whirlwind' challenges.
+- **Bagel Agent**: Automatically posts, replies, and likes in the Bagel community, or assists in generating copy in assistant mode.
 
-- Auto Fishing and Auto Drum Rhythm Game.
-- Owner's Selection, which loops entering and leaving stages with an in-game AFK build.
-- Auto Pink Paws Heist, Quick Pickup, and automatic character switching for sprinting.
+### ⚡ Constant Triggers & Combat (Triggers/Character Center)
+- **Auto Combat**: Computer vision-based combat algorithm, supported by **Character Center** for custom combo lists and feature management.
+- **Character Center**: Provides support for **Auto Combat**.
+  - **Character Management**: Supports custom combo lists.
+  - **Feature Management**: Adapts to different character skins.
+- **Audio Driven**: Auto dodge and counter based on audio feedback.
+- **Skip Dialog**: Rapidly skip through story dialogs.
+- **Fast Travel**: Automatic map teleportation.
 
-## Tasks and instances
-
-- 999 Nights, Anomaly Domain, Anomaly Hunts, and Auto Whirlwind.
-- Bagel Agent for posting, replying, liking, or assisted copy generation in the Bagel community.
-
-## Triggers and combat
-
-- Auto Combat, with Character Center support for custom combo lists and feature management.
-- Audio Driven auto dodge and counter.
-- Skip Dialog and Fast Travel.
-
-## Entertainment and utilities
-
-- Auto Piano for analysing MIDI tracks and playing the in-game piano.
+### 🎹 Independent Entertainment & Utilities
+- **Auto Piano**: Automatically analyzes MIDI tracks and plays the piano.

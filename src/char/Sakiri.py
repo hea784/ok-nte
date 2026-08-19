@@ -4,7 +4,7 @@ from src.combat.planner import Planner
 
 class Sakiri(Support):
     cn_name = "早雾"
-    element = Support.Element.RED
+    element = Support.ElementType.RED
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

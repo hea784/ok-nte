@@ -1,21 +1,18 @@
-# Quick start
+# Quick Start
 
-1. Review [Before you start](../getting-started/configuration.md).
-2. Launch ok-nte.
-3. Enter the level or scene you want to automate.
-4. Select a task and click **Start** in the application.
+## 🚀 Start a Task
 
-If screen recognition fails, stop the task first. Check the resolution, graphics settings, keybindings, and game-window state before starting again.
+1.  Navigate to the level or scene you want to automate.
+2.  Click the **"Start"** button in the program's interface.
 
-## Command-line arguments
+## 💻 Command Line Arguments
+
+You can automate startup by using command line arguments.
 
 ```bash
-# Run the second task after startup, then exit when it completes
+# Example: Automatically execute the second task (daily tasks) upon startup, and exit the program once the task completes
 ok-nte.exe -t 2 -e
 ```
 
-- `-t` or `--task`: Run the N-th task in the task list after startup; `1` is the first task.
-- `-e` or `--exit`: Exit after the task completes.
-
-!!! warning
-    Task numbers depend on the current application task list. Confirm the target task in the UI before automating startup.
+*   `-t` or `--task`: Automatically execute the N-th task upon startup. `1` represents the first task in the task list.
+*   `-e` or `--exit`: Automatically exit the program after the task is completed.

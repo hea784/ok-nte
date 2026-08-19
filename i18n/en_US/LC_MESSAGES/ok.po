@@ -1287,3 +1287,6 @@ msgstr "Tap G"
 
 msgid "挑战玛门"
 msgstr "Challenge Mammon"
+
+msgid "自动闯关"
+msgstr "Auto Challenge"

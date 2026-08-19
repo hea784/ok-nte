@@ -1,27 +1,26 @@
 # Before you start
 
-Review these settings before starting automation. They are required for reliable screen recognition and input.
+> [!IMPORTANT]
+> Before starting the automation, please check and confirm the following settings:
+>
+> *   **Graphics Settings**
+>     *   **Game Brightness**: Use the **default** in-game brightness.
+>     *   **UI Settings**: **Disable** all settings that cause the UI to differ from the default
+>         *   **UI Opacity** must be set to **1.0**.
+>     *   **Graphics Filters**: **Disable** all graphics card filters, HDR, and sharpening effects (e.g., NVIDIA Freestyle, AMD FidelityFX).
+>     *   **GPU Color (AMD users)**: Display colors need to match standard NVIDIA defaults to avoid image recognition issues. If color discrepancies cause failures, try enabling **"Automatically manage color for apps"** in Windows system settings.
+> *   **Resolution**
+>     *   Recommended to use **1920x1080** or higher **16:9** resolutions.
+> *   **Keybindings**
+>     *   Please use the game's **default** keybindings.
+> *   **Camera Settings**
+>     *   **Movement Camera Correction**: Disabled
+>     *   **Press to Reset Camera**: Enabled
+> *   **Third-party Software**
+>     *   Disable any overlays that display information on the game screen, such as the **framerate counter** from MSI Afterburner.
 
-## Graphics settings
-
-- Use the game's default brightness.
-- Disable settings that make the UI differ from its default appearance; UI opacity must be `1.0`.
-- Disable graphics-card filters and sharpening, including NVIDIA Freestyle and AMD FidelityFX.
-- AMD users should keep display colours close to default NVIDIA output. If a colour difference causes recognition failures, try enabling Windows “Automatically manage color for apps”.
-- Use a 16:9 resolution of 1920×1080 or higher.
-- Disable overlays, such as the MSI Afterburner framerate counter.
-
-## Controls
-
-- Use the game's default keybindings.
-- Disable Movement Camera Correction.
-- Enable Press to Reset Camera.
-
-## Window and system state
-
-!!! warning
-    The game may run in the background, but it must not be minimized. Do not turn off the display or lock the computer while a task is running.
-
-- Do not move the mouse while the game is in the foreground; it can interfere with simulated clicks.
-- Before a long task, ensure the game window can receive input and be captured.
-- For audio-driven features, ensure the game has normal audio output.
+> [!WARNING]
+> **Window and System State Precautions**
+> *   **Mouse Interference**: When the game window is in the **foreground**, do not move your mouse, as it will interfere with the program's simulated clicks.
+> *   **Window State**: The game window can be in the background but **must not be minimized**.
+> *   **System State**: Do not let your computer **turn off the display** or **lock the screen**, as this will interrupt the program.

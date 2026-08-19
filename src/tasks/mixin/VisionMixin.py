@@ -368,7 +368,7 @@ class VisionMixin(BaseTask):
         if np.count_nonzero(foreground) < 20:
             return template
 
-        ys, xs = np.where(foreground)
+        ys, xs = np.nonzero(foreground)
         x1 = max(0, int(xs.min()) - padding_px)
         y1 = max(0, int(ys.min()) - padding_px)
         x2 = min(width, int(xs.max()) + padding_px + 1)

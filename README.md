@@ -1,10 +1,9 @@
-[English](README_en.md) | [简体中文](README.md)
-
 <div align="center">
-  <img src="icons/icon.png" alt="icon" width="200"><br>
+  <img src="icons/icon.png" alt="icon" width="160"><br>
   <h1>ok-nte</h1>
-  <p>一款基于图像识别的《异环》自动化工具，支持后台运行。</p>
-  <p>基于 <a href="https://github.com/ok-oldking/ok-script">ok-script</a> 框架开发。</p>
+  <p>一款基于图像识别的《异环》自动化工具，支持后台运行，基于 <a href="https://github.com/ok-oldking/ok-script">ok-script</a> 框架开发。</p>
+
+[English](README_en.md) | 简体中文
 
   <p>
     <img src="https://img.shields.io/badge/platform-Windows-blue" alt="平台">
@@ -15,207 +14,97 @@
   </p>
 
   <p>
-    <strong>💖 喜欢本项目？</strong><br>
+    <a href="https://github.com/BnanZ0/ok-nte/releases">📥 下载最新版</a> ·
+    <a href="docs/zh-CN/index.md">📖 使用文档</a> ·
+    <a href="docs/zh-CN/guides/quick-start.md">🚀 快速上手</a> ·
+    <a href="https://github.com/BnanZ0/ok-nte/issues">🛠️ 问题反馈</a>
+  </p>
+
+  <p>
     <a href="https://github.com/BnanZ0/ok-nte">点亮小星星⭐</a> &nbsp;|&nbsp; <a href="./SPONSOR.md">赞助开发者☕</a>
   </p>
 </div>
-
-## ⚠️ 免责声明
-
-> [!CAUTION]
-> **本软件为开源、免费的外部工具，仅供学习和交流使用，旨在通过模拟操作简化《异环》的游戏玩法。**
->
-> - **工作原理**：程序仅通过识别现有用户界面与游戏进行交互，不修改任何游戏文件或代码。
-> - **使用目的**：旨在为用户提供便利，无意破坏游戏平衡或提供任何不公平优势。
-> - **法律责任**：使用本软件产生的所有问题及后果，均与本项目及开发者团队无关。开发者团队拥有对本项目的最终解释权。
-> - **商业行为**：若您遇到商家使用本软件进行代练并收费，此行为可能涉及设备与时间成本，与本软件本身无关。
-
-> [!WARNING]
-> **请注意：根据[《异环》公平游戏宣言](https://yh.wanmei.com/news/gamebroad/20260202/260701.html)：**
->
-> 严禁使用任何第三方工具破坏游戏公平性。我们将严厉打击使用外挂、加速器、作弊软件、宏脚本等非法工具的行为，这些行为包括但不限于自动挂机、技能加速、无敌模式、瞬移、修改游戏数据等操作。一经查实，我们将视违规严重程度及违规次数，采取包括但不限于扣除违规收益、冻结游戏账号、永久封禁游戏账号等措施。
->
-> **您应充分了解并自愿承担使用本工具可能带来的所有风险。**
-
-<details>
-<summary><strong>Disclaimer in English</strong></summary>
-
-This software is an open-source, free external tool intended for learning and exchange purposes only. It is designed to
-automate the gameplay of *Neverness To Everness* by interacting with the game solely through the existing user interface
-and in compliance with relevant laws and regulations. The package is intended to provide a simplified way for users to
-interact with the game and is not meant to disrupt the game balance or provide any unfair advantage. This package does
-not modify any game files or game code in any way.
-
-All issues and consequences arising from the use of this software are not related to this project or its development
-team. The development team reserves the final right of interpretation for this project. If you encounter vendors using
-this software for services and charging a fee, this may cover their costs for equipment and time; any resulting problems
-or consequences are not associated with this software.
-</details>
-
-## ✨ 主要功能
 
 <p align="center">
   <img width="950" alt="ok-nte-gif-cn" src="./assets/gif/ok-nte-gif-cn.gif" />
 </p>
 
+## ok-nte 是什么
+
+ok-nte 是一款面向《异环》的 Windows 自动化工具，通过截图识别、OCR、系统音频反馈和普通键鼠输入与游戏交互；不读取游戏内存，也不修改游戏文件。
+
+## ✨ 主要功能
+
+- **自动任务**：日常、周常、钓鱼、音游、异象和其他副本任务。
+- **自动战斗**：视觉识别战斗、角色中心、自定义出招表和特征管理。
+- **常驻触发**：声音驱动闪避反击、跳过对话和快速传送。
+- **独立辅助**：MIDI 自动弹琴等功能。
 - **后台运行**：支持 PC 游戏在后台运行时进行自动化操作。
 
-### 📅 日常/周常
-- **一键日常**：自动完成日常流程。支持细项：经验与甲硬币、异能升级材料、弧盘突破材料、空幕、一咖舍任务、影院约会、羁遇赠礼。
-- **羁遇赠礼**：自动进行羁遇赠礼。
+完整功能列表见[功能概览](docs/zh-CN/features/overview.md)。
 
-### 🍹 都市闲趣
-- **自动钓鱼**：全自动钓鱼。
-- **自动鼓组音游**：自动完成鼓组音游。
-- **店长特供**：自动循环进出关卡（需配合游戏内挂机流派使用）。
-- **自动粉爪大劫案**：自动完成粉爪大劫案（一小时方斯410000+ / 粉爪币2500+）。
-- **粉爪大劫案便利性功能**
-    - **快速拾取**：快速拾取关卡内道具。
-    - **自动切换角色快速奔跑**：自动切换角色以保持快速奔跑。
-
-### 📋 特定挂机与副本 (任务)
-- **九百九十九夜**：挂机刷经验。
-- **异象界域**：自动化挑战异象界域。
-- **异象追猎**：自动化挑战异象追猎。
-- **自动小旋风**：自动完成「小旋风」战斗。
-- **呗果智能体**：在呗果社区中自动发帖、回帖、点赞，或开启助手模式辅助生成文案。
-
-### ⚡ 常驻触发与战斗 (实时触发/角色中心)
-- **自动战斗**：基于计算机视觉的战斗算法，由 **角色中心** 提供自定义出招表与特征管理支持。
-- **角色中心**：为 **自动战斗** 提供支持。
-    - **角色管理**：支持自定义出招表，灵活配置战斗逻辑。
-    - **特征管理**：适配不同角色皮肤，支持自动识别并切换对应的战斗逻辑。
-- **声音驱动**：基于音频反馈实现的自动闪避和反击。
-- **跳过对话**：跳过冗长的剧情对话。
-- **快速传送**：自动点击地图传送。
-
-### 🎹 独立娱乐与辅助
-- **自动弹琴**：自动分析 MIDI 音轨并完成钢琴演奏。
-
-## 🖥️ 运行环境与兼容性
-
-* **操作系统**：Windows
-* **游戏分辨率**：1920x1080 或更高（**仅支持 16:9 比例**）
-* **游戏语言**：简体中文 / English
-
-## 🚀 安装指南
-
-### 方式一：使用安装包 (推荐)
-
-此方法适合绝大多数用户，简单快捷，并支持自动更新。
-
-* **[GitHub](https://github.com/BnanZ0/ok-nte/releases)**: 官方发布页，全球访问速度快。
-* **[Mirror酱](https://mirrorchyan.com/zh/projects?rid=ok-nte&channel=stable)**: 国内镜像，下载可能需要购买其平台的
-  CD-KEY。
-* **[百度网盘](https://pan.baidu.com/s/102Mh1djq2B1T-cIJhct9Gg?pwd=okww)**: 免费下载
-* **[夸克网盘](https://pan.quark.cn/s/24433f3febc1)**: 免费下载
-
-### 方式二：从源码运行 (适合开发者)
-
-此方法需要您具备 Python 环境，适合希望进行二次开发或调试的用户。
-
-1. **环境要求**：确保已安装 **Python 3.12** 或更高版本。
-2. **克隆仓库**：
-   ```bash
-   git clone https://github.com/BnanZ0/ok-nte.git
-   cd ok-nte
-   ```
-3. **安装依赖**：
-   ```bash
-   uv sync
-   # or
-   pip install -r requirements.txt
-   ```
-   
-   **💡 提示**：每次更新代码后，建议重新运行此命令以确保依赖库为最新版本。
-4. **运行程序**：
-   ```bash
-   # 运行正式版
-   python main.py
-   
-   # 运行调试版 (会输出更详细的日志)
-   python main_debug.py
-   ```
-
-## 📖 使用指南与 FAQ
-
-为确保程序稳定运行，请在使用前仔细阅读以下配置要求和常见问题解答。
-
-### 一、 使用前配置 (必读)
-
-> [!IMPORTANT]
-> 在启动自动化前，请务必检查并确认以下设置：
-> 
-> * **图形设置**
->     * **游戏亮度**：使用游戏 **默认亮度**。
->     * **UI 设置**：**禁止** 所有会导致 UI 与默认不同的设置
->          * **UI 透明度** 须设为 **1.0**。
->     * **显卡滤镜**：**关闭** 所有显卡滤镜和锐化效果（如 NVIDIA Freestyle, AMD FidelityFX）。
->     * **显卡色彩 (AMD/A卡用户)**：显示色彩需与默认 NVIDIA/N卡保持一致，以避免图像识别偏差。若因此导致识别失败，可尝试开启 Windows 系统设置中的 **“自动管理应用的颜色”** (Auto Color Management)。
-> * **分辨率**
->     * 推荐使用 **1920x1080** 或以上 **16:9** 的主流分辨率。
-> * **按键设置**
->     * 请务必使用游戏 **默认** 按键绑定。
-> * **摄像机设置**
->     * **移动镜头修正**：禁用
->     * **按下锁定镜头回正**：启用
-> * **第三方软件**
->     * 关闭任何在游戏画面上显示信息的悬浮窗，如 MSI Afterburner (小飞机) 的 **帧率显示**。
+## ⚠️ 使用风险
 
 > [!WARNING]
-> **窗口与系统状态注意事项**
-> * **鼠标干扰**：当游戏窗口处于 **前台** 时，请勿移动鼠标，否则会干扰程序的模拟点击。
-> * **窗口状态**：游戏窗口可以置于后台，但 **不可最小化**。
-> * **系统状态**：请勿让电脑 **熄屏** 或 **锁屏**，否则将导致程序中断。
+> 本软件是开源、免费的外部工具，仅供学习和交流使用。程序仅通过识别现有用户界面与游戏交互，不修改游戏文件或代码。
+>
+> 使用第三方工具可能违反《异环》官方规则并带来账号风险。请先阅读[《异环》公平游戏宣言](https://yh.wanmei.com/news/gamebroad/20260202/260701.html)，充分了解并自愿承担使用本工具的全部风险。
 
-### 二、 快速上手
+<details>
+<summary>完整免责声明</summary>
 
-1. 进入您想要自动化的关卡或场景。
-2. 在程序界面上点击 **“开始”** 按钮即可。
+本软件为开源、免费的外部工具，仅供学习和交流使用，旨在通过模拟操作简化《异环》的游戏玩法。
 
-### 三、 常见问题解答 (FAQ)
+- **工作原理**：程序仅通过识别现有用户界面与游戏进行交互，不修改任何游戏文件或代码。
+- **使用目的**：旨在为用户提供便利，无意破坏游戏平衡或提供任何不公平优势。
+- **法律责任**：使用本软件产生的所有问题及后果，均与本项目及开发者团队无关。开发者团队拥有对本项目的最终解释权。
+- **商业行为**：若您遇到商家使用本软件进行代练并收费，此行为可能涉及设备与时间成本，与本软件本身无关。
+</details>
 
-* **无**
+## 🚀 下载与安装
 
-### 四、 问题反馈
+推荐使用支持自动更新的安装包：
 
-如果以上方法未能解决您的问题，欢迎通过 [**Issues**](https://github.com/BnanZ0/ok-nte/issues)
-向我们反馈。为帮助我们快速定位问题，请在提交时提供以下信息：
+- **[GitHub](https://github.com/BnanZ0/ok-nte/releases)**: 官方发布页，全球访问速度快。
+- **[Mirror酱](https://mirrorchyan.com/zh/projects?rid=ok-nte&channel=stable)**: 国内镜像，下载可能需要购买其平台的 CD-KEY。
+- **[百度网盘](https://pan.baidu.com/s/102Mh1djq2B1T-cIJhct9Gg?pwd=okww)**: 免费下载。
+- **[夸克网盘](https://pan.quark.cn/s/24433f3febc1)**: 免费下载。
 
-* **问题截图**：清晰展示异常界面或错误提示。
-* **日志文件**：附上程序目录下的 `.log` 日志文件。
-* **详细描述**：您进行了哪些操作？问题具体表现是什么？问题是稳定复现还是偶尔发生？
+详细安装步骤和源码运行方式见[安装指南](docs/zh-CN/getting-started/installation.md)。
 
-## 💻 命令行参数
+## 🖥️ 运行环境
 
-您可以通过命令行参数实现自动化启动。
+- 操作系统：Windows。
+- 游戏分辨率：1920x1080 或更高, 仅支持 16:9 比例。
+- 游戏语言：简体中文或 English。
 
-```bash
-# 示例：启动后自动执行第二个任务（日常任务），并在任务完成后退出程序
-ok-nte.exe -t 2 -e
-```
+## 📚 使用文档
 
-*   `-t` 或 `--task`: 启动后自动执行第 N 个任务。`1` 代表任务列表中的第一个。
-*   `-e` 或 `--exit`: 任务执行完毕后自动退出程序。
+| 你要做什么 | 推荐入口 |
+| --- | --- |
+| 第一次使用 ok-nte | [安装](docs/zh-CN/getting-started/installation.md) → [使用前配置](docs/zh-CN/getting-started/configuration.md) → [快速上手](docs/zh-CN/guides/quick-start.md) |
+| 了解项目功能 | [功能概览](docs/zh-CN/features/overview.md) |
+| 更新卡住、识别或启动异常 | [常见问题与反馈](docs/zh-CN/guides/troubleshooting.md) |
+| 从源码运行或参与开发 | [开发文档](docs/zh-CN/development/running-from-source.md) |
+| 查看全部详细内容 | [中文文档站](https://ok-script.com/ok-nte/docs/) |
 
 ## 💬 社区与交流
 
-* **QQ 用户群**: [1105569444](https://qm.qq.com/q/bIiSLoUTVS)
-* **QQ 开发者群**: `1087276729`
-* **QQ 频道**: [点击加入](https://pd.qq.com/s/djmm6l44y)
-* **Discord**: [https://discord.gg/vVyCatEBgA](https://discord.gg/vVyCatEBgA)
+- **QQ 用户群**: [1105569444](https://qm.qq.com/q/bIiSLoUTVS)
+- **QQ 开发者群**: `1087276729`
+- **QQ 频道**: [点击加入](https://pd.qq.com/s/djmm6l44y)
+- **Discord**: [https://discord.gg/vVyCatEBgA](https://discord.gg/vVyCatEBgA)
 
-## 🔗 使用[ok-script](https://github.com/ok-oldking/ok-script)开发的项目：
+## 🔗 使用[ok-script](https://github.com/ok-oldking/ok-script)开发的项目
 
-* 鸣潮 [https://github.com/ok-oldking/ok-wuthering-wave](https://github.com/ok-oldking/ok-wuthering-waves)
-* 明日方舟:终末地 [https://github.com/AliceJump/ok-end-field](https://github.com/AliceJump/ok-end-field)
-* 原神(停止维护,
-  但是后台过剧情可用) [https://github.com/ok-oldking/ok-genshin-impact](https://github.com/ok-oldking/ok-genshin-impact)
-* 少前2 [https://github.com/ok-oldking/ok-gf2](https://github.com/ok-oldking/ok-gf2)
-* 星铁 [https://github.com/Shasnow/ok-starrailassistant](https://github.com/Shasnow/ok-starrailassistant)
-* 星痕共鸣 [https://github.com/Sanheiii/ok-star-resonance](https://github.com/Sanheiii/ok-star-resonance)
-* 二重螺旋 [https://github.com/BnanZ0/ok-duet-night-abyss](https://github.com/BnanZ0/ok-duet-night-abyss)
-* 白荆回廊(停止更新) [https://github.com/ok-oldking/ok-baijing](https://github.com/ok-oldking/ok-baijing)
+- 鸣潮 [https://github.com/ok-oldking/ok-wuthering-wave](https://github.com/ok-oldking/ok-wuthering-waves)
+- 明日方舟:终末地 [https://github.com/AliceJump/ok-end-field](https://github.com/AliceJump/ok-end-field)
+- 原神(停止维护, 但是后台过剧情可用) [https://github.com/ok-oldking/ok-genshin-impact](https://github.com/ok-oldking/ok-genshin-impact)
+- 少前2 [https://github.com/ok-oldking/ok-gf2](https://github.com/ok-oldking/ok-gf2)
+- 星铁 [https://github.com/Shasnow/ok-starrailassistant](https://github.com/Shasnow/ok-starrailassistant)
+- 星痕共鸣 [https://github.com/Sanheiii/ok-star-resonance](https://github.com/Sanheiii/ok-star-resonance)
+- 二重螺旋 [https://github.com/BnanZ0/ok-duet-night-abyss](https://github.com/BnanZ0/ok-duet-night-abyss)
+- 白荆回廊(停止更新) [https://github.com/ok-oldking/ok-baijing](https://github.com/ok-oldking/ok-baijing)
 
 ## ❤️ 赞助与致谢
 
@@ -227,12 +116,11 @@ ok-nte.exe -t 2 -e
 
 ### 赞助商 (Sponsors)
 
-* **EXE 签名**: Free code signing provided by [SignPath.io](https://signpath.io/), certificate
-  by [SignPath Foundation](https://signpath.org/).
+- **EXE 签名**: Free code signing provided by [SignPath.io](https://signpath.io/), certificate by [SignPath Foundation](https://signpath.org/).
 
 ### 致谢
 
-* [ok-oldking/OnnxOCR](https://github.com/ok-oldking/OnnxOCR)
-* [zhiyiYo/PyQt-Fluent-Widgets](https://github.com/zhiyiYo/PyQt-Fluent-Widgets)
-* [Toufool/AutoSplit](https://github.com/Toufool/AutoSplit)
-* [ImLaoBJie/ZZZSoundTrigger](https://github.com/ImLaoBJie/ZZZSoundTrigger)
+- [ok-oldking/OnnxOCR](https://github.com/ok-oldking/OnnxOCR)
+- [zhiyiYo/PyQt-Fluent-Widgets](https://github.com/zhiyiYo/PyQt-Fluent-Widgets)
+- [Toufool/AutoSplit](https://github.com/Toufool/AutoSplit)
+- [ImLaoBJie/ZZZSoundTrigger](https://github.com/ImLaoBJie/ZZZSoundTrigger)

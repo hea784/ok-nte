@@ -5,7 +5,7 @@ from src.combat.planner import Planner
 
 class Iroi(Support):
     cn_name = "伊洛伊"
-    element = Support.Element.GREEN
+    element = Support.ElementType.GREEN
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

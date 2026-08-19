@@ -1015,3 +1015,6 @@ msgstr "Pressionar G"
 
 msgid "挑战玛门"
 msgstr "Desafiar Mammon"
+
+msgid "自动闯关"
+msgstr "Desafio Automático"

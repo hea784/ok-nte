@@ -1287,3 +1287,6 @@ msgstr "G키 탭"
 
 msgid "挑战玛门"
 msgstr "마몬 도전"
+
+msgid "自动闯关"
+msgstr "자동 스테이지 도전"

@@ -25,6 +25,7 @@ class HeistTask(BaseNTETask, TriggerTask):
     LISTENER_KEY_LOG_INTERVAL = 2
     PICK_STATE_LOG_INTERVAL = 2
     QUICK_RUN_STATE_LOG_INTERVAL = 2
+    VK_CODE_SLOT_COUNT = 3
     KEY_MAP = {
         "shift": (win32con.VK_SHIFT, win32con.VK_LSHIFT, win32con.VK_RSHIFT),
         "lshift": (win32con.VK_LSHIFT,),
@@ -136,7 +137,7 @@ class HeistTask(BaseNTETask, TriggerTask):
                     "pick_listener_missed",
                     (
                         f"heist pick key is down by async state but missing from listener state: "
-                        f"key={key}, vk_codes={self._get_vk_codes(key)}, "
+                        f"key={key}, vk_codes={self._get_valid_vk_codes(key)}, "
                         f"physical_keys={sorted(self.physical_keys_pressed)}, "
                         f"listener_running={self._is_listener_running()}"
                     ),
@@ -195,7 +196,7 @@ class HeistTask(BaseNTETask, TriggerTask):
                     (
                         f"heist quick run key is down by async state "
                         f"but missing from listener state: "
-                        f"key=shift, vk_codes={self._get_vk_codes('shift')}, "
+                        f"key=shift, vk_codes={self._get_valid_vk_codes('shift')}, "
                         f"physical_keys={sorted(self.physical_keys_pressed)}, "
                         f"listener_running={self._is_listener_running()}"
                     ),
@@ -291,26 +292,26 @@ class HeistTask(BaseNTETask, TriggerTask):
             self.physical_keys_pressed.clear()
 
     def _get_vk_codes(self, key):
+        vk_codes = ()
         if key is None:
-            return ()
+            return (None,) * self.VK_CODE_SLOT_COUNT
 
         key = str(key).strip().lower()
-        if not key:
-            return ()
-
         if key in self.KEY_MAP:
-            return self.KEY_MAP[key]
-        if key.startswith("f") and key[1:].isdigit():
+            vk_codes = self.KEY_MAP[key]
+        elif key.startswith("f") and key[1:].isdigit():
             index = int(key[1:])
             if 1 <= index <= 12:
-                return (win32con.VK_F1 + index - 1,)
-        if len(key) == 1:
+                vk_codes = (win32con.VK_F1 + index - 1,)
+        elif len(key) == 1:
             vk_code = win32api.VkKeyScan(key)
-            if vk_code == -1:
-                return ()
-            return (vk_code & 0xFF,)
+            if vk_code != -1:
+                vk_codes = (vk_code & 0xFF,)
 
-        return ()
+        return vk_codes + (None,) * (self.VK_CODE_SLOT_COUNT - len(vk_codes))
+
+    def _get_valid_vk_codes(self, key):
+        return tuple(vk_code for vk_code in self._get_vk_codes(key) if vk_code is not None)
 
     def _get_pynput_key(self, key):
         key = str(key).strip().lower()
@@ -399,16 +400,20 @@ class HeistTask(BaseNTETask, TriggerTask):
                 self._reset_quick_run()
 
         listener = self.listener
-        if listener is not None and self._should_suppress(msg, data.vkCode):
+        should_suppress = listener is not None and self._should_suppress(msg, data.vkCode)
+        if should_suppress:
             listener.suppress_event()
-        return True
+        return not should_suppress
 
     def _is_key_pressed(self, key):
-        return any(vk_code in self.physical_keys_pressed for vk_code in self._get_vk_codes(key))
+        return any(
+            vk_code in self.physical_keys_pressed for vk_code in self._get_valid_vk_codes(key)
+        )
 
     def _is_key_down_by_async_state(self, key):
         return any(
-            bool(win32api.GetAsyncKeyState(vk_code) & 0x8000) for vk_code in self._get_vk_codes(key)
+            bool(win32api.GetAsyncKeyState(vk_code) & 0x8000)
+            for vk_code in self._get_valid_vk_codes(key)
         )
 
     def _should_suppress(self, msg, vk_code):
@@ -426,7 +431,7 @@ class HeistTask(BaseNTETask, TriggerTask):
     def _suppressed_trigger_keys(self):
         keys = set()
         if self._pick_key_pressed:
-            keys.update(self._get_vk_codes(self._get_pick_key()))
+            keys.update(self._get_valid_vk_codes(self._get_pick_key()))
         if self._quick_running:
             keys.update(self.SHIFT_KEYS)
         return keys
@@ -448,7 +453,7 @@ class HeistTask(BaseNTETask, TriggerTask):
         if msg not in self.KEY_DOWN_MESSAGES + self.KEY_UP_MESSAGES:
             return
         target_name = None
-        if data.vkCode in self._get_vk_codes(self._get_pick_key()):
+        if data.vkCode in self._get_valid_vk_codes(self._get_pick_key()):
             target_name = "pick"
         elif data.vkCode in self.SHIFT_KEYS:
             target_name = "quick run"

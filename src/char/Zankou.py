@@ -5,7 +5,7 @@ from src.Labels import Labels
 
 class Zankou(BaseChar):
     cn_name = "残虹"
-    element = BaseChar.Element.RED
+    element = BaseChar.ElementType.RED
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

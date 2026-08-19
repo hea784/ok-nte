@@ -4,7 +4,7 @@ from src.combat.planner import FieldClaim, Planner, RoleProfile
 
 class Lacrimosa(BaseChar):
     cn_name = "安魂曲"
-    element = BaseChar.Element.PURPLE
+    element = BaseChar.ElementType.PURPLE
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

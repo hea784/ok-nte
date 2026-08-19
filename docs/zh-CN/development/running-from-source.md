@@ -2,7 +2,7 @@
 
 ## 环境准备
 
-- Python 3.12 或更高版本。
+- Python 3.12。
 - 推荐安装 [uv](https://docs.astral.sh/uv/)。
 - Windows 开发环境。
 

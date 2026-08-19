@@ -1287,3 +1287,6 @@ msgstr "Gキーをタップ"
 
 msgid "挑战玛门"
 msgstr "マモンに挑戦"
+
+msgid "自动闯关"
+msgstr "自動クリア"
