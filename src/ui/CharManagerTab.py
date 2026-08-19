@@ -54,7 +54,7 @@ from src.ui.common import (
     confirm_external_code_import,
     cv_to_pixmap,
 )
-from src.ui.util import tr_fmt
+from src.ui.util import is_chinese, tr_fmt
 
 
 class CharManagerTab(CustomTab):
@@ -77,13 +77,15 @@ class CharManagerTab(CustomTab):
         self.tr_data_manager_hint = og.app.tr(
             "导入数据会完整覆盖当前用户资料.\n导出数据会导出完整用户资料."
         )
+        cnb_doc_url = "https://cnb.cool/BnanZ0/ok-nte-update/-/blob/main/docs/zh-CN/development/combat-planner.md"
+        gh_doc_url = "https://github.com/BnanZ0/ok-nte/blob/main/docs/en/development/combat-planner.md"
         self.tr_external_chars_hint = tr_fmt(
             (
                 "手动添加或修改 Python 代码后, 需点击 [{refresh}] 按钮以生效。<br>"
                 "关于编写角色出招表的指南, 请参考 <a href='{doc_url}'>文档</a>。"
             ),
             refresh=og.app.tr("刷新列表"),
-            doc_url="https://cnb.cool/BnanZ0/ok-nte-update/-/tree/main/docs/development/combat-planner.md",
+            doc_url=cnb_doc_url if is_chinese() else gh_doc_url,
         )
         self.tr_import_failed = og.app.tr("导入失败")
         self.tr_import_success = og.app.tr("导入成功")
@@ -445,11 +447,11 @@ class CharManagerTab(CustomTab):
             self.logger.error(str(e))
             return
 
-        # Reload DB from disk and refresh UI
+        # Scan imported external code before migrating its persisted implementation IDs.
+        char_registry.rescan_external()
         self.manager.load_db()
-        self.manager.migrate_db_schema()
         self.manager.validate_db()
-        self.on_refresh_btn_clicked()
+        self.refresh_list()
         char_manager_signals.refresh_tab.emit()
 
         InfoBar.success(

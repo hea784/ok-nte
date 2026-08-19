@@ -34,6 +34,7 @@ class VolleyballTask(NTEOneTimeTask, BaseNTETask):
         )
         self.instructions = INST if self.is_chinese() else EN_INST
         self.sleep_check_interval = 0.2
+        self._play_count = 0
 
     def run(self):
         super().run()
@@ -54,6 +55,7 @@ class VolleyballTask(NTEOneTimeTask, BaseNTETask):
             self.handle_monthly_card()
 
     def auto_play(self):
+        self._play_count = 0
         skip_task = self.get_task_by_class(SkipDialogTask)
         switch_key = False
         key = "j"
@@ -75,7 +77,7 @@ class VolleyballTask(NTEOneTimeTask, BaseNTETask):
                 if self.is_spike():
                     self.log_info("in spike")
                     self.wait_until(lambda: not self.is_spike(), time_out=1)
-                    self.sleep(0.7)
+                    self.sleep(0.6)
                     self.send_key("k")
 
                 key, switch_key = self.play_once(key, switch_key)
@@ -88,7 +90,16 @@ class VolleyballTask(NTEOneTimeTask, BaseNTETask):
     def play_once(self, key, switch_key):
         match self.config.get(self.CONF_MODE):
             case self.MODE_EXP | self.MODE_AUTO:
+                if self._play_count >= 4:
+                    self.sleep(0.5)
+                    self.send_key("a", down_time=0.1)
+                    self.sleep(0.1)
+                    self.send_key("s", down_time=0.1)
+                    self._play_count = 0
+                    return key, switch_key
+                
                 if self.send_key(key, interval=0.5):
+                    self._play_count += 1
                     return ("j" if switch_key else "k"), not switch_key
             case self.MODE_SUP:
                 pass
@@ -101,6 +112,7 @@ class VolleyballTask(NTEOneTimeTask, BaseNTETask):
                     self.operate_click(box, after_sleep=0.5)
             case self.MODE_AUTO:
                 if box := self.find_one(Labels.volleyball_restart):
+                    self.sleep(1)
                     boxes = self.find_feature(
                         Labels.volleyball_star,
                         box=self.get_box_by_name(Labels.box_volleyball_stars)

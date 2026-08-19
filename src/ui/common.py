@@ -234,31 +234,31 @@ class SearchableComboBox(EditableComboBox):
         self._setup_search_engine()
 
     def _setup_search_engine(self):
-        completer = QCompleter(self.search_items)
+        completer = QCompleter(self)
         completer.setFilterMode(Qt.MatchFlag.MatchContains)
         completer.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
 
+        self._search_model = QStringListModel(self.search_items, completer)
+        completer.setModel(self._search_model)
         self.setCompleter(completer)
 
     def addItem(
         self, text: str, icon: QIcon | str | FluentIconBase | None = None, userData: Any = None
     ):
         """重写以同步更新搜寻清单"""
-        super().addItem(text, icon, userData)
         self.search_items.append(text)
         self._sync_completer_model()
+        super().addItem(text, icon, userData)
 
     def _sync_completer_model(self):
         """同步内部资料模型至补全器"""
-        completer = self.completer()
-        model = QStringListModel(self.search_items, completer)
-        completer.setModel(model)
+        self._search_model.setStringList(self.search_items)
 
     def clear(self):
         """清空时同步重置搜寻引擎"""
-        super().clear()
         self.search_items.clear()
         self._sync_completer_model()
+        super().clear()
 
 
 class SearchableListWidget(QWidget):

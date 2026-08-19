@@ -238,3 +238,16 @@ def tr_fmt(text_id, **kwargs):
     for k, v in kwargs.items():
         t = t.replace(f"{{{k}}}", str(v))
     return t
+
+def get_app_locale() -> str | None:
+    """get app locale."""
+
+    try:
+        return og.app.locale.name()
+    except Exception:
+        return None
+
+def is_chinese() -> bool:
+    """判断当前应用语言是否为中文"""
+
+    return "zh" in get_app_locale()

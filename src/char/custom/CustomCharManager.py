@@ -44,11 +44,14 @@ class CustomCharManager:
         self._data_lock = RLock()
         for directory in (CUSTOM_CHARS_DIR, FEATURES_DIR, EXTERNAL_CHARS_DIR):
             os.makedirs(directory, exist_ok=True)
+        from src.char.core.CharRegistry import char_registry
+
         context = MigrationContext(
             is_builtin_impl=self.is_registered_impl,
             get_builtin_prefix=self.get_builtin_prefix,
             iter_builtin_impl_items=self.iter_builtin_impl_items,
             generate_combo_id=lambda _existing: f"combo_{uuid.uuid4().hex}",
+            get_external_impl_ids_by_class_name=char_registry.get_external_impl_ids_by_class_name,
         )
         self._db = CustomCharDb(DB_PATH, FEATURES_DIR, context, logger)
         self._feature_cache = {}

@@ -1064,3 +1064,11 @@ class BaseChar:
     def now(self):
         """Gets the current system monotonic time."""
         return time.monotonic()
+
+    def get_teammate_by_class(self, *char_classes):
+        teammates = [c for c in self.task.chars if c is not None and c.index != self.index]
+
+        return tuple(
+            next((c for c in teammates if isinstance(c, cls)), None)
+            for cls in char_classes
+        )

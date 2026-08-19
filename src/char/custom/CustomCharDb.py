@@ -6,7 +6,7 @@ from threading import Lock, RLock
 
 from src.char.custom.CustomCharDbMigrator import CustomCharDbMigrator, MigrationContext
 
-DB_SCHEMA_VERSION = 7
+DB_SCHEMA_VERSION = 8
 
 
 class CustomCharDb:
@@ -122,11 +122,11 @@ class CustomCharDb:
         return self._default_data()
 
     def _backup_before_migration(self) -> bool:
-        """Preserve a pre-v7 source database once, before saving a migration."""
+        """Preserve a pre-migration source database once, before saving a migration."""
         if not os.path.exists(self.db_path):
             return True
 
-        backup_path = f"{self.db_path}.pre-v7.bak"
+        backup_path = f"{self.db_path}.pre-v{DB_SCHEMA_VERSION}.bak"
         if os.path.exists(backup_path):
             return True
 
@@ -219,6 +219,7 @@ class CustomCharDb:
                 impl_id
                 and not self.context.is_builtin_impl(impl_id)
                 and impl_id not in db["combos"]
+                and not impl_id.startswith("external:")
             ):
                 impl_id = ""
                 modified = True
