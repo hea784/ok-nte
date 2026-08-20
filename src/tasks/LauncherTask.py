@@ -1,7 +1,6 @@
 import os
 import re
 import time
-from enum import Enum
 
 import psutil
 import win32con
@@ -55,12 +54,6 @@ class DynamicConfig(dict):
                 "capture_method": og.device_manager.config.get("capture", "WGC"),
             },
         }
-
-
-class LauncherButtonState(Enum):
-    START = "start"
-    READY_OTHER = "ready_other"
-    NOT_READY = "not_ready"
 
 
 class LauncherTask(BaseNTETask):
@@ -164,9 +157,6 @@ class LauncherTask(BaseNTETask):
     def _click_start_game(self, time_out=120):
         self.log_info(f"Looking for launcher Start Game button for up to {time_out}s")
         deadline = time.time() + time_out
-        last_update_click_time = 0
-        ready_other_count = 0
-        update_in_progress = False
         start_click_pending = False
         while time.time() < deadline:
             loop_start = time.time()
@@ -176,126 +166,88 @@ class LauncherTask(BaseNTETask):
                 )
                 return True
 
-            if not start_click_pending and not self._ensure_launcher_visible():
-                self.log_warning("Launcher window is not visible; waiting for it to be restored")
-                self.sleep(1)
-                continue
+            if not start_click_pending:
+                if not self._ensure_launcher_visible():
+                    self.log_warning(
+                        "Launcher window is not visible; waiting for it to be restored"
+                    )
+                    self.sleep(1)
+                    continue
+            elif self._is_launcher_hidden_or_minimized():
+                self.log_info("Launcher minimized after Start Game click")
+                return True
 
             try:
-                button_state, button = self._launcher_button_state()
+                button_ready, button = self._launcher_button_state()
             except AttributeError as e:
                 self.log_warning(
                     f"Launcher frame was unavailable while checking launcher button {e}"
                 )
-                if start_click_pending and self._is_launcher_hidden_or_minimized():
-                    self.log_info("Launcher minimized after Start Game click")
-                    return True
-                else:
-                    self.sleep(1)
-                    if update_in_progress:
-                        deadline = self._extend_deadline_for_update(deadline, loop_start)
-                    continue
+                time.sleep(1)
+                continue
 
             box = self.box_of_screen(0.644, 0.214, 0.784, 0.378)
             if btn := self.find_one(Labels.launcher_popup_close, box=box):
                 self.click(btn, after_sleep=2)
                 continue
 
-            if button_state == LauncherButtonState.START:
-                ready_other_count = 0
-                update_in_progress = False
-                self.log_info_gated(
-                    f"Found launcher Start Game button: {button}", interval=10, changed=True
-                )
-                self.click(button, after_sleep=2)
-                start_click_pending = True
-                if self._is_launcher_hidden_or_minimized():
-                    self.log_info("Launcher minimized after Start Game click")
-                    return True
-                self.log_info_gated(
-                    "Launcher is not minimized after click; will check and click again if needed",
-                    interval=10,
-                )
+            if not button:
+                self.log_info_gated("launcher button not found", interval=10)
+                self.sleep(1)
                 continue
 
-            if start_click_pending and self._is_launcher_hidden_or_minimized():
-                self.log_info("Launcher minimized after Start Game click")
-                return True
-
-            if button_state == LauncherButtonState.READY_OTHER:
-                if update_in_progress:
+            if button_ready:
+                if button.name == Labels.launcher_start:
+                    self.log_info(f"Found launcher start button: {button}")
+                    self.click(button, after_sleep=1)
+                    start_click_pending = True
+                elif button.name == Labels.launcher_update:
+                    self.log_info(f"Found launcher update button: {button}")
+                    self.click(button, after_sleep=1)
+            else:
+                if button.name == Labels.launcher_start:
                     self.log_info_gated(
-                        "Launcher button is ready while update is in progress; "
-                        "waiting for Start Game button",
+                        "Found launcher start button; waiting for ready", interval=10
+                    )
+                    self.sleep(1)
+                elif button.name == Labels.launcher_update:
+                    self.log_info_gated(
+                        "Game update is in progress",
                         interval=10,
                     )
                     self.sleep(1)
                     deadline = self._extend_deadline_for_update(deadline, loop_start)
                     continue
 
-                ready_other_count += 1
-                now = time.time()
-                if ready_other_count < 2:
-                    self.log_info(
-                        "Launcher button is ready but Start Game was not detected; "
-                        "confirming before clicking possible update button"
-                    )
-                elif now - last_update_click_time >= 10:
-                    self.log_info(
-                        "Launcher button is ready but Start Game was not detected; "
-                        "clicking it as a possible update button"
-                    )
-                    self.click(button, after_sleep=2)
-                    last_update_click_time = now
-                    update_in_progress = True
-                else:
-                    self.log_info(
-                        "Launcher button is ready but Start Game was not detected; "
-                        "waiting for update flow to finish"
-                    )
-                self.sleep(1)
-                if update_in_progress:
-                    deadline = self._extend_deadline_for_update(deadline, loop_start)
-                continue
-
-            ready_other_count = 0
-            if update_in_progress:
-                self.sleep(1)
-                deadline = self._extend_deadline_for_update(deadline, loop_start)
-                continue
-
-            self.log_info_gated("Launcher Start Game button not found yet", interval=5)
             self.sleep(1)
-        self.log_warning("Launcher did not minimize after Start Game attempts")
+        self.log_warning("click start game timeout")
         return False
 
     def _launcher_button_state(self):
-        start_button = self._find_launcher_start_button()
-        if start_button:
-            return LauncherButtonState.START, start_button
-
-        is_ready, button = self._launcher_button_ready()
-        if is_ready:
-            return LauncherButtonState.READY_OTHER, button
-
-        return LauncherButtonState.NOT_READY, None
+        self.next_frame()
+        button = self._find_launcher_button()
+        is_ready = self._launcher_button_ready()
+        return is_ready, button
 
     def _extend_deadline_for_update(self, deadline, start_time):
         return deadline + time.time() - start_time
 
-    def _find_launcher_start_button(self):
-        return self.find_one(
-            Labels.launcher_start_game,
-            horizontal_variance=0.1,
-            vertical_variance=0.1,
-            threshold=0.85,
-        )
+    def _find_launcher_button(self):
+        to_find = [Labels.launcher_start, Labels.launcher_update]
+        for feature_name in to_find:
+            if box := self.find_one(
+                feature_name,
+                horizontal_variance=0.1,
+                vertical_variance=0.1,
+                threshold=0.85,
+            ):
+                return box
 
     def _launcher_button_ready(self):
         box = self.box_of_screen(0.8137, 0.8678, 0.8387, 0.9022, name="launcher_button")
         per = self.calculate_color_percentage(launcher_btn_ready_color, box)
         self.log_info_gated(f"launcher_button color {per}", interval=10, changed=True)
-        return per > 0.8, box
+        return per > 0.8
 
     def _ensure_launcher_visible(self):
         _, launcher_hwnd = self._find_process_window(LAUNCHER_EXE, require_title=True)
