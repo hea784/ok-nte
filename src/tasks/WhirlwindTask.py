@@ -1,7 +1,6 @@
 import time
 
 from ok import TaskDisabledException
-from qfluentwidgets import FluentIcon
 
 from src.combat.BaseCombatTask import BaseCombatTask
 from src.Labels import Labels
@@ -26,7 +25,6 @@ class WhirlwindTask(NTEOneTimeTask, BaseCombatTask):
         super().__init__(*args, **kwargs)
         self.name = "自动小旋风"
         self.description = "可交互「小旋风」下按开始"
-        self.icon = FluentIcon.FLAG
         self.default_config.update(
             {
                 self.CONFIG_DIFF_OPTION: 1,

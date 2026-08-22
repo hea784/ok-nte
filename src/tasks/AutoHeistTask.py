@@ -4,7 +4,6 @@ from dataclasses import dataclass
 from threading import Event
 
 from ok import TaskDisabledException
-from qfluentwidgets import FluentIcon
 
 from src import text_white_color
 from src.combat.BaseCombatTask import BaseCombatTask
@@ -155,7 +154,6 @@ class AutoHeistTask(NTEOneTimeTask, BaseCombatTask):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.name = "自动粉爪大劫案"
-        self.icon = FluentIcon.SHOPPING_CART
         self.group_name = "都市闲趣"
         _locale = self.get_app_locale()
         self.instructions = INST if _locale and "zh" in _locale else EN_INST

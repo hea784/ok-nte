@@ -9,9 +9,6 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-msgid "<b style=\"color: #0078d7;\">角色</b> 和 <b style=\"color: #0078d7;\">{combo}</b> 支持输入并创建，也支持选择已有项。"
-msgstr "<b style=\"color: #0078d7;\">Character</b> and <b style=\"color: #0078d7;\">{combo}</b> support input and creation, and also support selecting existing items."
-
 msgid "Arc Key"
 msgstr "Arc Key"
 
@@ -69,36 +66,17 @@ msgstr "{combo}: {} bound successfully"
 msgid "{combo}语法错误"
 msgstr "{combo} syntax error"
 
-msgid "{fixed_team}已保存"
-msgstr "{fixed_team} saved"
-
-msgid "{fixed_team}已停用"
-msgstr "{fixed_team} deactivated"
-
-msgid "{fixed_team}已清空"
-msgstr "{fixed_team} cleared"
-
 msgid "{} 号位"
 msgstr "Slot {}"
 
 msgid "任务跳过对话"
 msgstr "Task: Skip Dialogue"
 
-msgid ""
-"供非中/英语用户自定义传送文字, 逗号分隔\n"
-"例: Teleport, 传送"
-msgstr ""
-"For non-Chinese/English users to customize teleport text, separated by commas\n"
-"Ex: Teleport, 传送"
-
 msgid "保存成功"
 msgstr "Saved successfully"
 
 msgid "停用"
 msgstr "Deactivate"
-
-msgid "先扫描并关联特征或手动填写"
-msgstr "Scan and link features first, or fill manually"
 
 msgid "出招表"
 msgstr "Combo List"
@@ -151,9 +129,6 @@ msgstr "Auto-click teleport in map"
 msgid "填入扫描"
 msgstr "Fill Scan"
 
-msgid "这是个用于向数据库关联或添加 <b style=\"color: #0078d7;\">角色特征</b> 的工具面板。<br>点击 <b style=\"color: #0078d7;\">{scan_team}</b> 后点击 <b style=\"color: #0078d7;\">关联或添加</b> 特征，自动战斗时就会识别对应的角色。<br><b style=\"color: #d83b01;\">💡 注意：</b>此面板 <b style=\"color: #d83b01;\">不会</b> 在进入战斗或更换阵容时实时自动刷新或同步显示, 因为这是工具面板。<br>如果不想管理 <b style=\"color: #0078d7;\">角色特征</b>，可以直接使用 <b style=\"color: #0078d7;\">{fixed_team}</b> 功能。"
-msgstr "This is a tool panel for linking or adding <b style=\"color: #0078d7;\">Character Features</b> to the database.<br>Click <b style=\"color: #0078d7;\">{scan_team}</b> and then click <b style=\"color: #0078d7;\">Link or Add</b> feature, and the corresponding character will be identified during auto-combat.<br><b style=\"color: #d83b01;\">💡 Note:</b> This panel <b style=\"color: #d83b01;\">will not</b> automatically refresh or sync in real-time when entering combat or changing team composition, as this is a tool panel.<br>If you don't want to manage <b style=\"color: #0078d7;\">Character Features</b>, you can directly use the <b style=\"color: #0078d7;\">{fixed_team}</b> function."
-
 msgid "完成每日活跃度"
 msgstr "Complete Daily Activity"
 
@@ -169,45 +144,17 @@ msgstr "Import Data"
 msgid "导出数据"
 msgstr "Export Data"
 
-msgid "已保存 {}/4"
-msgstr "Saved {}/4"
-
-msgid "已启用 {}/4"
-msgstr "Enabled {}/4"
-
-msgid "已启用{fixed_team}"
-msgstr "Enabled {fixed_team}"
-
-msgid "已填入 {}"
-msgstr "Filled {}"
-
-msgid "已填入扫描结果"
-msgstr "Scan result filled"
-
 msgid "已导入 {} 个文件"
 msgstr "Imported {} files"
 
-msgid "已恢复自动识别"
-msgstr "Auto-identification restored"
-
 msgid "已成功删除角色: {} 以及关联的特征图"
 msgstr "Successfully deleted character: {} and associated feature maps"
-
-msgid "已清空槽位"
-msgstr "Slots cleared"
 
 msgid "已解除 {} 的{combo}绑定"
 msgstr "Unbound {combo} for {}"
 
 msgid "应用更改"
 msgstr "Apply Changes"
-
-msgid ""
-"当前未绑定任何{combo}。\n"
-"遇到此角色将默认使用基础通用脚本(BaseChar)。"
-msgstr ""
-"Currently no {combo} bound.\n"
-"This character will default to the basic general script (BaseChar)."
 
 msgid "循环次数"
 msgstr "Loop count"
@@ -258,17 +205,11 @@ msgstr ""
 "This Python script cannot be modified here.\n"
 "Please modify the code directly in the corresponding source file."
 
-msgid "没有可用扫描结果"
-msgstr "No available scan results"
-
 msgid "没有找到匹配的指令。"
 msgstr "No matching commands found."
 
 msgid "清空"
 msgstr "Clear"
-
-msgid "点击上方按钮扫描..."
-msgstr "Click the button above to scan..."
 
 msgid "点击时将短暂控制物理鼠标"
 msgstr "Briefly controls the physical mouse when clicked"
@@ -602,18 +543,6 @@ msgstr "Enter or select a character"
 
 msgid "自动战斗任务不可用"
 msgstr "Auto combat task is unavailable"
-
-msgid "<span style=\"color: #2ecc71;\">● 自动识别：已启用</span>"
-msgstr "<span style=\"color: #2ecc71;\">● Auto recognition: enabled</span>"
-
-msgid "<span style=\"color: #95a5a6;\">○ 自动识别：仅空槽启用</span>"
-msgstr "<span style=\"color: #95a5a6;\">○ Auto recognition: empty slots only</span>"
-
-msgid "<span style=\"color: #2ecc71;\">● {fixed_team}：已启用 ({count}/4)</span>"
-msgstr "<span style=\"color: #2ecc71;\">● {fixed_team}: enabled ({count}/4)</span>"
-
-msgid "<span style=\"color: #95a5a6;\">○ {fixed_team}：已停用</span>"
-msgstr "<span style=\"color: #95a5a6;\">○ {fixed_team}: disabled</span>"
 
 msgid "启动失败"
 msgstr "Failed to start"
@@ -1290,3 +1219,78 @@ msgstr "Challenge Mammon"
 
 msgid "自动闯关"
 msgstr "Auto Challenge"
+
+msgid "{} 个空槽位"
+msgstr "{} empty slots"
+
+msgid "固定"
+msgstr "Fix"
+
+msgid "已从列表移除"
+msgstr "Removed from list"
+
+msgid "已删除"
+msgstr "Deleted"
+
+msgid "已填入"
+msgstr "Filled"
+
+msgid "已应用"
+msgstr "Applied"
+
+msgid "已更新 {} 位角色的出招表"
+msgstr "Updated combo for {} characters"
+
+msgid "应用方案"
+msgstr "Apply Preset"
+
+msgid "扫描失败"
+msgstr "Scan Failed"
+
+msgid "搜索方案"
+msgstr "Search Presets"
+
+msgid "新建方案"
+msgstr "New Preset"
+
+msgid "方案中不能重复选择角色"
+msgstr "Cannot select duplicate characters in a preset"
+
+msgid "方案列表"
+msgstr "Preset List"
+
+msgid "方案名称重复或内容无效"
+msgstr "Preset name already exists or content is invalid"
+
+msgid "无法保存"
+msgstr "Cannot Save"
+
+msgid "无法填入"
+msgstr "Cannot Fill"
+
+msgid "没有可填入的角色"
+msgstr "No characters available to fill"
+
+msgid "等待扫描..."
+msgstr "Waiting for scan..."
+
+msgid "输入或选择出招表"
+msgstr "Enter or select combo"
+
+msgid "队伍方案"
+msgstr "Team Presets"
+
+msgid "队伍识别"
+msgstr "Team Scan"
+
+msgid "提示"
+msgstr "Tips"
+
+msgid "<p><b style=\"color: #d83b01;\">注意：</b>此面板 <b style=\"color: #d83b01;\">不会</b> 在进入战斗或更换阵容时实时自动刷新或同步显示。<br>这是个用于向数据库关联或添加 <b style=\"color: #0078d7;\">角色特征</b> 的工具面板。<br>点击 <b style=\"color: #0078d7;\">{scan_team}</b> 后点击 <b style=\"color: #0078d7;\">关联或添加</b> 特征, 自动战斗时就会识别对应的角色。<br>如果不想管理 <b style=\"color: #0078d7;\">角色特征</b>, 可以直接使用 <b style=\"color: #0078d7;\">{fixed_team}</b> 功能。</p>"
+msgstr "<p><b style=\"color: #d83b01;\">Note:</b> This panel <b style=\"color: #d83b01;\">does NOT</b> automatically refresh or synchronize in real-time when entering combat or changing lineup.<br>This is a tool panel for associating or adding <b style=\"color: #0078d7;\">Character Features</b> to the database.<br>Click <b style=\"color: #0078d7;\">{scan_team}</b> then click <b style=\"color: #0078d7;\">Associate or Add</b> feature, and auto combat will recognize the corresponding characters.<br>If you do not want to manage <b style=\"color: #0078d7;\">Character Features</b>, you can directly use <b style=\"color: #0078d7;\">{fixed_team}</b>.</p>"
+
+msgid "<p>用于配置并保存常用的 4 人队伍阵容与出招表, 修改后立即生效。<br>点击 <b style=\"color: #0078d7;\">{apply_preset}</b> 可一键更新应用方案中各角色的出招表 (未选择出招表则保持原配置不变)。<br>开启 <b style=\"color: #0078d7;\">{fixed_preset}</b> 后自动战斗将直接采用此阵容, 无需等待特征识别 (未录入特征的角色亦可直接战斗)。<br>点击 <b style=\"color: #0078d7;\">{fill_scan}</b> 可将上方特征扫描识别出的队伍角色快速填入当前方案。</p>"
+msgstr "<p>Configure and save common 4-character team lineups and combos, effective immediately upon modification.<br>Click <b style=\"color: #0078d7;\">{apply_preset}</b> to update and apply each character's combo in this preset (unselected slots keep original configuration).<br>Enable <b style=\"color: #0078d7;\">{fixed_preset}</b> to directly use this preset lineup in auto combat without waiting for feature recognition (characters without registered features can combat directly).<br>Click <b style=\"color: #0078d7;\">{fill_scan}</b> to quickly fill in the characters recognized from the feature scan above into the current preset.</p>"
+
+msgid "OpenVINO 单次推理超时，已自动关闭目标检测；重启程序后会重新尝试启用。"
+msgstr "OpenVINO single inference timed out, target detection has been automatically disabled. It will be re-enabled upon restarting the program."

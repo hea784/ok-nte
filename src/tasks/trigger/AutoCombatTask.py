@@ -1,7 +1,6 @@
 import time
 
 from ok import Logger, TriggerTask
-from qfluentwidgets import FluentIcon
 
 from src.combat.BaseCombatTask import BaseCombatTask, NotInCombatException
 
@@ -18,14 +17,11 @@ class AutoCombatTask(BaseCombatTask, TriggerTask):
         self.trigger_interval = 0.1
         self.name = "自动战斗"
         self.description = "受《异环》UI的特殊性影响, 部分场景下存在识别稳定性波动"
-        self.icon = FluentIcon.CALORIES
         self.last_is_click = False
         self.default_config.update({self.CONF_AUTO_TARGET: True, self.CONF_USE_ULT: True})
         self.config_description = {
             self.CONF_AUTO_TARGET: "关闭时仅在中键选中敌人且画面识别到 'Lv' 文字时开启战斗",
         }
-        self.op_index = 0
-        self.origin_func = {}
 
     def run(self):
         if not self.scene.is_in_team(self.is_in_team):

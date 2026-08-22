@@ -33,7 +33,6 @@ class CoffeeTask(NTEOneTimeTask, BaseNTETask):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.name = "一咖舍"
-        self.icon = FluentIcon.SHOPPING_CART
         self.group_name = "日常/周常"
         self.group_icon = FluentIcon.CALENDAR
         self.visible = False

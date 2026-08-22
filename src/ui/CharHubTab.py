@@ -1,4 +1,3 @@
-from ok import og
 from ok.ui.qt.widget.CustomTab import CustomTab
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QFrame, QStackedWidget, QVBoxLayout
@@ -13,7 +12,7 @@ class CharHubTab(CustomTab):
     def __init__(self, manager: CustomCharManager = None):
         super().__init__()
         self.icon = FluentIcon.PEOPLE
-        self.tr_name_tab = og.app.tr("角色中心")
+        self.tr_name_tab = self.tr("角色中心")
         self.manager = manager or CustomCharManager()
 
         self.vbox = QVBoxLayout(self)

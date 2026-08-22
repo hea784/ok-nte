@@ -1,6 +1,5 @@
 import platform
 import threading
-import time
 from pathlib import Path
 
 import requests
@@ -43,18 +42,16 @@ from qfluentwidgets import (
 
 from src.char.core.CharRegistry import char_registry
 from src.char.custom.CustomCharManager import EXTERNAL_CHARS_DIR, CustomCharManager
-from src.ui.common import (
-    COMBO,
-    TEAM_MANAGEMENT,
-    BorderCardWidget,
+from src.events import communicate
+from src.tasks.DebugCharTask import DebugCharTask
+from src.ui.features.characters.safety_dialog import confirm_external_code_import
+from src.ui.foundation.images import cv_to_pixmap
+from src.ui.foundation.widgets.cards import BorderCardWidget
+from src.ui.foundation.widgets.search import (
     SearchableComboBox,
     SearchableListWidget,
     SmoothSearchBar,
-    char_manager_signals,
-    confirm_external_code_import,
-    cv_to_pixmap,
 )
-from src.ui.util import is_chinese, tr_fmt
 
 
 class CharManagerTab(CustomTab):
@@ -64,60 +61,69 @@ class CharManagerTab(CustomTab):
         super().__init__()
         self.owner = owner
         self._executor = None
-        self.tr_combo_title = COMBO
-        self.tr_save_success = og.app.tr("保存成功")
-        self.tr_combo_msg = tr_fmt("{combo}: {} 绑定成功", combo=COMBO)
-        self.tr_del_success = og.app.tr("删除成功")
-        self.tr_del_combo_msg = tr_fmt("{combo}: {} 删除成功", combo=COMBO)
-        self.tr_del_char_msg = og.app.tr("已成功删除角色: {} 以及关联的特征图")
-        self.tr_unbind_success = og.app.tr("解除绑定")
-        self.tr_unbind_msg = tr_fmt("已解除 {} 的{combo}绑定", combo=COMBO)
-        self.tr_import_data = og.app.tr("导入数据")
-        self.tr_open_external_chars_folder = og.app.tr("打开外置代码目录")
-        self.tr_data_manager_hint = og.app.tr(
+        self.tr_combo_title = self.tr("出招表")
+        self.tr_save_success = self.tr("保存成功")
+        self.tr_combo_msg = self.tr("{combo}: {} 绑定成功").replace("{combo}", self.tr_combo_title)
+        self.tr_del_success = self.tr("删除成功")
+        self.tr_del_combo_msg = self.tr("{combo}: {} 删除成功").replace(
+            "{combo}", self.tr_combo_title
+        )
+        self.tr_del_char_msg = self.tr("已成功删除角色: {} 以及关联的特征图")
+        self.tr_unbind_success = self.tr("解除绑定")
+        self.tr_unbind_msg = self.tr("已解除 {} 的{combo}绑定").replace(
+            "{combo}", self.tr_combo_title
+        )
+        self.tr_import_data = self.tr("导入数据")
+        self.tr_open_external_chars_folder = self.tr("打开外置代码目录")
+        self.tr_data_manager_hint = self.tr(
             "导入数据会完整覆盖当前用户资料.\n导出数据会导出完整用户资料."
         )
         cnb_doc_url = "https://cnb.cool/BnanZ0/ok-nte-update/-/blob/main/docs/zh-CN/development/combat-planner.md"
-        gh_doc_url = "https://github.com/BnanZ0/ok-nte/blob/main/docs/en/development/combat-planner.md"
-        self.tr_external_chars_hint = tr_fmt(
-            (
-                "手动添加或修改 Python 代码后, 需点击 [{refresh}] 按钮以生效。<br>"
-                "关于编写角色出招表的指南, 请参考 <a href='{doc_url}'>文档</a>。"
-            ),
-            refresh=og.app.tr("刷新列表"),
-            doc_url=cnb_doc_url if is_chinese() else gh_doc_url,
+        gh_doc_url = (
+            "https://github.com/BnanZ0/ok-nte/blob/main/docs/en/development/combat-planner.md"
         )
-        self.tr_import_failed = og.app.tr("导入失败")
-        self.tr_import_success = og.app.tr("导入成功")
-        self.tr_import_msg = og.app.tr("已导入 {} 个文件")
-        self.tr_combo_invalid_title = tr_fmt("{combo}语法错误", combo=COMBO)
-        self.tr_edit_char_name = og.app.tr("编辑名称")
-        self.tr_rename_failed_title = og.app.tr("重命名失败")
-        self.tr_rename_failed = og.app.tr("角色名称无效或已存在")
-        self.tr_rename_msg = og.app.tr("角色已重命名为: {}")
+        self.tr_external_chars_hint = self.tr(
+            "手动添加或修改 Python 代码后, 需点击 [{refresh}] 按钮以生效.<br>"
+            "关于编写角色出招表的指南, 请参考 <a href='{doc_url}'>文档</a>."
+        ).format(
+            refresh=self.tr("刷新列表"),
+            doc_url=cnb_doc_url if "zh" in og.app.locale.name() else gh_doc_url,
+        )
+        self.tr_import_failed = self.tr("导入失败")
+        self.tr_import_success = self.tr("导入成功")
+        self.tr_import_msg = self.tr("已导入 {} 个文件")
+        self.tr_combo_invalid_title = self.tr("{combo}语法错误").replace(
+            "{combo}", self.tr_combo_title
+        )
+        self.tr_edit_char_name = self.tr("编辑名称")
+        self.tr_rename_failed_title = self.tr("重命名失败")
+        self.tr_rename_failed = self.tr("角色名称无效或已存在")
+        self.tr_rename_msg = self.tr("角色已重命名为: {}")
 
-        self.tr_name = og.app.tr("角色管理")
-        self.tr_choose_char = tr_fmt("请在左侧选择一个角色以管理特征和{combo}", combo=COMBO)
-        self.tr_first_time_hint = tr_fmt(
-            "初次使用请先至 [{team_mgmt}] 进行设置", team_mgmt=TEAM_MANAGEMENT
+        self.tr_name = self.tr("角色管理")
+        self.tr_choose_char = self.tr("请在左侧选择一个角色以管理特征和{combo}").replace(
+            "{combo}", self.tr_combo_title
         )
-        self.tr_delete = og.app.tr("删除")
-        self.tr_combo_tips = tr_fmt(
-            '除了选择内建存在的<b style="color: #0078d7;">{combo}</b>外，'
-            '您也可以自己输入名称来建立自己的<b style="color: #0078d7;">{combo}</b>。',
-            combo=COMBO,
+        self.tr_first_time_hint = self.tr("初次使用请先至 [{team_mgmt}] 进行设置").format(
+            team_mgmt=self.tr("队伍管理")
         )
-        self.tr_unbound_text = tr_fmt(
-            "当前未绑定任何{combo}。\n遇到此角色将默认使用基础通用脚本(BaseChar)。",
-            combo=COMBO,
+        self.tr_delete = self.tr("删除")
+        self.tr_combo_tips = self.tr(
+            '除了选择内建存在的<b style="color: #0078d7;">{combo}</b>外,'
+            '您也可以自己输入名称来建立自己的<b style="color: #0078d7;">{combo}</b>.'
+        ).replace("{combo}", self.tr_combo_title)
+        self.tr_unbound_text = self.tr(
+            "当前未绑定任何{combo}.\n遇到此角色将默认使用基础通用脚本(BaseChar)."
+        ).replace("{combo}", self.tr_combo_title)
+        self.tr_code_impl_text = self.tr(
+            "此为 Python 脚本, 不可在此修改.\n请在对应的源文件中直接修改代码."
         )
-        self.tr_code_impl_text = og.app.tr(
-            "此为 Python 脚本，不可在此修改。\n请在对应的源文件中直接修改代码。"
-        )
-        self.tr_no_match_cmd = og.app.tr("没有找到匹配的指令。")
+        self.tr_no_match_cmd = self.tr("没有找到匹配的指令。")
 
         self.icon = FluentIcon.PEOPLE
         self.manager = CustomCharManager()
+        self.task: DebugCharTask | None = None
+        self._combo_test_pending = False
         self._doc_cache_by_locale = {}
         self._doc_cache = None
         self._pending_command = ""
@@ -126,7 +132,7 @@ class CharManagerTab(CustomTab):
         self.doc_translation_ready.connect(
             self._on_doc_translation_ready, Qt.ConnectionType.QueuedConnection
         )
-        char_manager_signals.refresh_tab.connect(self.refresh_list)
+        communicate.task.connect(self._on_framework_task_changed)
 
         self._filter_timer = QTimer()
         self._filter_timer.setSingleShot(True)  # 设置为单次触发
@@ -144,19 +150,19 @@ class CharManagerTab(CustomTab):
         self.left_v_layout.setSpacing(10)
 
         self.char_list_widget = SearchableListWidget(self)
-        self.char_list_widget.setPlaceholderText(og.app.tr("搜索角色"))
+        self.char_list_widget.setPlaceholderText(self.tr("搜索角色"))
         self.char_list_widget.currentItemChanged.connect(self.on_char_selected)
 
-        self.refresh_btn = PushButton(FluentIcon.SYNC, og.app.tr("刷新列表"), self)
+        self.refresh_btn = PushButton(FluentIcon.SYNC, self.tr("刷新列表"), self)
         self.refresh_btn.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         self.refresh_btn.clicked.connect(self.on_refresh_btn_clicked)
 
-        self.delete_char_btn = PushButton(FluentIcon.DELETE, og.app.tr("删除角色"), self)
+        self.delete_char_btn = PushButton(FluentIcon.DELETE, self.tr("删除角色"), self)
         self.delete_char_btn.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         self.delete_char_btn.clicked.connect(self.on_delete_char)
         self.delete_char_btn.setEnabled(False)
 
-        self.data_manager_btn = PushButton(FluentIcon.FOLDER, og.app.tr("资料管理"), self)
+        self.data_manager_btn = PushButton(FluentIcon.FOLDER, self.tr("资料管理"), self)
         self.data_manager_btn.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         self.data_manager_btn.clicked.connect(self.show_data_manager)
 
@@ -194,7 +200,6 @@ class CharManagerTab(CustomTab):
         self.detail_v_layout.addWidget(self.char_subtitle)
 
         # === 特征图区 ===
-        # self.detail_v_layout.addWidget(SubtitleLabel(og.app.tr("已绑定的特征图")))
 
         # 1. 准备核心内容
         self.feature_grid_widget = QWidget()
@@ -224,7 +229,7 @@ class CharManagerTab(CustomTab):
 
         # === 出招表区 ===
         self.combo_title_layout = QHBoxLayout()
-        self.combo_title_label = SubtitleLabel(COMBO)
+        self.combo_title_label = SubtitleLabel(self.tr_combo_title)
         self.combo_title_layout.addWidget(self.combo_title_label)
 
         self.combo_info_btn = TransparentToolButton(FluentIcon.INFO, self)
@@ -244,7 +249,9 @@ class CharManagerTab(CustomTab):
         self.combo_h_layout = QHBoxLayout()
         self.combo_select = SearchableComboBox()
         self.combo_select.setPlaceholderText(
-            tr_fmt("下拉选择，或直接输入名称以创建新{combo}", combo=COMBO)
+            self.tr("下拉选择, 或直接输入名称以创建新{combo}").replace(
+                "{combo}", self.tr_combo_title
+            )
         )
         self.combo_select.currentTextChanged.connect(self.on_combo_changed)
         self.combo_h_layout.addWidget(self.combo_select, 1)
@@ -268,11 +275,11 @@ class CharManagerTab(CustomTab):
         self.combo_actions_layout = QHBoxLayout()
         self.combo_actions_layout.addStretch(1)
 
-        self.combo_test_btn = PushButton(FluentIcon.PLAY_SOLID, og.app.tr("运行一次测试"))
+        self.combo_test_btn = PushButton(FluentIcon.PLAY_SOLID, self.tr("运行一次测试"))
         self.combo_test_btn.clicked.connect(self.on_test_combo)
         self.combo_actions_layout.addWidget(self.combo_test_btn)
 
-        self.combo_save_btn = PrimaryPushButton(FluentIcon.SAVE, og.app.tr("应用更改"))
+        self.combo_save_btn = PrimaryPushButton(FluentIcon.SAVE, self.tr("应用更改"))
         self.combo_save_btn.clicked.connect(self.on_save_combo)
         self.combo_actions_layout.addWidget(self.combo_save_btn)
 
@@ -282,7 +289,7 @@ class CharManagerTab(CustomTab):
         self.doc_search_line_edit = SmoothSearchBar()
         self.doc_search_line_edit.setMaximumWidth(200)
         self.doc_search_line_edit.textChanged.connect(self._filter_doc_commands)
-        self.doc_h_layout.addWidget(SubtitleLabel(og.app.tr("可用指令")))
+        self.doc_h_layout.addWidget(SubtitleLabel(self.tr("可用指令")))
         self.doc_h_layout.addWidget(self.doc_search_line_edit)
         self.doc_h_layout.addStretch(1)
 
@@ -307,7 +314,7 @@ class CharManagerTab(CustomTab):
         return super().eventFilter(watched, event)
 
     @property
-    def name(self):
+    def name(self):  # type: ignore
         return self.tr_name
 
     @property
@@ -317,6 +324,23 @@ class CharManagerTab(CustomTab):
     @executor.setter
     def executor(self, value):
         self._executor = value
+
+    def _get_task(self) -> DebugCharTask | None:
+        if self.task is None and self.executor is not None:
+            self.task = self.get_task(DebugCharTask)
+        return self.task
+
+    def _on_framework_task_changed(self, task) -> None:
+        if task is not self._get_task() or not self._combo_test_pending:
+            return
+        if task.running or task.mode is not None:
+            return
+        self._combo_test_pending = False
+        self.on_combo_changed(self.combo_select.currentText())
+
+    def showEvent(self, event):
+        super().showEvent(event)
+        self.refresh_list()
 
     def refresh_list(self):
         select = self.char_list_widget.currentItem()
@@ -391,11 +415,11 @@ class CharManagerTab(CustomTab):
     def show_data_manager(self):
         dialog = MessageBoxBase(self)
         dialog.widget.setMinimumWidth(460)
-        dialog.viewLayout.addWidget(SubtitleLabel(og.app.tr("资料管理"), dialog))
+        dialog.viewLayout.addWidget(SubtitleLabel(self.tr("资料管理"), dialog))
 
         backup_layout = QHBoxLayout()
         import_data_btn = PushButton(FluentIcon.DOWNLOAD, self.tr_import_data, dialog)
-        export_data_btn = PushButton(FluentIcon.SHARE, og.app.tr("导出数据"), dialog)
+        export_data_btn = PushButton(FluentIcon.SHARE, self.tr("导出数据"), dialog)
         backup_layout.addWidget(import_data_btn)
         backup_layout.addWidget(export_data_btn)
         dialog.viewLayout.addLayout(backup_layout)
@@ -408,14 +432,14 @@ class CharManagerTab(CustomTab):
         )
         dialog.viewLayout.addWidget(open_external_chars_folder_btn)
         external_chars_hint = CaptionLabel(self.tr_external_chars_hint, dialog)
-        external_chars_hint.setOpenExternalLinks(True) 
+        external_chars_hint.setOpenExternalLinks(True)
         external_chars_hint.setWordWrap(True)
         dialog.viewLayout.addWidget(external_chars_hint)
 
         import_data_btn.clicked.connect(self.on_import_data)
         export_data_btn.clicked.connect(self.on_export_data)
         open_external_chars_folder_btn.clicked.connect(self.on_open_external_chars_folder)
-        dialog.yesButton.setText(og.app.tr("关闭"))
+        dialog.yesButton.setText(self.tr("关闭"))
         dialog.cancelButton.hide()
         dialog.exec()
 
@@ -452,7 +476,6 @@ class CharManagerTab(CustomTab):
         self.manager.load_db()
         self.manager.validate_db()
         self.refresh_list()
-        char_manager_signals.refresh_tab.emit()
 
         InfoBar.success(
             title=self.tr_import_success,
@@ -623,59 +646,26 @@ class CharManagerTab(CustomTab):
                     parent=self.window(),
                 )
                 return
-        og.app.start_controller.handler.post(self._run_combo_test)
-
-    def _run_combo_test(self):
-        og.app.start_controller.do_start()
-        from src.char.core.CharFactory import get_char_by_id
-        from src.char.custom.CustomChar import CustomChar
-        from src.tasks.trigger.AutoCombatTask import AutoCombatTask
-
-        task = self.get_task(AutoCombatTask)
-        if not task:
-            return
-
-        combo_input = self.combo_select.currentText().strip()
-        combo_id = self._resolve_combo_id(combo_input)
-        if combo_id:
-            test_char = get_char_by_id(
-                task, index=0, char_id=self.current_char_id, impl_id=combo_id
+        task = self._get_task()
+        if task is None:
+            InfoBar.error(
+                title=self.tr_combo_invalid_title,
+                content=self.tr("角色工具任务未注册"),
+                orient=Qt.Orientation.Horizontal,
+                isClosable=True,
+                position=InfoBarPosition.TOP,
+                duration=3500,
+                parent=self.window(),
             )
-        else:
-            test_char = CustomChar(task, index=0, char_id=self.current_char_id)
-
-        if not hasattr(task, "_ocr_lock"):
-            task._ocr_lock = threading.Lock()
-
-        old_ocr = task.ocr
-        old_chars = task.chars
-        old_sleep = task.sleep
-
-        def locked_ocr(*args, **kwargs):
-            with task._ocr_lock:
-                return old_ocr(*args, **kwargs)
-
-        def simple_sleep(timeout):
-            if timeout > 0:
-                time.sleep(timeout)
-            return True
-
-        task.ocr = locked_ocr
-        task.chars = [test_char]
-        task.sleep = simple_sleep
-        try:
-            test_char.is_current_char = True
-            test_char.switch_next_char = lambda *args, **kwargs: None
-
-            if isinstance(test_char, CustomChar):
-                test_char.combo_str = self.combo_text.toPlainText().strip()
-                test_char._compile_combo()
-
-            test_char.perform()
-        finally:
-            task.sleep = old_sleep
-            task.chars = old_chars
-            task.ocr = old_ocr
+            return
+        self._combo_test_pending = True
+        self.combo_test_btn.setEnabled(False)
+        task.test_combo(
+            self.current_char_id,
+            self._resolve_combo_id(combo_input),
+            self.combo_text.toPlainText().strip(),
+        )
+        og.app.start_controller.start(task)
 
     def on_save_combo(self):
         combo_input = self.combo_select.currentText().strip()
@@ -729,7 +719,6 @@ class CharManagerTab(CustomTab):
                 duration=2000,
                 parent=self.window(),
             )
-            char_manager_signals.refresh_tab.emit()
 
     def on_delete_char(self):
         if not self.current_char_id:
@@ -754,7 +743,6 @@ class CharManagerTab(CustomTab):
             duration=2000,
             parent=self.window(),
         )
-        char_manager_signals.refresh_tab.emit()
 
     def _show_edit_dialog(self, old_name):
         w = MessageBoxBase(self)
@@ -813,7 +801,6 @@ class CharManagerTab(CustomTab):
             duration=2000,
             parent=self.window(),
         )
-        char_manager_signals.refresh_tab.emit()
 
     def on_unbind_combo(self):
         if not self.current_char_id:
@@ -833,7 +820,6 @@ class CharManagerTab(CustomTab):
             duration=2000,
             parent=self.window(),
         )
-        char_manager_signals.refresh_tab.emit()
 
     def on_delete_combo(self):
         combo_name = self.combo_select.currentText().strip()
@@ -866,7 +852,6 @@ class CharManagerTab(CustomTab):
             duration=2000,
             parent=self.window(),
         )
-        char_manager_signals.refresh_tab.emit()
 
     def generate_doc(self):
         try:
@@ -1042,7 +1027,7 @@ class CharManagerTab(CustomTab):
     def show_combo_flyout(self):
         Flyout.create(
             icon=InfoBarIcon.INFORMATION,
-            title="Tips",
+            title=self.tr("提示"),
             content=self.tr_combo_tips,
             target=self.combo_info_btn,
             parent=self,

@@ -18,11 +18,13 @@ class YOLO26OpenVINOAsyncDetector:
 
     def __init__(self, xml_path, num_requests=1):
         self._openvino_available = self._supports_avx2()
+        self._openvino_unavailable_reason = None
         if not self._openvino_available:
             message = og.app.tr(
                 "当前 CPU 不支持 AVX2, 无法运行 OpenVINO 2026 CPU 推理；"
                 "自动战斗的目标检测将不可用，交战流畅度将受到影响。"
             )
+            self._openvino_unavailable_reason = message
             logger.error(message)
             communicate.notification.emit(message, "OpenVINO", True, True, None, None, None)
             self.latest_results = False
@@ -173,6 +175,12 @@ class YOLO26OpenVINOAsyncDetector:
                 infer_request.cancel()
             except Exception:
                 logger.exception("openvino cancel infer request failed")
+            finally:
+                # OpenVINO 2026.3 does not invoke the Python completion callback
+                # when cancel() aborts a request.  Do not leave the request marked
+                # active forever, or repeated sync timeouts will exhaust request
+                # rotation and make every later detection appear stuck.
+                self._mark_request_job_finished(id(infer_request))
 
     def _try_rotate_busy_request(self):
         with self._state_lock:
@@ -267,7 +275,8 @@ class YOLO26OpenVINOAsyncDetector:
 
     def debug_state(self):
         if not self._openvino_available:
-            return "openvino(unavailable: CPU does not support AVX2)"
+            reason = self._openvino_unavailable_reason or "disabled"
+            return f"openvino(unavailable: {reason})"
         with self._state_lock:
             active_jobs = sum(self._active_request_jobs.values())
             active_retired = self._get_active_retired_count()
@@ -484,21 +493,24 @@ class YOLO26OpenVINOAsyncDetector:
                 retired_count = self._get_active_retired_count()
                 request_active = self._request_has_active_jobs(self.infer_request)
 
-            logger.warning(
-                "openvino sync detect timed out after "
-                f"{self._SYNC_WAIT_TIMEOUT:.1f}s, request_active={request_active}, "
-                f"retired_requests={retired_count}, active_jobs={active_jobs}"
+            message = og.app.tr(
+                "OpenVINO 单次推理超时，已自动关闭目标检测；重启程序后会重新尝试启用。"
             )
+            logger.error(
+                f"{message} timeout={self._SYNC_WAIT_TIMEOUT:.1f}s, "
+                f"request_active={request_active}, retired_requests={retired_count}, "
+                f"active_jobs={active_jobs}"
+            )
+            communicate.notification.emit(message, "OpenVINO", True, True, None, None, None)
 
             with self._state_lock:
                 self.job_id += 1
-                if (
-                    self._request_has_active_jobs(self.infer_request)
-                    and self._get_active_retired_count() < self._MAX_ACTIVE_RETIRED_INFER_REQUESTS
-                ):
+                if self._request_has_active_jobs(self.infer_request):
                     self._retire_request(self.infer_request, cancel=True)
-                    self.infer_request = self._create_infer_request()
-            return None
+                self._force_next_submit = False
+                self._openvino_available = False
+                self._openvino_unavailable_reason = message
+            return False
         return result_holder["results"]
 
     def clear_cache(self):

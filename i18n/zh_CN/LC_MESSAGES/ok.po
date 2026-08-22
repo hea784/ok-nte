@@ -9,9 +9,6 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-msgid "<b style=\"color: #0078d7;\">角色</b> 和 <b style=\"color: #0078d7;\">{combo}</b> 支持输入并创建，也支持选择已有项。"
-msgstr ""
-
 msgid "Arc Key"
 msgstr "弧盘技快捷键"
 
@@ -69,33 +66,16 @@ msgstr ""
 msgid "{combo}语法错误"
 msgstr ""
 
-msgid "{fixed_team}已保存"
-msgstr ""
-
-msgid "{fixed_team}已停用"
-msgstr ""
-
-msgid "{fixed_team}已清空"
-msgstr ""
-
 msgid "{} 号位"
 msgstr ""
 
 msgid "任务跳过对话"
 msgstr ""
 
-msgid ""
-"供非中/英语用户自定义传送文字, 逗号分隔\n"
-"例: Teleport, 传送"
-msgstr ""
-
 msgid "保存成功"
 msgstr ""
 
 msgid "停用"
-msgstr ""
-
-msgid "先扫描并关联特征或手动填写"
 msgstr ""
 
 msgid "出招表"
@@ -149,9 +129,6 @@ msgstr ""
 msgid "填入扫描"
 msgstr ""
 
-msgid "这是个用于向数据库关联或添加 <b style=\"color: #0078d7;\">角色特征</b> 的工具面板。<br>点击 <b style=\"color: #0078d7;\">{scan_team}</b> 后点击 <b style=\"color: #0078d7;\">关联或添加</b> 特征，自动战斗时就会识别对应的角色。<br><b style=\"color: #d83b01;\">💡 注意：</b>此面板 <b style=\"color: #d83b01;\">不会</b> 在进入战斗或更换阵容时实时自动刷新或同步显示, 因为这是工具面板。<br>如果不想管理 <b style=\"color: #0078d7;\">角色特征</b>，可以直接使用 <b style=\"color: #0078d7;\">{fixed_team}</b> 功能。"
-msgstr ""
-
 msgid "完成每日活跃度"
 msgstr ""
 
@@ -167,42 +144,16 @@ msgstr ""
 msgid "导出数据"
 msgstr ""
 
-msgid "已保存 {}/4"
-msgstr ""
-
-msgid "已启用 {}/4"
-msgstr ""
-
-msgid "已启用{fixed_team}"
-msgstr ""
-
-msgid "已填入 {}"
-msgstr ""
-
-msgid "已填入扫描结果"
-msgstr ""
-
 msgid "已导入 {} 个文件"
 msgstr ""
 
-msgid "已恢复自动识别"
-msgstr ""
-
 msgid "已成功删除角色: {} 以及关联的特征图"
-msgstr ""
-
-msgid "已清空槽位"
 msgstr ""
 
 msgid "已解除 {} 的{combo}绑定"
 msgstr ""
 
 msgid "应用更改"
-msgstr ""
-
-msgid ""
-"当前未绑定任何{combo}。\n"
-"遇到此角色将默认使用基础通用脚本(BaseChar)。"
 msgstr ""
 
 msgid "循环次数"
@@ -252,16 +203,10 @@ msgid ""
 "请在对应的源文件中直接修改代码。"
 msgstr ""
 
-msgid "没有可用扫描结果"
-msgstr ""
-
 msgid "没有找到匹配的指令。"
 msgstr ""
 
 msgid "清空"
-msgstr ""
-
-msgid "点击上方按钮扫描..."
 msgstr ""
 
 msgid "点击时将短暂控制物理鼠标"
@@ -594,18 +539,6 @@ msgid "输入或选择角色"
 msgstr ""
 
 msgid "自动战斗任务不可用"
-msgstr ""
-
-msgid "<span style=\"color: #2ecc71;\">● 自动识别：已启用</span>"
-msgstr ""
-
-msgid "<span style=\"color: #95a5a6;\">○ 自动识别：仅空槽启用</span>"
-msgstr ""
-
-msgid "<span style=\"color: #2ecc71;\">● {fixed_team}：已启用 ({count}/4)</span>"
-msgstr ""
-
-msgid "<span style=\"color: #95a5a6;\">○ {fixed_team}：已停用</span>"
 msgstr ""
 
 msgid "启动失败"
@@ -1272,4 +1205,79 @@ msgid "挑战玛门"
 msgstr ""
 
 msgid "自动闯关"
+msgstr ""
+
+msgid "{} 个空槽位"
+msgstr "{} 个空槽位"
+
+msgid "固定"
+msgstr "固定"
+
+msgid "已从列表移除"
+msgstr "已从列表移除"
+
+msgid "已删除"
+msgstr "已删除"
+
+msgid "已填入"
+msgstr "已填入"
+
+msgid "已应用"
+msgstr "已应用"
+
+msgid "已更新 {} 位角色的出招表"
+msgstr "已更新 {} 位角色的出招表"
+
+msgid "应用方案"
+msgstr "应用方案"
+
+msgid "扫描失败"
+msgstr "扫描失败"
+
+msgid "搜索方案"
+msgstr "搜索方案"
+
+msgid "新建方案"
+msgstr "新建方案"
+
+msgid "方案中不能重复选择角色"
+msgstr "方案中不能重复选择角色"
+
+msgid "方案列表"
+msgstr "方案列表"
+
+msgid "方案名称重复或内容无效"
+msgstr "方案名称重复或内容无效"
+
+msgid "无法保存"
+msgstr "无法保存"
+
+msgid "无法填入"
+msgstr "无法填入"
+
+msgid "没有可填入的角色"
+msgstr "没有可填入的角色"
+
+msgid "等待扫描..."
+msgstr "等待扫描..."
+
+msgid "输入或选择出招表"
+msgstr "输入或选择出招表"
+
+msgid "队伍方案"
+msgstr "队伍方案"
+
+msgid "队伍识别"
+msgstr "队伍识别"
+
+msgid "提示"
+msgstr "提示"
+
+msgid "<p><b style=\"color: #d83b01;\">注意：</b>此面板 <b style=\"color: #d83b01;\">不会</b> 在进入战斗或更换阵容时实时自动刷新或同步显示。<br>这是个用于向数据库关联或添加 <b style=\"color: #0078d7;\">角色特征</b> 的工具面板。<br>点击 <b style=\"color: #0078d7;\">{scan_team}</b> 后点击 <b style=\"color: #0078d7;\">关联或添加</b> 特征, 自动战斗时就会识别对应的角色。<br>如果不想管理 <b style=\"color: #0078d7;\">角色特征</b>, 可以直接使用 <b style=\"color: #0078d7;\">{fixed_team}</b> 功能。</p>"
+msgstr "<p><b style=\"color: #d83b01;\">注意：</b>此面板 <b style=\"color: #d83b01;\">不会</b> 在进入战斗或更换阵容时实时自动刷新或同步显示。<br>这是个用于向数据库关联或添加 <b style=\"color: #0078d7;\">角色特征</b> 的工具面板。<br>点击 <b style=\"color: #0078d7;\">{scan_team}</b> 后点击 <b style=\"color: #0078d7;\">关联或添加</b> 特征, 自动战斗时就会识别对应的角色。<br>如果不想管理 <b style=\"color: #0078d7;\">角色特征</b>, 可以直接使用 <b style=\"color: #0078d7;\">{fixed_team}</b> 功能。</p>"
+
+msgid "<p>用于配置并保存常用的 4 人队伍阵容与出招表, 修改后立即生效。<br>点击 <b style=\"color: #0078d7;\">{apply_preset}</b> 可一键更新应用方案中各角色的出招表 (未选择出招表则保持原配置不变)。<br>开启 <b style=\"color: #0078d7;\">{fixed_preset}</b> 后自动战斗将直接采用此阵容, 无需等待特征识别 (未录入特征的角色亦可直接战斗)。<br>点击 <b style=\"color: #0078d7;\">{fill_scan}</b> 可将上方特征扫描识别出的队伍角色快速填入当前方案。</p>"
+msgstr "<p>用于配置并保存常用的 4 人队伍阵容与出招表, 修改后立即生效。<br>点击 <b style=\"color: #0078d7;\">{apply_preset}</b> 可一键更新应用方案中各角色的出招表 (未选择出招表则保持原配置不变)。<br>开启 <b style=\"color: #0078d7;\">{fixed_preset}</b> 后自动战斗将直接采用此阵容, 无需等待特征识别 (未录入特征的角色亦可直接战斗)。<br>点击 <b style=\"color: #0078d7;\">{fill_scan}</b> 可将上方特征扫描识别出的队伍角色快速填入当前方案。</p>"
+
+msgid "OpenVINO 单次推理超时，已自动关闭目标检测；重启程序后会重新尝试启用。"
 msgstr ""

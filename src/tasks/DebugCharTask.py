@@ -1,16 +1,43 @@
-from ok import TaskDisabledException
-from qfluentwidgets import FluentIcon
+import threading
+import time
+from dataclasses import dataclass
 
-from src.char.core.CharFactory import get_char_implementation_class, iter_char_implementations
+from ok import Logger, TaskDisabledException
+
+from src.char.core.CharFactory import (
+    get_char_by_id,
+    get_char_feature_by_pos,
+    get_char_implementation_class,
+    iter_char_implementations,
+)
+from src.char.custom.CustomCharManager import CustomCharManager
 from src.combat.BaseCombatTask import BaseCombatTask
+from src.tasks.NTEOneTimeTask import NTEOneTimeTask
+
+logger = Logger.get_logger(__name__)
 
 
-class DebugCharTask(BaseCombatTask):
+@dataclass(frozen=True)
+class TeamScanResult:
+    index: int
+    image: object
+    width: int
+    height: int
+    character_id: str
+    confidence: float | None
+
+
+class DebugCharTask(NTEOneTimeTask, BaseCombatTask):
+    """Hidden one-time character tools used by the character-management tabs."""
+
+    MODE_SCAN_TEAM = "scan_team"
+    MODE_TEST_COMBO = "test_combo"
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.name = "Test Char"
-        self.description = "Test Char"
-        self.icon = FluentIcon.SYNC
+        self.name = "角色工具"
+        self.description = "角色特征扫描和出招表测试"
+        self.visible = False
         self.char = None
         self.is_char_loaded = False
         self.char_list = [entry.impl_id for entry in iter_char_implementations()]
@@ -23,21 +50,108 @@ class DebugCharTask(BaseCombatTask):
                 },
             }
         )
+        self.mode: str | None = None
+        self.scan_results: tuple[TeamScanResult, ...] = ()
+        self.result_error = ""
+        self._combo_character_id = ""
+        self._combo_implementation_id = ""
+        self._combo_text = ""
+        self._character_management_ocr_lock = threading.Lock()
+
+    def scan_team(self) -> None:
+        self.mode = self.MODE_SCAN_TEAM
+        self.scan_results = ()
+        self.result_error = ""
+
+    def test_combo(self, character_id: str, implementation_id: str, combo_text: str) -> None:
+        self.mode = self.MODE_TEST_COMBO
+        self.result_error = ""
+        self._combo_character_id = character_id
+        self._combo_implementation_id = implementation_id
+        self._combo_text = combo_text
 
     def run(self):
-        super().run()
+        mode = self.mode
         try:
-            return self.do_run()
+            super().run()
+            if mode == self.MODE_SCAN_TEAM:
+                self._scan_team()
+            elif mode == self.MODE_TEST_COMBO:
+                self._test_combo()
         except TaskDisabledException:
-            pass
-        except Exception as e:
-            self.log_error("自动银行差事出错", e)
+            if mode:
+                self.result_error = self.tr("任务已停止")
             raise
+        except Exception as error:
+            self.result_error = str(error).strip() or error.__class__.__name__
+            logger.exception("Character tool failed: %s", self.result_error)
+        finally:
+            self.mode = None
 
-    def do_run(self):
-        while True:
-            # self.log_info(self.has_team_skill_records())
-            self.sleep(0.1)
+    def _scan_team(self) -> None:
+        try:
+            in_team, _, count = self.in_team()
+            if not in_team or count == 0:
+                raise RuntimeError(self.tr("队伍不存在"))
+            if count < 2:
+                raise RuntimeError(self.tr("队伍人数少于2人"))
+
+            manager = CustomCharManager()
+            results = []
+            frame = self.frame
+            for index in range(count):
+                image, width, height = get_char_feature_by_pos(self, index, frame=frame)
+                if image is None or image.size <= 0:
+                    continue
+                _, character_id, confidence = manager.match_feature(self, image)
+                results.append(
+                    TeamScanResult(index, image, width, height, character_id, confidence)
+                )
+            self.scan_results = tuple(results)
+        except Exception as error:
+            self.result_error = str(error).strip() or error.__class__.__name__
+            logger.exception("Team scan failed: %s", self.result_error)
+
+    def _test_combo(self) -> None:
+        from src.char.custom.CustomChar import CustomChar
+
+        if self._combo_implementation_id:
+            test_char = get_char_by_id(
+                self,
+                index=0,
+                char_id=self._combo_character_id,
+                impl_id=self._combo_implementation_id,
+            )
+        else:
+            test_char = CustomChar(self, index=0, char_id=self._combo_character_id)
+
+        original_ocr = self.ocr
+        original_chars = self.chars
+        original_sleep = self.sleep
+
+        def locked_ocr(*args, **kwargs):
+            with self._character_management_ocr_lock:
+                return original_ocr(*args, **kwargs)
+
+        def direct_sleep(timeout):
+            if timeout > 0:
+                time.sleep(timeout)
+            return True
+
+        self.ocr = locked_ocr
+        self.chars = [test_char]
+        self.sleep = direct_sleep
+        try:
+            test_char.is_current_char = True
+            test_char.switch_next_char = lambda *args, **kwargs: None
+            if isinstance(test_char, CustomChar):
+                test_char.combo_str = self._combo_text
+                test_char._compile_combo()
+            test_char.perform()
+        finally:
+            self.sleep = original_sleep
+            self.chars = original_chars
+            self.ocr = original_ocr
 
     @staticmethod
     def _normalize_impl_id(impl_id):
@@ -64,10 +178,6 @@ class DebugCharTask(BaseCombatTask):
         self.char = char_class(self, 0, char_id=self.current_char, confidence=1)  # type: ignore
 
     def __getattr__(self, name):
-        """
-        当调用的属性或方法在当前类中找不到时，会进入这个函数。
-        name 是调用的名子（字符串）。
-        """
         try:
             if self.char is None or self.current_char != self._selected_impl_id():
                 self.is_char_loaded = False

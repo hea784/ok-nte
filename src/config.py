@@ -5,14 +5,14 @@ import os
 from ok import Box, ConfigOption
 
 from src import GAME_EXE
-from src.audio_routing import create_background_audio_routing_config_option
+from src.audio.routing import create_background_audio_routing_config_option
 from src.interaction.NTEInteraction import NTEInteraction
 from src.process_feature import process_feature
 
 if "PATH" not in os.environ:
     os.environ["PATH"] = ""
 
-version = "v1.3.7"
+version = "v1.3.8"
 # 不需要修改version, Github Action打包会自动修改
 
 key_config_option = ConfigOption(
@@ -199,7 +199,6 @@ config = {
         ["src.tasks.RhythmTask", "RhythmTask"],
         ["src.tasks.OwnerSelectionTask", "OwnerSelectionTask"],
         ["src.tasks.AutoHeistTask", "AutoHeistTask"],
-        # ["src.tasks.DarkTask", "DarkTask"],
         ["src.tasks.BagelAITools", "BagelAITools"],
         ["src.tasks.WhirlwindTask", "WhirlwindTask"],
         ["src.tasks.DSDFarmTask", "DSDFarmTask"],
@@ -207,6 +206,7 @@ config = {
         ["src.tasks.VolleyballTask", "VolleyballTask"],
         # 测试相关
         ["src.tasks.CombatDetectionTestTask", "CombatDetectionTestTask"],
+        ["src.tasks.DebugCharTask", "DebugCharTask"],
         ["ok", "DiagnosisTask"],
         # 日常相关
         ["src.tasks.daily.DailyClaimTask", "DailyClaimTask"],
@@ -215,8 +215,6 @@ config = {
         ["src.tasks.daily.FountainTask", "FountainTask"],
         ["src.tasks.daily.FurnitureTask", "FurnitureTask"],
         ["src.tasks.daily.CinemaDateTask", "CinemaDateTask"],
-        # ["src.tasks.custom.TeamScannerTask", "TeamScannerTask"],
-        # ["src.tasks.DebugCharTask", "DebugCharTask"],
     ],
     "trigger_tasks": [  # 不断执行的触发式任务
         ["src.tasks.trigger.AutoCombatTask", "AutoCombatTask"],

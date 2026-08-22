@@ -7,11 +7,10 @@ import win32con
 import win32gui
 import win32process
 from ok import TaskDisabledException, og
-from ok.ui.qt.Communicate import communicate
 from ok.util.process import execute, is_admin
-from qfluentwidgets import FluentIcon
 
 from src import GAME_EXE, LAUNCHER_EXE
+from src.events import communicate
 from src.interaction.NTEInteraction import NTEInteraction
 from src.Labels import Labels
 from src.tasks.BaseNTETask import BaseNTETask
@@ -62,7 +61,6 @@ class LauncherTask(BaseNTETask):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.name = "Start Game"
-        self.icon = FluentIcon.SYNC
         self.default_config.update({self.CONF_PATH: ""})
         self.enable_after_start = True  # auto run after start
         self.visible = False  # False to hide from the UI

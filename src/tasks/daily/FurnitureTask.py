@@ -1,7 +1,6 @@
 import re
 
 from ok import TaskDisabledException
-from qfluentwidgets import FluentIcon
 
 from src.combat.BaseCombatTask import BaseCombatTask
 from src.Labels import Labels
@@ -14,7 +13,6 @@ class FurnitureTask(NTEOneTimeTask, BaseCombatTask):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.name = "异象家具"
-        self.icon = FluentIcon.SHOPPING_CART
         self.group_name = "日常/周常"
         self.visible = False
         self.default_config.update({self.CONF_MAMMON: True})

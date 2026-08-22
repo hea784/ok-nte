@@ -4,7 +4,6 @@ from dataclasses import dataclass
 
 from ok import TaskDisabledException
 from ok.util.config import Config
-from qfluentwidgets import FluentIcon
 
 from src.tasks.AnomalyHunter import AnomalyHunter
 from src.tasks.AnomalyTask import AnomalyTask
@@ -16,6 +15,8 @@ from src.tasks.daily.FountainTask import FountainTask
 from src.tasks.daily.FurnitureTask import FurnitureTask
 from src.tasks.daily.GiftTask import GiftTask
 from src.tasks.NTEOneTimeTask import NTEOneTimeTask
+
+__all__ = ["DailyRoutineEntry", "DailyRoutineTask", "selection_is_complete"]
 
 
 @dataclass(frozen=True)
@@ -39,6 +40,23 @@ DAILY_ROUTINE_ENTRIES = (
 )
 
 
+def selection_is_complete(items, entries) -> bool:
+    if not items:
+        return False
+    enabled_groups = set()
+    for item in items:
+        entry = entries[item["id"]]
+        if entry.exclusive_group:
+            if item["enabled"]:
+                enabled_groups.add(entry.exclusive_group)
+        elif not item["enabled"]:
+            return False
+    return all(
+        entry.exclusive_group is None or entry.exclusive_group in enabled_groups
+        for entry in entries.values()
+    )
+
+
 def selected_routine_tasks(routine_task):
     tasks = []
     for item in routine_task.normalize_items():
@@ -55,23 +73,6 @@ def routine_has_active_tasks(tasks):
 
 def start_routine_tasks(start_controller, routine_task):
     return start_controller.do_start(routine_task)
-
-
-def selection_is_complete(items, entries):
-    if not items:
-        return False
-    enabled_groups = set()
-    for item in items:
-        entry = entries[item["id"]]
-        if entry.exclusive_group:
-            if item["enabled"]:
-                enabled_groups.add(entry.exclusive_group)
-        elif not item["enabled"]:
-            return False
-    return all(
-        entry.exclusive_group is None or entry.exclusive_group in enabled_groups
-        for entry in entries.values()
-    )
 
 
 @dataclass
@@ -138,7 +139,6 @@ class DailyRoutineTask(NTEOneTimeTask, BaseNTETask):
         self.name = "日常任务"
         self.support_schedule_task = True
         self.show_in_task_tab = False
-        self.icon = FluentIcon.CAR
         self.visible = True
         self.task_status = {"success": [], "failed": [], "skipped": [], "pending": []}
         self.current_task_key = None
@@ -282,7 +282,8 @@ class DailyRoutineTask(NTEOneTimeTask, BaseNTETask):
         return self.set_items(self.default_items())
 
     def task_for_id(self, task_id):
-        return self.get_task_by_class(self.entries_by_id()[task_id].task_class)
+        entry = self.entries_by_id().get(task_id)
+        return self.get_task_by_class(entry.task_class) if entry is not None else None
 
     def daily_task_schema(self, task_id, task):
         entry = self.entries_by_id()[task_id]

@@ -1,6 +1,8 @@
 # Combat Planner 开发指南
 
-> **提示**：角色的具体代码实现可在 [`src/char`](../../src/char) 目录中找到。
+> **提示**：角色的具体代码实现可在 `src/char` 目录中找到，也可查看
+> [GitHub](https://github.com/BnanZ0/ok-nte/tree/main/src/char) 或
+> [CNB](https://cnb.cool/BnanZ0/ok-nte-update/-/tree/main/src/char) 上的代码目录。
 
 Planner 是队伍大脑。角色只声明一个 `CombatPlan`：
 

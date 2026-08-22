@@ -1,6 +1,6 @@
 from ok import BaseTask, TaskDisabledException
 
-from src.scene_flow import SceneFlow
+from src.tasks.flow.scene_flow import SceneFlow
 
 
 class SceneFlowMixin(BaseTask):

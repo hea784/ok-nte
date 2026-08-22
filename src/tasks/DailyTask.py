@@ -49,7 +49,6 @@ class DailyTask(NTEOneTimeTask, BaseNTETask):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.name = "日常任务"
-        self.icon = FluentIcon.CAR
         self.group_name = "日常/周常"
         self.group_icon = FluentIcon.CALENDAR
         self.support_schedule_task = True

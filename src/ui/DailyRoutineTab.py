@@ -1,4 +1,3 @@
-from ok import og
 from ok.ui.qt.common.design_system import DesignToken, configure_page_layout
 from ok.ui.qt.common.style_sheet import StyleSheet
 from ok.ui.qt.tasks.TaskCard import TaskCard
@@ -28,7 +27,7 @@ from src.tasks.daily.DailyRoutineTask import (
     DailyRoutineTask,
     selection_is_complete,
 )
-from src.ui.common import FluentSystemIcon
+from src.ui.foundation.icons import FluentSystemIcon
 
 
 class _DragHandle(QWidget):
@@ -144,8 +143,10 @@ class _DailyRoutineCard(TaskCard):
     expansion_changed = Signal(bool)
 
     def __init__(self, entry: DailyRoutineEntry, task, routine_tab, enabled):
-        with routine_tab._routine_task().daily_task_card_context(entry.task_id, task):
-            super().__init__(task, True)
+        with routine_tab.daily_task_card_context(entry.task_id, task) as card_task:
+            if card_task is None:
+                raise RuntimeError(f"Daily routine task is unavailable: {entry.task_id}")
+            super().__init__(card_task, True)
         self.entry = entry
         self.task = task
         self.routine_tab = routine_tab
@@ -203,7 +204,7 @@ class DailyRoutineTab(CustomTab):
         super().__init__()
         self.setObjectName("DailyRoutineTab")
         self.icon = FluentIcon.CALENDAR
-        self.tr_name = og.app.tr("日常任务")
+        self.tr_name = self.tr("日常任务")
         self._rendered = False
         self._cards = {}
         self._routine_settings_card = None
@@ -262,17 +263,22 @@ class DailyRoutineTab(CustomTab):
     @executor.setter
     def executor(self, value):
         self._executor = value
+        self.task = self.get_task(DailyRoutineTask) if value is not None else None
         if value is not None and getattr(self, "_rendered", False) is False:
             self._render_routine()
 
     @property
-    def name(self):
+    def name(self):  # type: ignore
         return self.tr_name
 
     def _routine_task(self):
-        if self.executor is None:
-            return None
-        return self.get_task(DailyRoutineTask)
+        return self.task
+
+    def daily_task_card_context(self, task_id, task):
+        routine_task = self._routine_task()
+        if routine_task is None:
+            raise RuntimeError("Daily routine task is unavailable")
+        return routine_task.daily_task_card_context(task_id, task)
 
     def _install_routine_settings(self, routine_task):
         if self._routine_settings_card is None:
@@ -340,7 +346,7 @@ class DailyRoutineTab(CustomTab):
 
         target_x = card.pos().x()
         max_y = self.routine_view.height()
-        clamped_y = max(- self._drag_proxy.height(), min(local_pos.y(), max_y))
+        clamped_y = max(-self._drag_proxy.height(), min(local_pos.y(), max_y))
         self._drag_proxy.move(target_x, clamped_y)
 
         local_y = self._drag_proxy.geometry().center().y()

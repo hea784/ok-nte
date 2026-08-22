@@ -1,5 +1,4 @@
 from ok import CannotFindException, TaskDisabledException, find_color_rectangles
-from qfluentwidgets import FluentIcon
 
 from src import text_white_color
 from src.Labels import Labels
@@ -17,7 +16,6 @@ class DailyClaimTask(NTEOneTimeTask, BaseNTETask):
         super().__init__(*args, **kwargs)
         self.name = "日常领取"
         self.description = "领取每日邮件和奖励"
-        self.icon = FluentIcon.MAIL
         self.visible = False
         self.default_config.update(
             {

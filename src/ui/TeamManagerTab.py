@@ -1,55 +1,62 @@
-import traceback
 from typing import Literal
 
 from ok import og
 from ok.ui.qt.widget.CustomTab import CustomTab
-from PySide6.QtCore import QObject, Qt, QTimer, Signal
-from PySide6.QtGui import QPixmap
-from PySide6.QtWidgets import QHBoxLayout, QSizePolicy, QStackedLayout, QVBoxLayout, QWidget
+from PySide6.QtCore import Qt, QTimer, Signal
+from PySide6.QtGui import QAction, QIcon, QPixmap
+from PySide6.QtWidgets import (
+    QGridLayout,
+    QHBoxLayout,
+    QListWidgetItem,
+    QSizePolicy,
+    QStackedLayout,
+    QVBoxLayout,
+    QWidget,
+)
 from qfluentwidgets import (
     BodyLabel,
-    CardWidget,
+    CaptionLabel,
+    CommandBar,
     FluentIcon,
     Flyout,
+    IconWidget,
     ImageLabel,
     InfoBar,
     InfoBarIcon,
     InfoBarPosition,
+    LineEdit,
     MessageBoxBase,
     PrimaryPushButton,
     PushButton,
+    SimpleCardWidget,
+    StrongBodyLabel,
     SubtitleLabel,
     TransparentToolButton,
 )
 
 from src.char.custom.CustomCharManager import CustomCharManager
-from src.tasks.trigger.AutoCombatTask import AutoCombatTask
-from src.ui.common import (
-    COMBO,
-    TEAM_MANAGEMENT,
-    BorderCardWidget,
+from src.events import communicate
+from src.tasks.DebugCharTask import DebugCharTask, TeamScanResult
+from src.ui.foundation.images import cv_to_pixmap
+from src.ui.foundation.widgets.cards import BorderCardWidget
+from src.ui.foundation.widgets.search import (
     SearchableComboBox,
-    char_manager_signals,
-    cv_to_pixmap,
+    SearchableListWidget,
 )
-from src.ui.TeamScanner import TeamScanError, TeamScanner
-from src.ui.util import tr_fmt
-
-
-class TeamManagerSignals(QObject):
-    scan_done = Signal(list, str)
-
-
-team_manager_signals = TeamManagerSignals()
 
 
 class NewCharDialog(MessageBoxBase):
+    """Select or create a character while associating a scanned feature."""
+
     def __init__(self, mat, manager: CustomCharManager, parent=None):
-        super().__init__(parent)
+        self._owner_parent = parent or QWidget()
+        super().__init__(self._owner_parent)
         self.manager = manager
         self.tr_title = og.app.tr("关联特征")
         self.tr_name_ph = og.app.tr("输入或选择关联的角色名称")
-        self.tr_list_ph = tr_fmt("输入或选择绑定的{combo} (可选)", combo=COMBO)
+        self.tr_list_ph = og.app.tr("输入或选择绑定的{combo} (可选)").format(
+            combo=og.app.tr("出招表")
+        )
 
         self.viewLayout.setSpacing(10)
         self.viewLayout.addWidget(
@@ -67,7 +74,7 @@ class NewCharDialog(MessageBoxBase):
         )
         self.viewLayout.addWidget(img_label, alignment=Qt.AlignmentFlag.AlignCenter)
 
-        self.tip_label = BodyLabel(og.app.tr("※ 列表可直接输入并创建"))
+        self.tip_label = CaptionLabel(og.app.tr("※ 列表可直接输入并创建"))
         self.viewLayout.addWidget(self.tip_label, alignment=Qt.AlignmentFlag.AlignCenter)
 
         self.char_combo = SearchableComboBox()
@@ -124,65 +131,164 @@ class NewCharDialog(MessageBoxBase):
         return char_name, char_id, combo_id, combo_name
 
 
+class AddCharacterDialog(MessageBoxBase):
+    """Create a new character without exposing the existing-character picker."""
+
+    def __init__(self, manager: CustomCharManager, parent=None):
+        self._owner_parent = parent or QWidget()
+        super().__init__(self._owner_parent)
+        self.manager = manager
+        self.tr_name_duplicate = og.app.tr("角色名称无效或已存在")
+        self.viewLayout.setSpacing(10)
+        self.viewLayout.addWidget(
+            SubtitleLabel(og.app.tr("新增角色"), self), alignment=Qt.AlignmentFlag.AlignCenter
+        )
+
+        self.char_name_edit = LineEdit(self)
+        self.char_name_edit.setPlaceholderText(og.app.tr("角色名称"))
+        self.char_name_edit.textChanged.connect(self._validate_name)
+        self.viewLayout.addWidget(self.char_name_edit)
+
+        self.name_error_label = CaptionLabel(self.tr_name_duplicate, self)
+        self.name_error_label.hide()
+        self.viewLayout.addWidget(self.name_error_label)
+
+        self.combo_list = SearchableComboBox(self)
+        self.combo_list.setPlaceholderText(og.app.tr("输入或选择出招表"))
+        self.combo_list.addItem("", userData="")
+        for combo_name, combo_id in self.manager.get_all_impl_items(with_source_prefix=True):
+            self.combo_list.addItem(combo_name, userData=combo_id)
+        self.viewLayout.addWidget(self.combo_list)
+
+        self.widget.setMinimumWidth(320)
+        self._validate_name("")
+        self.char_name_edit.setFocus()
+
+    def _is_name_available(self, name: str) -> bool:
+        name = name.strip()
+        if not name:
+            return False
+        return all(
+            char_data["char_name"] != name
+            for char_data in self.manager.get_all_characters().values()
+        )
+
+    def _validate_name(self, name: str) -> None:
+        is_empty = not name.strip()
+        is_available = self._is_name_available(name)
+        self.yesButton.setEnabled(is_available)
+        self.name_error_label.setVisible(not is_empty and not is_available)
+
+    def validate(self) -> bool:
+        self._validate_name(self.char_name_edit.text())
+        return self.yesButton.isEnabled()
+
+    def get_data(self):
+        char_name = self.char_name_edit.text().strip()
+        combo_name = self.combo_list.currentText().strip()
+        combo_id = ""
+        index = self.combo_list.currentIndex()
+        if index >= 0 and combo_name == self.combo_list.itemText(index):
+            data = self.combo_list.itemData(index)
+            if isinstance(data, str):
+                combo_id = data
+        return char_name, "", combo_id, combo_name
+
+
+def save_character_from_dialog(
+    manager: CustomCharManager, dialog: NewCharDialog | AddCharacterDialog
+) -> str:
+    """Persist the selection made in a character dialog and return its character ID."""
+    char_name, char_id, combo_id, combo_name = dialog.get_data()
+    if not (char_id or char_name):
+        return ""
+    if combo_name and not combo_id:
+        combo_id = manager.add_combo(combo_name, "")
+    if not char_id:
+        return manager.create_character(char_name, combo_id)
+    manager.update_character(char_id, impl_id=combo_id)
+    return char_id
+
+
 class SlotCard(BorderCardWidget):
     def __init__(self, index, manager: CustomCharManager, parent=None):
         super().__init__(parent)
-        self.setBorderWidth(2)
+        self.setBorderWidth(1)
         self.index = index
         self.manager = manager
         self.tr_match_success = og.app.tr("匹配成功: {}")
         self.tr_unrecognized = og.app.tr("未能识别该特征")
         self.tr_no_image = og.app.tr("无画面")
         self.tr_slot_title = og.app.tr("{} 号位")
-        self.tr_scan_prompt = og.app.tr("点击上方按钮扫描...")
+        self.tr_scan_prompt = og.app.tr("等待扫描...")
         self.tr_action_btn = og.app.tr("关联特征")
         self.tr_add_match_feature_btn = og.app.tr("加入特征")
         self.tr_feature_added_btn = og.app.tr("特征已加入")
         self.tr_confidence = og.app.tr("置信度: {:.2f}")
-        self.setMinimumHeight(168)
+        self.setFixedHeight(168)
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
 
-        self.stack = QStackedLayout(self)
-        self.stack.setContentsMargins(14, 14, 14, 14)
+        root_layout = QVBoxLayout(self)
+        root_layout.setContentsMargins(14, 12, 14, 12)
+        root_layout.setSpacing(8)
 
+        # Header with slot badge
+        header_row = QHBoxLayout()
+        header_row.setContentsMargins(0, 0, 0, 0)
+        self.slot_badge = StrongBodyLabel(self.tr_slot_title.format(index + 1), self)
+        header_row.addWidget(self.slot_badge)
+        header_row.addStretch(1)
+        root_layout.addLayout(header_row)
+
+        self.stack = QStackedLayout()
+
+        # Empty state
         self.empty_widget = QWidget(self)
         self.empty_layout = QVBoxLayout(self.empty_widget)
         self.empty_layout.setContentsMargins(0, 0, 0, 0)
-        self.empty_layout.setSpacing(4)
-        self.empty_title = SubtitleLabel(self.tr_slot_title.format(index + 1), self.empty_widget)
-        self.empty_status = BodyLabel(self.tr_scan_prompt, self.empty_widget)
-        self.empty_layout.addWidget(self.empty_title, alignment=Qt.AlignmentFlag.AlignHCenter)
+        self.empty_layout.setSpacing(6)
+        self.empty_icon = IconWidget(FluentIcon.PEOPLE, self.empty_widget)
+        self.empty_icon.setFixedSize(36, 36)
+        self.empty_status = CaptionLabel(self.tr_scan_prompt, self.empty_widget)
+        self.empty_layout.addStretch(1)
+        self.empty_layout.addWidget(self.empty_icon, alignment=Qt.AlignmentFlag.AlignHCenter)
         self.empty_layout.addWidget(self.empty_status, alignment=Qt.AlignmentFlag.AlignHCenter)
-        self.empty_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.empty_layout.addStretch(1)
 
+        # Result state
         self.result_widget = QWidget(self)
         self.result_layout = QHBoxLayout(self.result_widget)
         self.result_layout.setContentsMargins(0, 0, 0, 0)
         self.result_layout.setSpacing(12)
-        self.title = SubtitleLabel(self.tr_slot_title.format(index + 1))
-        self.image = ImageLabel()
-        self.image.setFixedSize(112, 112)
-        self.status = BodyLabel(self.tr_scan_prompt)
-        self.status.setWordWrap(True)
-        self.btn_act = PrimaryPushButton(self.tr_action_btn, self)
-        self.btn_act.hide()
 
-        self.info_widget = QWidget(self)
+        self.image = ImageLabel(self.result_widget)
+        self.image.setFixedSize(88, 88)
+
+        self.info_widget = QWidget(self.result_widget)
         self.info_layout = QVBoxLayout(self.info_widget)
         self.info_layout.setContentsMargins(0, 0, 0, 0)
         self.info_layout.setSpacing(4)
-        self.info_layout.addWidget(self.title)
+
+        self.status = BodyLabel("", self.info_widget)
+        self.status.setWordWrap(True)
+        self.btn_act = PushButton(self.tr_action_btn, self.info_widget)
+        self.btn_act.setFixedHeight(28)
+        self.btn_act.hide()
+
+        self.info_layout.addStretch(1)
         self.info_layout.addWidget(self.status)
         self.info_layout.addWidget(self.btn_act, alignment=Qt.AlignmentFlag.AlignLeft)
+        self.info_layout.addStretch(1)
 
         self.result_layout.addStretch(1)
         self.result_layout.addWidget(self.image, alignment=Qt.AlignmentFlag.AlignVCenter)
-        self.result_layout.addWidget(self.info_widget, alignment=Qt.AlignmentFlag.AlignVCenter)
+        self.result_layout.addWidget(self.info_widget)
         self.result_layout.addStretch(1)
 
         self.stack.addWidget(self.empty_widget)
         self.stack.addWidget(self.result_widget)
         self.stack.setCurrentWidget(self.empty_widget)
+        root_layout.addLayout(self.stack, 1)
 
         self.btn_act.clicked.connect(self.on_action)
         self.current_mat = None
@@ -216,14 +322,14 @@ class SlotCard(BorderCardWidget):
             pixmap = cv_to_pixmap(mat)
             self.image.setImage(
                 pixmap.scaled(
-                    112,
-                    112,
+                    88,
+                    88,
                     Qt.AspectRatioMode.KeepAspectRatio,
                     Qt.TransformationMode.SmoothTransformation,
                 )
             )
         else:
-            empty_pixmap = QPixmap(112, 112)
+            empty_pixmap = QPixmap(88, 88)
             empty_pixmap.fill(Qt.GlobalColor.transparent)
             self.image.setImage(empty_pixmap)
 
@@ -266,20 +372,12 @@ class SlotCard(BorderCardWidget):
             )
             self.btn_act.setText(self.tr_feature_added_btn)
             self.btn_act.setEnabled(False)
-            char_manager_signals.refresh_tab.emit()
             return
 
         dialog = NewCharDialog(self.current_mat, self.manager, self.window())
         if dialog.exec():
-            char_name, char_id, combo_id, combo_name = dialog.get_data()
-            if char_id or char_name:
-                if combo_name and not combo_id:
-                    combo_id = self.manager.add_combo(combo_name, "")
-                if not char_id and char_name:
-                    char_id = self.manager.create_character(char_name, combo_id)
-                elif char_id:
-                    self.manager.update_character(char_id, impl_id=combo_id)
-
+            char_id = save_character_from_dialog(self.manager, dialog)
+            if char_id:
                 self.manager.add_feature_to_character(
                     char_id,
                     self.current_mat,
@@ -293,335 +391,338 @@ class SlotCard(BorderCardWidget):
                     char_id,
                     1.0,
                 )
-                char_manager_signals.refresh_tab.emit()
 
 
-class FixedTeamSlotCard(BorderCardWidget):
-    def __init__(self, index, manager: CustomCharManager, parent=None):
+class PresetSlotRow(QWidget):
+    """Clean form for one preset slot with slot badge and searchable selectors."""
+
+    changed = Signal(int)
+
+    def __init__(self, index: int, manager: CustomCharManager, parent=None):
         super().__init__(parent)
-        self.setBorderWidth(2)
         self.index = index
         self.manager = manager
-        self.tr_slot_title = og.app.tr("{} 号位")
-        self.tr_char_ph = og.app.tr("输入或选择角色")
-        self.tr_combo_ph = COMBO
-        self.vbox = QVBoxLayout(self)
-        self.vbox.setContentsMargins(12, 12, 12, 12)
-        self.vbox.setSpacing(8)
-        self.setMinimumHeight(138)
-        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        self._loading = False
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(10)
 
-        self.title = SubtitleLabel(self.tr_slot_title.format(index + 1))
-        self.char_combo = SearchableComboBox()
-        self.char_combo.setPlaceholderText(self.tr_char_ph)
-        self.combo_list = SearchableComboBox()
-        self.combo_list.setPlaceholderText(self.tr_combo_ph)
+        self.slot_label = StrongBodyLabel(og.app.tr("{} 号位").format(index + 1), self)
+        layout.addWidget(self.slot_label)
 
-        self.vbox.addWidget(self.title, alignment=Qt.AlignmentFlag.AlignCenter)
-        self.vbox.addWidget(self.char_combo)
-        self.vbox.addWidget(self.combo_list)
+        self.char_combo = SearchableComboBox(self)
+        self.char_combo.setPlaceholderText(og.app.tr("输入或选择角色"))
+        layout.addWidget(self.char_combo)
 
-        self.char_combo.currentTextChanged.connect(self._on_char_select)
+        self.combo_list = SearchableComboBox(self)
+        self.combo_list.setPlaceholderText(og.app.tr("输入或选择出招表"))
+        layout.addWidget(self.combo_list)
+        layout.addStretch(1)
+
+        self.char_combo.currentIndexChanged.connect(self._on_character_changed)
+        self.combo_list.currentIndexChanged.connect(self._emit_changed)
         self.reload_options()
 
-    def _resolve_combo_id(self, text: str | None = None) -> str:
-        if text is None:
-            text = self.combo_list.currentText()
-        text = str(text or "").strip()
-        idx = self.combo_list.currentIndex()
-        if idx >= 0 and text == self.combo_list.itemText(idx):
-            data = self.combo_list.itemData(idx)
-            if isinstance(data, str):
-                return data
-        return ""
+    def _selected_char_id(self) -> str:
+        index = self.char_combo.currentIndex()
+        data = self.char_combo.itemData(index) if index >= 0 else ""
+        return data if isinstance(data, str) else ""
 
-    def _set_combo_by_id(self, combo_id: str):
-        combo_name = self.manager.get_impl_name(combo_id, with_source_prefix=True)
-        idx = self.combo_list.findData(combo_id)
-        if idx >= 0:
-            self.combo_list.setCurrentIndex(idx)
+    def _selected_combo_id(self) -> str:
+        index = self.combo_list.currentIndex()
+        data = self.combo_list.itemData(index) if index >= 0 else ""
+        return data if isinstance(data, str) else ""
+
+    def _set_combo_by_id(self, combo_id: str) -> None:
+        index = self.combo_list.findData(combo_id)
+        if index >= 0:
+            self.combo_list.setCurrentIndex(index)
         else:
-            self.combo_list.addItem(combo_name, userData=combo_id)
-            self.combo_list.setCurrentIndex(self.combo_list.count() - 1)
-
-    def reload_options(self):
-        current_char_name, current_char_id, current_combo_id, current_combo_name = self.get_data()
-
-        self.char_combo.blockSignals(True)
-        self.char_combo.clear()
-        self.char_combo.addItem("", userData="")
-        for char_id, char_data in self.manager.get_all_characters().items():
-            self.char_combo.addItem(char_data["char_name"], userData=char_id)
-
-        idx = self.char_combo.findData(current_char_id) if current_char_id else -1
-        if idx >= 0:
-            self.char_combo.setCurrentIndex(idx)
-        else:
-            self.char_combo.setCurrentText(current_char_name)
-        self.char_combo.blockSignals(False)
-
-        self.combo_list.blockSignals(True)
-        self.combo_list.clear()
-        self.combo_list.addItem("", userData="")
-        for combo_name, combo_id in self.manager.get_all_impl_items(with_source_prefix=True):
-            self.combo_list.addItem(combo_name, userData=combo_id)
-        if current_combo_id:
-            self._set_combo_by_id(current_combo_id)
-        else:
-            self.combo_list.setCurrentText(current_combo_name)
-        self.combo_list.blockSignals(False)
-
-    def _on_char_select(self, text):
-        if not text:
-            return
-        idx = self.char_combo.findText(text)
-        char_id = self.char_combo.itemData(idx) if idx >= 0 else ""
-        char_info = self.manager.get_character_info_by_id(char_id)
-        combo_id = char_info["impl_id"] if char_info else ""
-        if combo_id:
-            self._set_combo_by_id(combo_id)
-        elif char_info:
             self.combo_list.setCurrentIndex(0)
 
-    def set_data(self, char_id: str, combo_id: str):
-        self.char_combo.blockSignals(True)
-        idx = self.char_combo.findData(char_id) if char_id else -1
-        if idx >= 0:
-            self.char_combo.setCurrentIndex(idx)
-        else:
-            char_info = self.manager.get_character_info_by_id(char_id)
-            if char_info:
-                self.char_combo.addItem(char_info["char_name"], userData=char_id)
-                self.char_combo.setCurrentIndex(self.char_combo.count() - 1)
-            else:
-                self.char_combo.setCurrentIndex(-1)
-                self.char_combo.setCurrentText("")
-        self.char_combo.blockSignals(False)
-
+    def _on_character_changed(self, _index: int) -> None:
+        if self._loading:
+            return
+        char_info = self.manager.get_character_info_by_id(self._selected_char_id())
         self.combo_list.blockSignals(True)
-        if combo_id:
-            self._set_combo_by_id(combo_id)
+        if char_info is not None:
+            self._set_combo_by_id(char_info["impl_id"])
         else:
-            self.combo_list.setCurrentIndex(-1)
-            self.combo_list.setCurrentText("")
+            self.combo_list.setCurrentIndex(0)
         self.combo_list.blockSignals(False)
+        self.changed.emit(self.index)
 
-    def get_data(self):
-        char_name = self.char_combo.currentText().strip()
-        idx_char = self.char_combo.findText(char_name)
-        char_id = self.char_combo.itemData(idx_char) if idx_char >= 0 else ""
+    def _emit_changed(self, _index: int) -> None:
+        if not self._loading:
+            self.changed.emit(self.index)
 
-        combo_name = self.combo_list.currentText().strip()
-        combo_id = self._resolve_combo_id(combo_name)
-        if not char_id and not char_name:
-            combo_id = ""
-            combo_name = ""
-            char_name = ""
-        return char_name, char_id, combo_id, combo_name
+    def reload_options(self) -> None:
+        char_id, combo_id = self.get_data()
+        self._loading = True
+        self.char_combo.clear()
+        self.char_combo.addItem("", userData="")
+        for item_char_id, char_data in self.manager.get_all_characters().items():
+            self.char_combo.addItem(char_data["char_name"], userData=item_char_id)
+        self.combo_list.clear()
+        self.combo_list.addItem("", userData="")
+        for combo_name, item_combo_id in self.manager.get_all_impl_items(with_source_prefix=True):
+            self.combo_list.addItem(combo_name, userData=item_combo_id)
+        self.set_data(char_id, combo_id)
+        self._loading = False
+
+    def set_data(self, char_id: str, combo_id: str) -> None:
+        self._loading = True
+        char_index = self.char_combo.findData(char_id) if char_id else 0
+        self.char_combo.setCurrentIndex(char_index if char_index >= 0 else 0)
+        combo_index = self.combo_list.findData(combo_id) if combo_id else 0
+        self.combo_list.setCurrentIndex(combo_index if combo_index >= 0 else 0)
+        self._loading = False
+
+    def get_data(self) -> tuple[str, str]:
+        char_id = self._selected_char_id()
+        return char_id, self._selected_combo_id() if char_id else ""
+
+    def set_editor_enabled(self, enabled: bool) -> None:
+        self.char_combo.setEnabled(enabled)
+        self.combo_list.setEnabled(enabled)
 
 
 class TeamManagerTab(CustomTab):
+    """Feature binding tools and immediately persisted combat team presets."""
+
     def __init__(self, manager: CustomCharManager = None, owner=None):
         super().__init__()
         self.owner = owner
         self._executor = None
-        self.tr_scan_btn = og.app.tr("扫描队伍")
-        self.tr_scanning = og.app.tr("扫描中...")
-        self.tr_no_feature = og.app.tr("未获取到特征")
-        self.tr_scan_task_missing = og.app.tr("自动战斗任务不可用")
-        self.tr_name_tab = TEAM_MANAGEMENT
-        self.tr_scan_desc = og.app.tr(
-            "关联角色特征后，即可自动识别角色并使用绑定的出招表；"
-            "游戏内换人/换队无需手动调整。\n"
-            "未关联时，将使用通用脚本。"
-        )
-        self.tr_fixed_team_title = og.app.tr("固定队伍")
-        self.tr_fixed_team_enabled = og.app.tr("已启用 {}/4")
-        self.tr_fixed_team_saved = og.app.tr("已保存 {}/4")
-        self.tr_fixed_team_empty = og.app.tr("未启用")
-        self.tr_fill_from_scan = og.app.tr("填入扫描")
-        self.tr_save_fixed_team = og.app.tr("启用")
-        self.tr_update_fixed_team = og.app.tr("更新")
-        self.tr_disable_fixed_team = og.app.tr("停用")
-        self.tr_clear_fixed_team = og.app.tr("清空")
-        self.tr_fill_failed_title = og.app.tr("没有可用扫描结果")
-        self.tr_fill_failed_desc = og.app.tr("先扫描并关联特征或手动填写")
-        self.tr_fill_partial_title = og.app.tr("已填入扫描结果")
-        self.tr_fill_partial_desc = og.app.tr("已填入 {}")
-        self.tr_save_success_title = tr_fmt(
-            "{fixed_team}已保存", fixed_team=self.tr_fixed_team_title
-        )
-        self.tr_save_success_desc = tr_fmt(
-            "已启用{fixed_team}", fixed_team=self.tr_fixed_team_title
-        )
-        self.tr_disable_success_title = tr_fmt(
-            "{fixed_team}已停用", fixed_team=self.tr_fixed_team_title
-        )
-        self.tr_disable_success_desc = og.app.tr("已恢复自动识别")
-        self.tr_clear_success_title = tr_fmt(
-            "{fixed_team}已清空", fixed_team=self.tr_fixed_team_title
-        )
-        self.tr_clear_success_desc = og.app.tr("已清空槽位")
-        self.tr_fixed_team_desc = tr_fmt(
-            "{fixed_team}会优先使用已填写槽位；未填写的槽位仍会自动识别。\n"
-            "如果游戏内切换队伍，已填写槽位需要在软件里手动修改。",
-            fixed_team=self.tr_fixed_team_title,
-        )
-        self.tr_scan_status_active = og.app.tr(
-            '<span style="color: #2ecc71;">● 自动识别：已启用</span>'
-        )
-        self.tr_scan_status_paused = og.app.tr(
-            '<span style="color: #95a5a6;">○ 自动识别：仅空槽启用</span>'
-        )
-        self.tr_fixed_team_status_active = tr_fmt(
-            '<span style="color: #2ecc71;">● {fixed_team}：已启用 ({count}/4)</span>',
-            fixed_team=self.tr_fixed_team_title,
-        )
-        self.tr_fixed_team_status_empty = tr_fmt(
-            '<span style="color: #95a5a6;">○ {fixed_team}：已停用</span>',
-            fixed_team=self.tr_fixed_team_title,
-        )
-        # ruff: disable[E501]
-        self.tr_scan_tips = tr_fmt(
-            '这是个用于向数据库关联或添加 <b style="color: #0078d7;">角色特征</b> 的工具面板。<br>'
-            '点击 <b style="color: #0078d7;">{scan_team}</b> 后点击 <b style="color: #0078d7;">关联或添加</b> 特征，自动战斗时就会识别对应的角色。<br>'
-            '<b style="color: #d83b01;">💡 注意：</b>此面板 <b style="color: #d83b01;">不会</b> 在进入战斗或更换阵容时实时自动刷新或同步显示, 因为这是工具面板。<br>'
-            '如果不想管理 <b style="color: #0078d7;">角色特征</b>，可以直接使用 <b style="color: #0078d7;">{fixed_team}</b> 功能。',
-            fixed_team=self.tr_fixed_team_title,
-            scan_team=og.app.tr("扫描队伍"),
-        )
-        # ruff: enable[E501]
-        self.tr_fixed_team_tips = tr_fmt(
-            '<b style="color: #0078d7;">角色</b> 和 '
-            '<b style="color: #0078d7;">{combo}</b> '
-            "支持输入并创建，也支持选择已有项。",
-            combo=COMBO,
-        )
-
         self.manager = manager or CustomCharManager()
         self.icon = FluentIcon.CAMERA
         self.last_scan_results = []
-        self.logger.info("Init TeamManagerTab")
+        self.task: DebugCharTask | None = None
+        self._scan_pending = False
+        self.current_preset_id: str | None = None
+        self._loading_preset = False
+
+        self.tr_name_tab = self.tr("队伍管理")
+        self.tr_scan_btn = self.tr("扫描队伍")
+        self.tr_scanning = self.tr("扫描中...")
+        self.tr_no_feature = self.tr("未获取到特征")
+        self.tr_scan_task_missing = self.tr("角色工具任务不可用")
+        self.tr_fill_failed = self.tr("没有可填入的角色")
+        self.tr_duplicate_character = self.tr("方案中不能重复选择角色")
+        self.tr_preset_save_failed = self.tr("方案名称重复或内容无效")
+        self.tr_apply_success = self.tr("已更新 {} 位角色的出招表")
+        self.tr_deleted_success = self.tr("已从列表移除")
+        # ruff: disable[E501]
+        self.tr_scan_tips = self.tr(
+            '<p><b style="color: #d83b01;">注意：</b>此面板 <b style="color: #d83b01;">不会</b> 在进入战斗或更换阵容时实时自动刷新或同步显示。<br>'
+            '这是个用于向数据库关联或添加 <b style="color: #0078d7;">角色特征</b> 的工具面板。<br>'
+            '点击 <b style="color: #0078d7;">{scan_team}</b> 后点击 <b style="color: #0078d7;">关联或添加</b> 特征, 自动战斗时就会识别对应的角色。<br>'
+            '如果不想管理 <b style="color: #0078d7;">角色特征</b>, 可以直接使用 <b style="color: #0078d7;">{fixed_team}</b> 功能。</p>',
+        ).format(
+            fixed_team=self.tr("队伍方案"),
+            scan_team=self.tr("扫描队伍"),
+        )
+        self.tr_preset_tips = self.tr(
+            "<p>用于配置并保存常用的 4 人队伍阵容与出招表, 修改后立即生效。<br>"
+            '点击 <b style="color: #0078d7;">{apply_preset}</b> 可一键更新应用方案中各角色的出招表 (未选择出招表则保持原配置不变)。<br>'
+            '开启 <b style="color: #0078d7;">{fixed_preset}</b> 后自动战斗将直接采用此阵容, 无需等待特征识别 (未录入特征的角色亦可直接战斗)。<br>'
+            '点击 <b style="color: #0078d7;">{fill_scan}</b> 可将上方特征扫描识别出的队伍角色快速填入当前方案。</p>',
+        ).format(
+            apply_preset=self.tr("应用方案"),
+            fixed_preset=self.tr("固定"),
+            fill_scan=self.tr("填入扫描"),
+        )
+        # ruff: enable[E501]
 
         self.vbox = self.vBoxLayout
-        self.vbox.setContentsMargins(20, 20, 20, 20)
+        self.vbox.setContentsMargins(24, 20, 24, 24)
         self.vbox.setSpacing(16)
+        self._build_ui()
 
-        self.scan_card = CardWidget(self.view)
-        self.scan_layout = QVBoxLayout(self.scan_card)
-        self.scan_layout.setContentsMargins(16, 16, 16, 16)
-        self.scan_layout.setSpacing(12)
+        communicate.task.connect(self._on_framework_task_changed)
+        self.reload_presets()
+        QTimer.singleShot(0, self._scroll_to_top)
 
-        self.scan_header = QHBoxLayout()
-        self.scan_header_text = QVBoxLayout()
-        self.scan_title_row = QHBoxLayout()
-        self.scan_title = SubtitleLabel(self.tr_scan_btn)
-        self.scan_title_row.addWidget(self.scan_title)
-
-        self.scan_info_btn = TransparentToolButton(FluentIcon.INFO, self)
-        self.scan_info_btn.clicked.connect(self.show_scan_flyout)
-        self.scan_title_row.addWidget(self.scan_info_btn, alignment=Qt.AlignmentFlag.AlignLeft)
-        self.scan_title_row.addStretch(1)
-
-        self.scan_status = BodyLabel()
-        self.scan_status.setWordWrap(True)
-        self.scan_header_text.addLayout(self.scan_title_row)
-        self.scan_header_text.addWidget(self.scan_status)
-        self.scan_header.addLayout(self.scan_header_text, 1)
-
-        self.scan_btn = PrimaryPushButton(FluentIcon.SYNC, self.tr_scan_btn)
-        self.scan_btn.clicked.connect(self.on_scan_clicked)
-        self.scan_header.addWidget(self.scan_btn)
-        self.scan_layout.addLayout(self.scan_header)
-
-        self.cards_layout = QHBoxLayout()
-        self.slots: list[SlotCard] = []
-        for i in range(4):
-            card = SlotCard(i, self.manager, self)
-            self.slots.append(card)
-            self.cards_layout.addWidget(card)
-        self.scan_layout.addLayout(self.cards_layout)
-
-        self.scan_desc = BodyLabel(self.tr_scan_desc)
-        self.scan_desc.setWordWrap(True)
-        self.scan_desc.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.scan_layout.addWidget(self.scan_desc)
-
-        self.vbox.addWidget(self.scan_card)
-
-        self.fixed_team_card = CardWidget(self.view)
-        self.fixed_team_layout = QVBoxLayout(self.fixed_team_card)
-        self.fixed_team_layout.setContentsMargins(16, 16, 16, 16)
-        self.fixed_team_layout.setSpacing(12)
-
-        self.fixed_team_header = QHBoxLayout()
-        self.fixed_team_header_text = QVBoxLayout()
-        self.fixed_team_title_row = QHBoxLayout()
-        self.fixed_team_title = SubtitleLabel(self.tr_fixed_team_title)
-        self.fixed_team_title_row.addWidget(self.fixed_team_title)
-
-        self.fixed_team_info_btn = TransparentToolButton(FluentIcon.INFO, self)
-        self.fixed_team_info_btn.clicked.connect(self.show_fixed_team_flyout)
-        self.fixed_team_title_row.addWidget(
-            self.fixed_team_info_btn, alignment=Qt.AlignmentFlag.AlignLeft
-        )
-        self.fixed_team_title_row.addStretch(1)
-
-        self.fixed_team_status = BodyLabel(self.tr_fixed_team_empty)
-        self.fixed_team_status.setWordWrap(True)
-        self.fixed_team_header_text.addLayout(self.fixed_team_title_row)
-        self.fixed_team_header_text.addWidget(self.fixed_team_status)
-        self.fixed_team_header.addLayout(self.fixed_team_header_text, 1)
-
-        self.fill_fixed_team_btn = PushButton(self.tr_fill_from_scan, self)
-        self.fill_fixed_team_btn.clicked.connect(self.on_fill_from_scan)
-        self.fixed_team_header.addWidget(self.fill_fixed_team_btn)
-
-        self.save_fixed_team_btn = PrimaryPushButton(FluentIcon.SAVE, self.tr_save_fixed_team, self)
-        self.save_fixed_team_btn.clicked.connect(self.on_save_fixed_team)
-        self.fixed_team_header.addWidget(self.save_fixed_team_btn)
-
-        self.disable_fixed_team_btn = PushButton(self.tr_disable_fixed_team, self)
-        self.disable_fixed_team_btn.clicked.connect(self.on_disable_fixed_team)
-        self.fixed_team_header.addWidget(self.disable_fixed_team_btn)
-
-        self.clear_fixed_team_btn = PushButton(FluentIcon.DELETE, self.tr_clear_fixed_team, self)
-        self.clear_fixed_team_btn.clicked.connect(self.on_clear_fixed_team)
-        self.fixed_team_header.addWidget(self.clear_fixed_team_btn)
-
-        self.fixed_team_layout.addLayout(self.fixed_team_header)
-
-        self.fixed_team_slots_layout = QHBoxLayout()
-        self.fixed_team_slots: list[FixedTeamSlotCard] = []
-        for i in range(4):
-            card = FixedTeamSlotCard(i, self.manager, self)
-            card.char_combo.currentTextChanged.connect(self.update_fixed_team_status)
-            self.fixed_team_slots.append(card)
-            self.fixed_team_slots_layout.addWidget(card)
-        self.fixed_team_layout.addLayout(self.fixed_team_slots_layout)
-
-        self.fixed_team_desc = BodyLabel(self.tr_fixed_team_desc)
-        self.fixed_team_desc.setWordWrap(True)
-        self.fixed_team_desc.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.fixed_team_layout.addWidget(self.fixed_team_desc)
-
-        self.vbox.addWidget(self.fixed_team_card)
-
+    def _build_ui(self) -> None:
+        self._add_scan_section()
+        self._add_preset_section()
         self.vbox.addStretch(1)
 
-        team_manager_signals.scan_done.connect(
-            self.on_scan_done, Qt.ConnectionType.QueuedConnection
+    def _add_scan_section(self) -> None:
+        header = QHBoxLayout()
+        header.setSpacing(8)
+
+        title_label = SubtitleLabel(self.tr("队伍识别"), self.view)
+        header.addWidget(title_label)
+
+        self.scan_info_btn = TransparentToolButton(FluentIcon.INFO, self.view)
+        self.scan_info_btn.setToolTip(self.tr("提示"))
+        self.scan_info_btn.clicked.connect(self.show_scan_flyout)
+        header.addWidget(self.scan_info_btn)
+        header.addStretch(1)
+
+        self.scan_btn = PrimaryPushButton(FluentIcon.SYNC, self.tr_scan_btn, self.view)
+        self.scan_btn.clicked.connect(self.on_scan_clicked)
+        header.addWidget(self.scan_btn)
+
+        self.vbox.addLayout(header)
+
+        self.cards_layout = QHBoxLayout()
+        self.cards_layout.setSpacing(12)
+        self.slots: list[SlotCard] = []
+        for index in range(4):
+            card = SlotCard(index, self.manager, self.view)
+            self.slots.append(card)
+            self.cards_layout.addWidget(card)
+        self.vbox.addLayout(self.cards_layout)
+
+    def _add_preset_section(self) -> None:
+        header = QHBoxLayout()
+        header.setSpacing(8)
+        preset_title = SubtitleLabel(self.tr("队伍方案"), self.view)
+        header.addWidget(preset_title)
+
+        self.preset_info_btn = TransparentToolButton(FluentIcon.INFO, self.view)
+        self.preset_info_btn.setToolTip(self.tr("提示"))
+        self.preset_info_btn.clicked.connect(self.show_preset_flyout)
+        header.addWidget(self.preset_info_btn)
+        header.addStretch(1)
+        self.vbox.addLayout(header)
+
+        content = QHBoxLayout()
+        content.setSpacing(16)
+
+        # Left panel: Presets list card
+        self.preset_list_card = SimpleCardWidget(self.view)
+        self.preset_list_card.setMinimumWidth(240)
+        self.preset_list_card.setSizePolicy(
+            QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Expanding
         )
-        char_manager_signals.refresh_tab.connect(self.reload_fixed_team_options)
-        self.refresh_fixed_team_state()
-        QTimer.singleShot(0, self._scroll_to_top)
+        list_layout = QVBoxLayout(self.preset_list_card)
+        list_layout.setContentsMargins(14, 14, 14, 14)
+        list_layout.setSpacing(10)
+
+        list_header = QHBoxLayout()
+        list_header.addWidget(StrongBodyLabel(self.tr("方案列表"), self.preset_list_card))
+        list_header.addStretch(1)
+        self.new_preset_btn = TransparentToolButton(FluentIcon.ADD, self.preset_list_card)
+        self.new_preset_btn.clicked.connect(self.on_create_preset)
+        self.delete_preset_btn = TransparentToolButton(FluentIcon.DELETE, self.preset_list_card)
+        self.delete_preset_btn.clicked.connect(self.on_delete_preset)
+        list_header.addWidget(self.new_preset_btn)
+        list_header.addWidget(self.delete_preset_btn)
+        list_layout.addLayout(list_header)
+
+        self.preset_list = SearchableListWidget(self.preset_list_card)
+        self.preset_list.setPlaceholderText(self.tr("搜索方案"))
+        self.preset_list.currentItemChanged.connect(self.on_preset_selected)
+        self.preset_list.search_edit.textChanged.connect(self.on_preset_filter_changed)
+        list_layout.addWidget(self.preset_list, 1)
+        content.addWidget(self.preset_list_card, 1)
+
+        # Right panel: Command bar, name card and 2x2 slots card
+        right_layout = QVBoxLayout()
+        right_layout.setSpacing(12)
+
+        self.preset_command_card = SimpleCardWidget(self.view)
+        self.preset_command_card.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed
+        )
+        command_layout = QHBoxLayout(self.preset_command_card)
+        command_layout.setContentsMargins(10, 8, 10, 8)
+
+        self.preset_command_bar = CommandBar(self.preset_command_card)
+        self.preset_command_bar.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
+        self.preset_command_bar.setButtonTight(True)
+
+        self.add_character_action = QAction(
+            FluentIcon.ADD.icon(), self.tr("新增角色"), self.preset_command_bar
+        )
+        self.add_character_action.triggered.connect(self.on_add_character)
+        self.fill_from_scan_action = QAction(
+            FluentIcon.DOWNLOAD.icon(), self.tr("填入扫描"), self.preset_command_bar
+        )
+        self.fill_from_scan_action.triggered.connect(self.on_fill_from_scan)
+        self.fixed_action = QAction(FluentIcon.PIN.icon(), self.tr("固定"), self.preset_command_bar)
+        self.fixed_action.setCheckable(True)
+        self.fixed_action.triggered.connect(self.on_toggle_fixed_preset)
+        self.apply_action = QAction(
+            FluentIcon.PLAY.icon(), self.tr("应用方案"), self.preset_command_bar
+        )
+        self.apply_action.triggered.connect(self.on_apply_preset)
+
+        self.preset_command_bar.addAction(self.add_character_action)
+        self.preset_command_bar.addSeparator()
+        self.preset_command_bar.addAction(self.fill_from_scan_action)
+        self.preset_command_bar.addAction(self.fixed_action)
+        self.preset_command_bar.addSeparator()
+        self.preset_command_bar.addAction(self.apply_action)
+        command_layout.addWidget(self.preset_command_bar, 1)
+        right_layout.addWidget(self.preset_command_card)
+
+        self.preset_top_card = SimpleCardWidget(self.view)
+        top_layout = QHBoxLayout(self.preset_top_card)
+        top_layout.setContentsMargins(16, 12, 16, 12)
+        top_layout.setSpacing(10)
+
+        top_layout.addWidget(StrongBodyLabel(self.tr("名称"), self.preset_top_card))
+        self.preset_name_edit = LineEdit(self.preset_top_card)
+        self.preset_name_edit.setPlaceholderText(self.tr("名称"))
+        self.preset_name_edit.setMinimumWidth(220)
+        self.preset_name_edit.setMaximumWidth(360)
+        self.preset_name_edit.editingFinished.connect(self.on_preset_name_changed)
+        top_layout.addStretch(1)
+        top_layout.addWidget(self.preset_name_edit)
+        right_layout.addWidget(self.preset_top_card)
+
+        self.preset_slots_card = SimpleCardWidget(self.view)
+        self.preset_slots_card.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
+        )
+        slots_layout = QVBoxLayout(self.preset_slots_card)
+        slots_layout.setContentsMargins(24, 20, 24, 20)
+        slots_layout.setSpacing(16)
+
+        grid_layout = QGridLayout()
+        grid_layout.setHorizontalSpacing(32)
+        grid_layout.setVerticalSpacing(20)
+        grid_layout.setRowStretch(0, 1)
+        grid_layout.setRowStretch(1, 1)
+
+        self.preset_rows: list[PresetSlotRow] = []
+        for index in range(4):
+            row = PresetSlotRow(index, self.manager, self.preset_slots_card)
+            row.changed.connect(self.on_preset_slot_changed)
+            self.preset_rows.append(row)
+            grid_layout.addWidget(row, index // 2, index % 2)
+
+        slots_layout.addLayout(grid_layout)
+        right_layout.addWidget(self.preset_slots_card, 1)
+
+        content.addLayout(right_layout, 3)
+        self.vbox.addLayout(content)
+        self._set_editor_enabled(False)
+
+    def _set_editor_enabled(self, enabled: bool) -> None:
+        self.preset_name_edit.setEnabled(enabled)
+        self.delete_preset_btn.setEnabled(enabled)
+        self.add_character_action.setEnabled(True)
+        self.apply_action.setEnabled(enabled)
+        self.fixed_action.setEnabled(enabled)
+        self.fill_from_scan_action.setEnabled(enabled)
+        for row in self.preset_rows:
+            row.set_editor_enabled(enabled)
+        if not enabled:
+            self.preset_name_edit.clear()
+            self.fixed_action.setChecked(False)
+
+    def _scroll_to_top(self) -> None:
+        self.verticalScrollBar().setValue(self.verticalScrollBar().minimum())
 
     def showEvent(self, event):
         super().showEvent(event)
+        self.reload_preset_options()
         QTimer.singleShot(0, self._scroll_to_top)
-
-    def _scroll_to_top(self):
-        self.verticalScrollBar().setValue(self.verticalScrollBar().minimum())
 
     @property
     def name(self) -> Literal["CustomTab"]:
@@ -635,7 +736,7 @@ class TeamManagerTab(CustomTab):
     def executor(self, value):
         self._executor = value
 
-    def _show_bar(self, title: str, content: str, success=True):
+    def _show_bar(self, title: str, content: str, success=True) -> None:
         fn = InfoBar.success if success else InfoBar.error
         fn(
             title=title,
@@ -647,191 +748,234 @@ class TeamManagerTab(CustomTab):
             parent=self.window(),
         )
 
-    def _collect_fixed_team_slots(self, persist=False):
-        slots = []
-        filled_count = 0
-        for card in self.fixed_team_slots:
-            char_name, char_id, combo_id, combo_name = card.get_data()
-            if char_id or char_name:
-                filled_count += 1
-                if persist:
-                    if combo_name and not combo_id:
-                        combo_id = self.manager.add_combo(combo_name, "")
-                    if not char_id and char_name:
-                        char_id = self.manager.create_character(char_name, combo_id)
-                    if char_id:
-                        self.manager.update_character(char_id, impl_id=combo_id)
-            else:
-                combo_id = ""
-                char_id = ""
-            slots.append(
-                {
-                    "char_id": char_id,
-                    "impl_id": combo_id,
-                }
-            )
-        return slots, filled_count
+    def _get_task(self) -> DebugCharTask | None:
+        if self.task is None and self.executor is not None:
+            self.task = self.get_task(DebugCharTask)
+        return self.task
 
-    def reload_fixed_team_options(self):
-        for card in self.fixed_team_slots:
-            card.reload_options()
+    def _current_preset(self) -> dict | None:
+        return next(
+            (
+                preset
+                for preset in self.manager.get_team_presets()
+                if preset["id"] == self.current_preset_id
+            ),
+            None,
+        )
 
-    def update_fixed_team_status(self):
-        fixed_team = self.manager.get_fixed_team()
-        enabled = fixed_team.get("enabled", False)
+    def reload_presets(self, selected_id: str | None = None) -> None:
+        selected_id = selected_id or self.current_preset_id
+        presets = self.manager.get_team_presets()
+        self.preset_list.list_widget.blockSignals(True)
+        self.preset_list.clear()
+        for preset in presets:
+            icon = FluentIcon.PIN.icon() if preset.get("is_fixed") else QIcon()
+            item = QListWidgetItem(icon, preset["name"])
+            item.setData(Qt.ItemDataRole.UserRole, preset["id"])
+            self.preset_list.addItem(item)
+            if preset["id"] == selected_id:
+                self.preset_list.setCurrentItem(item)
+        if self.preset_list.currentItem() is None and self.preset_list.count():
+            self.preset_list.setCurrentRow(0)
+        self.preset_list.reapply_filter()
+        self._select_visible_preset()
+        self.preset_list.list_widget.blockSignals(False)
+        item = self.preset_list.currentItem()
+        self.current_preset_id = item.data(Qt.ItemDataRole.UserRole) if item else None
+        self.render_current_preset()
 
-        _, filled_count = self._collect_fixed_team_slots()
+    def _select_visible_preset(self) -> None:
+        current = self.preset_list.currentItem()
+        if current is not None and not current.isHidden():
+            return
+        for index in range(self.preset_list.count()):
+            item = self.preset_list.item(index)
+            if not item.isHidden():
+                self.preset_list.setCurrentItem(item)
+                return
+        self.preset_list.setCurrentItem(None)
 
-        if enabled and filled_count:
-            status_text = self.tr_fixed_team_status_active.format(count=filled_count)
-            self.fixed_team_status.setText(status_text)
-            self.scan_status.setText(self.tr_scan_status_paused)
-            self.save_fixed_team_btn.setText(self.tr_update_fixed_team)
-            self.disable_fixed_team_btn.setEnabled(True)
-        else:
-            self.fixed_team_status.setText(self.tr_fixed_team_status_empty)
-            self.scan_status.setText(self.tr_scan_status_active)
-            self.save_fixed_team_btn.setText(self.tr_save_fixed_team)
-            self.disable_fixed_team_btn.setEnabled(False)
+    def on_preset_filter_changed(self, _text: str) -> None:
+        self._select_visible_preset()
 
-    def refresh_fixed_team_state(self):
-        fixed_team = self.manager.get_fixed_team()
-        slots = fixed_team.get("slots", [])
-        for i, card in enumerate(self.fixed_team_slots):
-            slot = slots[i] if i < len(slots) else {}
-            char_id = slot.get("char_id", "")
-            card.set_data(char_id, slot.get("impl_id", ""))
-        self.update_fixed_team_status()
+    def reload_preset_options(self) -> None:
+        for row in self.preset_rows:
+            row.reload_options()
+        self.render_current_preset()
 
-    def on_scan_clicked(self):
+    def render_current_preset(self) -> None:
+        preset = self._current_preset()
+        self._loading_preset = True
+        self._set_editor_enabled(preset is not None)
+        if preset is not None:
+            self.preset_name_edit.setText(preset["name"])
+            for index, row in enumerate(self.preset_rows):
+                slot = preset["slots"][index]
+                row.set_data(slot["char_id"], slot["impl_id"])
+            is_fixed = bool(preset.get("is_fixed", False))
+            self.fixed_action.setChecked(is_fixed)
+        self._loading_preset = False
+
+    def on_preset_selected(self, current, _previous) -> None:
+        self.current_preset_id = current.data(Qt.ItemDataRole.UserRole) if current else None
+        self.render_current_preset()
+
+    def on_create_preset(self) -> None:
+        preset = self.manager.create_team_preset(self.tr("新建方案"))
+        self.reload_presets(preset["id"])
+        self.preset_name_edit.setFocus()
+        self.preset_name_edit.selectAll()
+
+    def on_preset_name_changed(self) -> None:
+        if self._loading_preset or not self.current_preset_id:
+            return
+        preset = self._current_preset()
+        name = self.preset_name_edit.text().strip()
+        if not preset or name == preset["name"]:
+            return
+        if not self.manager.update_team_preset(self.current_preset_id, name=name):
+            self._show_bar(self.tr("无法保存"), self.tr_preset_save_failed, success=False)
+            self.render_current_preset()
+            return
+        self.reload_presets(self.current_preset_id)
+
+    def _current_slots(self) -> list[dict]:
+        return [
+            {"char_id": char_id, "impl_id": impl_id}
+            for char_id, impl_id in (row.get_data() for row in self.preset_rows)
+        ]
+
+    def on_preset_slot_changed(self, _index: int) -> None:
+        if self._loading_preset or not self.current_preset_id:
+            return
+        if not self.manager.update_team_preset(self.current_preset_id, slots=self._current_slots()):
+            self._show_bar(self.tr("无法保存"), self.tr_duplicate_character, success=False)
+            self.render_current_preset()
+
+    def on_add_character(self) -> None:
+        dialog = AddCharacterDialog(self.manager, self.window())
+        if not dialog.exec():
+            return
+        if save_character_from_dialog(self.manager, dialog):
+            self.reload_preset_options()
+
+    def on_delete_preset(self) -> None:
+        deleted_id = self.current_preset_id
+        if deleted_id and self.manager.delete_team_preset(deleted_id):
+            self.current_preset_id = None
+            self.reload_presets()
+            self._show_bar(self.tr("已删除"), self.tr_deleted_success)
+
+    def on_apply_preset(self) -> None:
+        if not self.current_preset_id:
+            return
+        applied = self.manager.apply_team_preset(self.current_preset_id)
+        if applied is None:
+            return
+        self.reload_preset_options()
+        self._show_bar(self.tr("已应用"), self.tr_apply_success.format(len(applied)))
+
+    def on_toggle_fixed_preset(self) -> None:
+        preset = self._current_preset()
+        if preset is None:
+            return
+        if preset["is_fixed"]:
+            self.manager.clear_fixed_team_preset()
+            self.reload_presets(preset["id"])
+            return
+        applied = self.manager.apply_team_preset(preset["id"], fixed=True)
+        if applied is None:
+            return
+        self.reload_preset_options()
+        self.reload_presets(preset["id"])
+        self._show_bar(self.tr("已应用"), self.tr_apply_success.format(len(applied)))
+
+    def on_scan_clicked(self) -> None:
+        task = self._get_task()
+        if task is None:
+            self._show_bar(self.tr("扫描失败"), self.tr_scan_task_missing, success=False)
+            return
         self.scan_btn.setEnabled(False)
         self.scan_btn.setText(self.tr_scanning)
         for card in self.slots:
             card.btn_act.hide()
             card.show_empty()
-        og.app.start_controller.handler.post(self.scan_team)
+        self._scan_pending = True
+        task.scan_team()
+        og.app.start_controller.start(task)
 
-    def scan_team(self):
-
-        from src.ui.util import ensure_scan_capture
-
-        error_msg = ensure_scan_capture()
-        if error_msg:
-            team_manager_signals.scan_done.emit([], error_msg)
+    def _on_framework_task_changed(self, task) -> None:
+        if task is not self._get_task() or not self._scan_pending:
             return
-
-        task = self.get_task(AutoCombatTask)
-        if not task:
-            team_manager_signals.scan_done.emit([], self.tr_scan_task_missing)
+        if task.running or task.mode is not None:
             return
+        self._scan_pending = False
+        self.on_scan_done(task.scan_results, task.result_error)
 
-        results = []
-        error_msg = ""
-        try:
-            results = TeamScanner(self.manager).scan(task)
-        except TeamScanError as e:
-            error_msg = og.app.tr(str(e))
-        except Exception as e:
-            error_msg = str(e).strip() or e.__class__.__name__
-            self.logger.error(f"扫描失败: {error_msg}\n{traceback.format_exc()}")
-        finally:
-            team_manager_signals.scan_done.emit(results, error_msg)
-
-    def on_fill_from_scan(self):
-        if not self.last_scan_results:
-            self._show_bar(self.tr_fill_failed_title, self.tr_fill_failed_desc, success=False)
-            return
-
-        filled_count = 0
-        for result in self.last_scan_results:
-            idx = result.get("index")
-            match_char_id = result.get("match")
-            if not (0 <= idx < 4) or not match_char_id:
-                continue
-            char_info = self.manager.get_character_info_by_id(match_char_id)
-            combo_id = char_info["impl_id"] if char_info else ""
-            self.fixed_team_slots[idx].set_data(match_char_id, combo_id)
-            filled_count += 1
-
-        if filled_count == 0:
-            self._show_bar(self.tr_fill_failed_title, self.tr_fill_failed_desc, success=False)
-            return
-
-        self._show_bar(self.tr_fill_partial_title, self.tr_fill_partial_desc.format(filled_count))
-
-    def on_save_fixed_team(self):
-        slots, filled_count = self._collect_fixed_team_slots(persist=True)
-        if filled_count == 0:
-            self.manager.clear_fixed_team()
-            self.refresh_fixed_team_state()
-            char_manager_signals.refresh_tab.emit()
-            self._show_bar(self.tr_clear_success_title, self.tr_clear_success_desc)
-        else:
-            self.manager.set_fixed_team(True, slots)
-            self.refresh_fixed_team_state()
-            char_manager_signals.refresh_tab.emit()
-            self._show_bar(self.tr_save_success_title, self.tr_save_success_desc)
-
-    def on_disable_fixed_team(self):
-        fixed_team = self.manager.get_fixed_team()
-        self.manager.set_fixed_team(False, fixed_team.get("slots", []))
-        self.refresh_fixed_team_state()
-        self._show_bar(self.tr_disable_success_title, self.tr_disable_success_desc)
-
-    def on_clear_fixed_team(self):
-        self.manager.clear_fixed_team()
-        self.refresh_fixed_team_state()
-        char_manager_signals.refresh_tab.emit()
-        self._show_bar(self.tr_clear_success_title, self.tr_clear_success_desc)
-
-    def on_scan_done(self, results, error_msg=""):
-        self.last_scan_results = results or []
+    def on_scan_done(self, results: tuple[TeamScanResult, ...], error: str = "") -> None:
+        self.last_scan_results = list(results)
         self.scan_btn.setEnabled(True)
         self.scan_btn.setText(self.tr_scan_btn)
-
-        if error_msg:
-            self._show_bar("", error_msg, success=False)
+        if error:
+            self._show_bar(self.tr("扫描失败"), error, success=False)
             return
-
-        if not results:
-            for card in self.slots:
-                card.update_result(None, 0, 0, "")
-                card.show_empty(self.tr_no_feature)
-            return
-
         updated_indices = set()
-        for res in results:
-            idx = res.get("index")
-            mat = res.get("mat")
-            w = res.get("width", 0)
-            h = res.get("height", 0)
-            match_name = res.get("match")
-            confidence = res.get("confidence")
-            if 0 <= idx < 4:
-                self.slots[idx].update_result(mat, w, h, match_name, confidence)
-                updated_indices.add(idx)
+        for result in self.last_scan_results:
+            index = result.index
+            if 0 <= index < 4:
+                self.slots[index].update_result(
+                    result.image,
+                    result.width,
+                    result.height,
+                    result.character_id,
+                    result.confidence,
+                )
+                updated_indices.add(index)
+        for index in range(4):
+            if index not in updated_indices:
+                self.slots[index].update_result(None, 0, 0, "")
+                self.slots[index].show_empty(self.tr_no_feature)
 
-        for i in range(4):
-            if i not in updated_indices:
-                self.slots[i].update_result(None, 0, 0, "")
-                self.slots[i].show_empty(self.tr_no_feature)
+    def on_fill_from_scan(self) -> None:
+        preset = self._current_preset()
+        if preset is None:
+            return
+        slots = [dict(slot) for slot in preset["slots"]]
+        filled_count = 0
+        for result in self.last_scan_results:
+            index = result.index
+            char_id = result.character_id
+            if not (0 <= index < 4) or not char_id or slots[index]["char_id"]:
+                continue
+            char_info = self.manager.get_character_info_by_id(char_id)
+            if char_info:
+                slots[index] = {"char_id": char_id, "impl_id": char_info["impl_id"]}
+                filled_count += 1
+        if not filled_count:
+            self._show_bar(self.tr("无法填入"), self.tr_fill_failed, success=False)
+            return
+        if not self.manager.update_team_preset(preset["id"], slots=slots):
+            self._show_bar(self.tr("无法保存"), self.tr_duplicate_character, success=False)
+            return
+        self.render_current_preset()
+        self._show_bar(self.tr("已填入"), self.tr("{} 个空槽位").format(filled_count))
 
-    def show_scan_flyout(self):
+    def show_scan_flyout(self) -> None:
         Flyout.create(
             icon=InfoBarIcon.INFORMATION,
-            title="Tips",
+            title=self.tr("提示"),
             content=self.tr_scan_tips,
             target=self.scan_info_btn,
             parent=self,
             isClosable=False,
         )
 
-    def show_fixed_team_flyout(self):
+    def show_preset_flyout(self) -> None:
         Flyout.create(
             icon=InfoBarIcon.INFORMATION,
-            title="Tips",
-            content=self.tr_fixed_team_tips,
-            target=self.fixed_team_info_btn,
+            title=self.tr("提示"),
+            content=self.tr_preset_tips,
+            target=self.preset_info_btn,
             parent=self,
             isClosable=False,
         )

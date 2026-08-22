@@ -52,14 +52,14 @@ from src.midi_player import (
     SongStats,
 )
 from src.midi_player.preparation import store_prepared_analysis, submit_midi_analysis
-from src.ui.common import FluentSystemIcon
-from src.ui.midi_player.widgets import (
+from src.ui.features.midi.widgets import (
     CollapsibleSection,
     KeyConfigWidget,
     MarqueeBodyLabel,
     MarqueeSubtitleLabel,
     PitchChartWidget,
 )
+from src.ui.foundation.icons import FluentSystemIcon
 
 MIDI_PLAYER_CONFIG_DEFAULTS = {
     "pitch": 0,
@@ -99,8 +99,8 @@ class MidiPlayerTab(CustomTab):
     def __init__(self):
         super().__init__()
         self.icon = FluentIcon.MUSIC
-        self.tr_name_tab = og.app.tr("自动弹琴")
-        self.tr_no_song_selected = og.app.tr("未选择歌曲")
+        self.tr_name_tab = self.tr("自动弹琴")
+        self.tr_no_song_selected = self.tr("未选择歌曲")
         self.is_playing = False
         self.is_favorite = False
         self.favorite_active_icon = FluentSystemIcon.HEART_FILL.colored("#E81123", "#FF99A4")
@@ -178,7 +178,7 @@ class MidiPlayerTab(CustomTab):
         self.progress_container.setVisible(False)
 
     @property
-    def name(self):
+    def name(self):  # type: ignore
         return self.tr_name_tab
 
     def setup_left_panel(self):
@@ -189,8 +189,8 @@ class MidiPlayerTab(CustomTab):
 
         # Header with segment
         self.fav_segment = SegmentedWidget()
-        self.fav_segment.addItem("all", og.app.tr("全部歌曲"))
-        self.fav_segment.addItem("fav", og.app.tr("已收藏"))
+        self.fav_segment.addItem("all", self.tr("全部歌曲"))
+        self.fav_segment.addItem("fav", self.tr("已收藏"))
         self.fav_segment.currentItemChanged.connect(self.on_fav_segment_changed)
         self.left_v_layout.addWidget(self.fav_segment)
 
@@ -198,19 +198,19 @@ class MidiPlayerTab(CustomTab):
         hbox_search.setContentsMargins(0, 0, 0, 0)
         hbox_search.setSpacing(5)
         self.song_search_edit = SearchLineEdit(self)
-        self.song_search_edit.setPlaceholderText(og.app.tr("搜索歌曲"))
+        self.song_search_edit.setPlaceholderText(self.tr("搜索歌曲"))
         self.song_search_edit.setClearButtonEnabled(True)
         self.song_search_edit.textChanged.connect(self._apply_song_tree_filter)
         hbox_search.addWidget(self.song_search_edit)
 
         self.btn_import_midi = TransparentToolButton(FluentIcon.FOLDER_ADD)
-        self.btn_import_midi.setToolTip(og.app.tr("导入 MIDI"))
+        self.btn_import_midi.setToolTip(self.tr("导入 MIDI"))
         self.btn_import_midi.installEventFilter(ToolTipFilter(self.btn_import_midi, showDelay=300))
         self.btn_import_midi.clicked.connect(self.on_import_midi)
         hbox_search.addWidget(self.btn_import_midi)
 
         self.btn_open_midi = TransparentToolButton(FluentIcon.FOLDER)
-        self.btn_open_midi.setToolTip(og.app.tr("打开 mid_lib"))
+        self.btn_open_midi.setToolTip(self.tr("打开 mid_lib"))
         self.btn_open_midi.installEventFilter(ToolTipFilter(self.btn_open_midi, showDelay=300))
         self.btn_open_midi.clicked.connect(self.on_open_midi)
         hbox_search.addWidget(self.btn_open_midi)
@@ -248,7 +248,7 @@ class MidiPlayerTab(CustomTab):
         self.vbox.setContentsMargins(10, 10, 30, 0)
         self.vbox.setSpacing(20)
 
-        self.title_label = TitleLabel(og.app.tr("自动弹琴"), self.container)
+        self.title_label = TitleLabel(self.tr("自动弹琴"), self.container)
         self.title_label.adjustSize()
         self.vbox.addWidget(self.title_label)
 
@@ -272,7 +272,7 @@ class MidiPlayerTab(CustomTab):
         self.lbl_track_name.installEventFilter(ToolTipFilter(self.lbl_track_name, showDelay=300))
 
         self.btn_favorite = TransparentToolButton(FluentIcon.HEART)
-        self.btn_favorite.setToolTip(og.app.tr("收藏歌曲"))
+        self.btn_favorite.setToolTip(self.tr("收藏歌曲"))
         self.btn_favorite.installEventFilter(ToolTipFilter(self.btn_favorite, showDelay=300))
         self.btn_favorite.clicked.connect(self.on_favorite_toggled)
         self.btn_favorite.hide()
@@ -327,11 +327,11 @@ class MidiPlayerTab(CustomTab):
         from qfluentwidgets import PushButton, PushSettingCard
 
         self.selection_card = PushSettingCard(
-            og.app.tr("播放"), FluentIcon.MUSIC, self.tr_no_song_selected, None, self.container
+            self.tr("播放"), FluentIcon.MUSIC, self.tr_no_song_selected, None, self.container
         )
 
         self.selection_card.button.deleteLater()
-        self.btn_play_selected = PushButton(og.app.tr("播放"), self.selection_card, FluentIcon.PLAY)
+        self.btn_play_selected = PushButton(self.tr("播放"), self.selection_card, FluentIcon.PLAY)
         self.selection_card.hBoxLayout.insertWidget(
             self.selection_card.hBoxLayout.count() - 1, self.btn_play_selected, 0, Qt.AlignRight
         )
@@ -357,9 +357,9 @@ class MidiPlayerTab(CustomTab):
 
         # Playback Mode
         hbox_mode = QHBoxLayout()
-        lbl_mode = BodyLabel(og.app.tr("播放模式"))
+        lbl_mode = BodyLabel(self.tr("播放模式"))
         self.cb_mode = ComboBox()
-        self.cb_mode.addItems([og.app.tr("单曲循环"), og.app.tr("顺序播放"), og.app.tr("随机播放")])
+        self.cb_mode.addItems([self.tr("单曲循环"), self.tr("顺序播放"), self.tr("随机播放")])
         self.cb_mode.setCurrentIndex(1)
         self.cb_mode.currentIndexChanged.connect(self.on_mode_changed)
         hbox_mode.addWidget(lbl_mode)
@@ -369,7 +369,7 @@ class MidiPlayerTab(CustomTab):
 
         # Playback Speed
         hbox_speed = QHBoxLayout()
-        lbl_speed = BodyLabel(og.app.tr("播放速度"))
+        lbl_speed = BodyLabel(self.tr("播放速度"))
         self.lbl_speed_value = BodyLabel("1.00x")
         self.lbl_speed_value.setFixedWidth(50)
         self.lbl_speed_value.setAlignment(Qt.AlignCenter)
@@ -388,7 +388,7 @@ class MidiPlayerTab(CustomTab):
 
         # Scheduled Stop
         hbox_schedule = QHBoxLayout()
-        lbl_schedule = BodyLabel(og.app.tr("定时关闭"))
+        lbl_schedule = BodyLabel(self.tr("定时关闭"))
         self.time_picker = TimePicker()
         self.time_picker.setTime(QTime(0, 30))
         self.time_picker.setEnabled(False)
@@ -403,16 +403,16 @@ class MidiPlayerTab(CustomTab):
         vbox.addLayout(hbox_schedule)
 
         self.settings_section = self._add_collapsible_section(
-            "playback_settings", og.app.tr("播放设置"), self.settings_card
+            "playback_settings", self.tr("播放设置"), self.settings_card
         )
 
     def setup_track_selection(self):
         self.track_section = self._add_collapsible_section(
-            "track_selection", og.app.tr("音轨选择"), None
+            "track_selection", self.tr("音轨选择"), None
         )
 
         self.btn_play_tracks = PushButton(
-            og.app.tr("试听选中音轨"), self.track_section, FluentIcon.PLAY
+            self.tr("试听选中音轨"), self.track_section, FluentIcon.PLAY
         )
         self.btn_play_tracks.clicked.connect(self.on_play_selected_clicked)
         self.btn_play_tracks.setEnabled(False)
@@ -422,7 +422,7 @@ class MidiPlayerTab(CustomTab):
         self.track_checks_layout = QVBoxLayout(self.track_checks_widget)
         self.track_checks_layout.setContentsMargins(20, 20, 20, 20)
         self.track_checks_layout.setSpacing(8)
-        self.track_empty_label = BodyLabel(og.app.tr("尚未载入音轨"))
+        self.track_empty_label = BodyLabel(self.tr("尚未载入音轨"))
         self.track_checks_layout.addWidget(self.track_empty_label)
 
         self.track_section.addGroupWidget(self.track_checks_widget)
@@ -433,18 +433,18 @@ class MidiPlayerTab(CustomTab):
         vbox_pitch.setContentsMargins(20, 20, 20, 20)
         vbox_pitch.setSpacing(20)
 
-        self.lbl_pitch = BodyLabel(og.app.tr("音高调整 (半音):"))
+        self.lbl_pitch = BodyLabel(self.tr("音高调整 (半音):"))
         self.spn_pitch = SpinBox()
         self.spn_pitch.wheelEvent = lambda event: event.ignore()
         self.spn_pitch.setFocusPolicy(Qt.FocusPolicy.ClickFocus)
         self.spn_pitch.setRange(-24, 24)
         self.spn_pitch.setValue(0)
         self.spn_pitch.valueChanged.connect(self.on_pitch_changed)
-        self.lbl_auto_pitch = BodyLabel(og.app.tr("自动音高"))
+        self.lbl_auto_pitch = BodyLabel(self.tr("自动音高"))
         self.switch_auto_pitch = SwitchButton()
         self.switch_auto_pitch.setChecked(False)
         self.switch_auto_pitch.checkedChanged.connect(self.on_auto_pitch_changed)
-        self.lbl_smart_remap = BodyLabel(og.app.tr("智能音域压缩"))
+        self.lbl_smart_remap = BodyLabel(self.tr("智能音域压缩"))
         self.switch_smart_remap = SwitchButton()
         self.switch_smart_remap.setChecked(True)
         self.switch_smart_remap.checkedChanged.connect(self.on_smart_remap_changed)
@@ -471,9 +471,7 @@ class MidiPlayerTab(CustomTab):
         self.pitch_chart = PitchChartWidget()
         vbox_pitch.addWidget(self.pitch_chart)
 
-        self._add_collapsible_section(
-            "pitch_analysis", og.app.tr("音高与音域分析"), self.pitch_card
-        )
+        self._add_collapsible_section("pitch_analysis", self.tr("音高与音域分析"), self.pitch_card)
 
     def setup_key_config(self):
         self.key_card = QWidget(self.container)
@@ -482,16 +480,14 @@ class MidiPlayerTab(CustomTab):
         vbox_key.setSpacing(15)
 
         hbox_mode = QHBoxLayout()
-        lbl_mode = BodyLabel(og.app.tr("键盘布局"))
+        lbl_mode = BodyLabel(self.tr("键盘布局"))
 
         # Mode Selection
         self.segmented_widget = SegmentedWidget()
-        self.segmented_widget.addItem("36_keys", og.app.tr("36键半音布局 (12x3)"))
-        self.segmented_widget.addItem("21_keys", og.app.tr("21键自然音布局 (已禁用)"))
+        self.segmented_widget.addItem("36_keys", self.tr("36键半音布局 (12x3)"))
+        self.segmented_widget.addItem("21_keys", self.tr("21键自然音布局 (已禁用)"))
         self.segmented_widget.items["21_keys"].setEnabled(False)
-        self.segmented_widget.items["21_keys"].setToolTip(
-            og.app.tr("当前游戏钢琴使用 36 键半音布局")
-        )
+        self.segmented_widget.items["21_keys"].setToolTip(self.tr("当前游戏钢琴使用 36 键半音布局"))
         self.segmented_widget.items["21_keys"].installEventFilter(
             ToolTipFilter(self.segmented_widget.items["21_keys"], showDelay=300)
         )
@@ -514,7 +510,7 @@ class MidiPlayerTab(CustomTab):
         self.stacked_widget.addWidget(self.config_21)
 
         vbox_key.addWidget(self.stacked_widget)
-        self._add_collapsible_section("key_config", og.app.tr("按键坐标配置"), self.key_card)
+        self._add_collapsible_section("key_config", self.tr("按键坐标配置"), self.key_card)
 
         self.segmented_widget.currentItemChanged.connect(self.on_key_mode_changed)
         self._connect_bounds_savers(self.config_36)
@@ -526,9 +522,9 @@ class MidiPlayerTab(CustomTab):
         vbox_calibration.setSpacing(12)
 
         hbox = QHBoxLayout()
-        self.btn_print_mapping = PushButton(og.app.tr("打印键位映射"))
-        self.btn_test_middle_row = PushButton(og.app.tr("测试中音行"))
-        self.btn_test_all_keys = PushButton(og.app.tr("测试全部键"))
+        self.btn_print_mapping = PushButton(self.tr("打印键位映射"))
+        self.btn_test_middle_row = PushButton(self.tr("测试中音行"))
+        self.btn_test_all_keys = PushButton(self.tr("测试全部键"))
 
         self.btn_print_mapping.clicked.connect(self.print_current_key_mapping)
         self.btn_test_middle_row.clicked.connect(lambda: self.start_key_calibration("middle"))
@@ -541,14 +537,14 @@ class MidiPlayerTab(CustomTab):
         vbox_calibration.addLayout(hbox)
 
         self.calibration_hint = BodyLabel(
-            og.app.tr("每个测试音间隔约 1 秒，请用调音器确认实际发音。")
+            self.tr("每个测试音间隔约 1 秒，请用调音器确认实际发音。")
         )
         # Removed setWordWrap(True) because QWidget's sizeHint() does not account for heightForWidth
         # which breaks ExpandGroupSettingCard's _adjustViewSize() height calculation.
         vbox_calibration.addWidget(self.calibration_hint)
 
         self._add_collapsible_section(
-            "calibration_tools", og.app.tr("调试校准"), self.calibration_card
+            "calibration_tools", self.tr("调试校准"), self.calibration_card
         )
 
     # --- Data Demos & Logic ---
@@ -708,7 +704,7 @@ class MidiPlayerTab(CustomTab):
             item = QTreeWidgetItem([song.title])
             item.setData(0, Qt.ItemDataRole.UserRole, song.id)
             if song.favorite:
-                item.setText(0, f"♥ {song.title}")
+                item.setIcon(0, self.favorite_active_icon.icon())
             item.setToolTip(0, item.text(0))
             if parent_item is None:
                 self.song_tree_widget.addTopLevelItem(item)
@@ -781,9 +777,9 @@ class MidiPlayerTab(CustomTab):
 
     def _key_label(self, key):
         row_names = {
-            0: og.app.tr("高音"),
-            1: og.app.tr("中音"),
-            2: og.app.tr("低音"),
+            0: self.tr("高音"),
+            1: self.tr("中音"),
+            2: self.tr("低音"),
         }
         labels_36 = ["1", "#1", "2", "b3", "3", "4", "#4", "5", "#5", "6", "b7", "7"]
         labels_21 = ["1", "2", "3", "4", "5", "6", "7"]
@@ -832,10 +828,8 @@ class MidiPlayerTab(CustomTab):
     def _run_key_calibration(self, keys):
         try:
             executor = og.executor
-            if getattr(executor, "thread", None) is None or getattr(executor, "paused", False):
-                if not og.app.start_controller.do_start():
-                    print("MIDI calibration failed: start failed")
-                    return
+            if executor.paused:
+                og.app.start_controller.do_start()
             width = executor.method.width
             height = executor.method.height
             interaction = executor.interaction
@@ -858,7 +852,7 @@ class MidiPlayerTab(CustomTab):
             except Exception as e:
                 print(f"calibration click failed: {e}")
                 return
-            time.sleep(0.92)
+            time.sleep(0.08)
 
     def _current_play_mode(self):
         index = self.cb_mode.currentIndex()
@@ -1016,7 +1010,7 @@ class MidiPlayerTab(CustomTab):
             selected = set(saved if saved is not None else [track.index for track in note_tracks])
 
             if not tracks:
-                self.track_empty_label = BodyLabel(og.app.tr("没有可选择的音轨"))
+                self.track_empty_label = BodyLabel(self.tr("没有可选择的音轨"))
                 self.track_checks_layout.addWidget(self.track_empty_label)
                 self.btn_play_tracks.setEnabled(False)
                 return
@@ -1047,7 +1041,7 @@ class MidiPlayerTab(CustomTab):
             widget = item.widget()
             if widget is not None:
                 widget.deleteLater()
-        self.track_empty_label = BodyLabel(og.app.tr("尚未载入音轨"))
+        self.track_empty_label = BodyLabel(self.tr("尚未载入音轨"))
         self.track_checks_layout.addWidget(self.track_empty_label)
         self.btn_play_tracks.setEnabled(False)
         if hasattr(self, "track_section"):
@@ -1194,7 +1188,7 @@ class MidiPlayerTab(CustomTab):
         from qfluentwidgets import InfoBar, InfoBarPosition
 
         InfoBar.error(
-            title=og.app.tr("MIDI 分析失败"),
+            title=self.tr("MIDI 分析失败"),
             content=message,
             orient=Qt.Orientation.Horizontal,
             isClosable=True,
@@ -1212,7 +1206,7 @@ class MidiPlayerTab(CustomTab):
     def on_import_midi(self):
         """Allow users to select multiple midi files and copy to mid_lib"""
         files, _ = QFileDialog.getOpenFileNames(
-            self, og.app.tr("选择 MIDI 档案"), "", "MIDI Files (*.mid *.midi)"
+            self, self.tr("选择 MIDI 档案"), "", "MIDI Files (*.mid *.midi)"
         )
         if files:
             try:
@@ -1263,7 +1257,7 @@ class MidiPlayerTab(CustomTab):
                 return
             self.selected_song_id = song_id
             song = self.songs_by_id.get(song_id)
-            display_name = song.title if song else current.text(0).lstrip("♥ ")
+            display_name = song.title if song else current.text(0)
             self.selection_card.titleLabel.setText(display_name)
             if self.playing_song_id is None:
                 self.lbl_track_name.setText(display_name)
@@ -1298,23 +1292,6 @@ class MidiPlayerTab(CustomTab):
             reset_position = self.playing_song_id is None
             song_id = self.playing_song_id or self.selected_song_id
             if song_id:
-                from src.ui.util import ensure_scan_capture
-
-                error_msg = ensure_scan_capture()
-                if error_msg:
-                    from PySide6.QtCore import Qt
-                    from qfluentwidgets import InfoBar, InfoBarPosition
-
-                    InfoBar.error(
-                        title="",
-                        content=error_msg,
-                        orient=Qt.Orientation.Horizontal,
-                        isClosable=True,
-                        position=InfoBarPosition.TOP,
-                        duration=3500,
-                        parent=self.window(),
-                    )
-                    return
                 self._restart_playback_when_ready(song_id, reset_position=reset_position)
 
     def on_play_selected_clicked(self):
@@ -1322,24 +1299,6 @@ class MidiPlayerTab(CustomTab):
 
     def play_selected_song(self):
         if not self.selected_song_id:
-            return
-
-        from src.ui.util import ensure_scan_capture
-
-        error_msg = ensure_scan_capture()
-        if error_msg:
-            from PySide6.QtCore import Qt
-            from qfluentwidgets import InfoBar, InfoBarPosition
-
-            InfoBar.error(
-                title="",
-                content=error_msg,
-                orient=Qt.Orientation.Horizontal,
-                isClosable=True,
-                position=InfoBarPosition.TOP,
-                duration=3500,
-                parent=self.window(),
-            )
             return
 
         song_id = self.selected_song_id
@@ -1370,7 +1329,7 @@ class MidiPlayerTab(CustomTab):
         )
         self.is_playing = True
         song = self.songs_by_id.get(song_id)
-        self.lbl_track_name.setText(song.title if song else og.app.tr("播放中"))
+        self.lbl_track_name.setText(song.title if song else self.tr("播放中"))
         if song:
             self.is_favorite = bool(song.favorite)
             self._update_favorite_button()
@@ -1464,7 +1423,7 @@ class MidiPlayerTab(CustomTab):
             from qfluentwidgets import InfoBar, InfoBarPosition
 
             InfoBar.error(
-                title=og.app.tr("MIDI 播放失败"),
+                title=self.tr("MIDI 播放失败"),
                 content=status[6:],
                 orient=Qt.Orientation.Horizontal,
                 isClosable=True,

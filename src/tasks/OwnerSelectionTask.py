@@ -3,9 +3,9 @@ import time
 from ok import TaskDisabledException, og
 from qfluentwidgets import FluentIcon
 
+from src.events import ConfirmationRequested, communicate
 from src.tasks.NTEOneTimeTask import NTEOneTimeTask
 from src.tasks.RecordTask import RecordTask
-from src.ui.util import show_dialog_and_wait, tr_fmt
 
 INST = (
     "功能说明：本功能仅负责『自动退出关卡』与『重新开启关卡』的点击循环，"
@@ -20,7 +20,7 @@ INST = (
 )
 
 EN_INST = (
-    "Feature notes: This feature only handles the click loop for automatically exiting the stage and restarting the stage." # noqa: E501
+    "Feature notes: This feature only handles the click loop for automatically exiting the stage and restarting the stage."  # noqa: E501
     "It does not perform any in-stage food preparation or customer service actions.\n\n"
     "How to use:\n"
     "1. Make sure you have configured your in-game AFK build.\n"
@@ -28,7 +28,7 @@ EN_INST = (
     "3. Click [Start].\n\n"
     "Using the recording feature:\n"
     "1. Stand at the cafe where the F interaction is available.\n"
-    "2. Enable [Use recording feature]. On first use, click [Start], then follow the prompts to record the target level." # noqa: E501
+    "2. Enable [Use recording feature]. On first use, click [Start], then follow the prompts to record the target level."  # noqa: E501
 )
 
 RECORD_INS = (
@@ -71,7 +71,6 @@ class OwnerSelectionTask(NTEOneTimeTask, RecordTask):
         self.name = "店长特供"
         self.description = "自动循环进出关卡（需配合游戏内挂机流派使用）"
         self.instructions = INST if self.is_chinese() else EN_INST
-        self.icon = FluentIcon.CAFE
         self.group_name = "都市闲趣"
         self.group_icon = FluentIcon.GAME
         self.add_rounds_config()
@@ -119,16 +118,15 @@ class OwnerSelectionTask(NTEOneTimeTask, RecordTask):
                 hotkey = og.executor.basic_options.get("Start/Stop")
             except Exception:
                 hotkey = "--"
-            if (
-                show_dialog_and_wait(
-                    self.tr(self.name),
-                    tr_fmt(ROB_MODE_HINT, rob_mode=self.tr(self.CONF_ROB), hotkey=hotkey),
-                    rich_text=False,
-                    close_delay_seconds=2,
-                    hide_cancel=False,
-                )
-                == 0
-            ):
+            confirmation = ConfirmationRequested(
+                self.tr(self.name),
+                self.tr(ROB_MODE_HINT).format(rob_mode=self.tr(self.CONF_ROB), hotkey=hotkey),
+                rich_text=False,
+                hide_cancel=False,
+                close_delay_seconds=2,
+            )
+            communicate.confirmation_requested.emit(confirmation)
+            if not confirmation.wait_for_response():
                 return
         self.start_rounds()
 

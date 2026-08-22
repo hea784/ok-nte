@@ -5,7 +5,8 @@ from typing import Tuple
 import cv2
 import numpy as np
 from ok import Box, color_range_to_bound
-from ok.ui.qt.Communicate import communicate
+
+from src.events import communicate
 
 
 def binarize_bgr_by_brightness(image, threshold=180, to_bgr: bool = True):
@@ -479,6 +480,7 @@ def find_color_enriched_regions(
     if result_boxes:
         communicate.emit_draw_box(boxes=result_boxes, color="red", debug=True)
     return result_boxes
+
 
 def apply_mask(image, mask):
     return cv2.bitwise_and(image, image, mask=mask)

@@ -1,7 +1,6 @@
 import time
 
 from ok import TaskDisabledException
-from qfluentwidgets import FluentIcon
 
 from src.combat.BaseCombatTask import BaseCombatTask
 from src.Labels import Labels
@@ -51,7 +50,6 @@ class DSDFarmTask(NTEOneTimeTask, BaseCombatTask):
         super().__init__(*args, **kwargs)
         self.name = "九百九十九夜"
         self.description = "挂机刷经验"
-        self.icon = FluentIcon.FLAG
         _locale = self.get_app_locale()
         self.instructions = INST if _locale and "zh" in _locale else EN_INST
         self.locations = [

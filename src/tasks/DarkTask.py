@@ -2,7 +2,6 @@ import re
 import time
 
 from ok import TaskDisabledException
-from qfluentwidgets import FluentIcon
 
 from src.tasks.NTEOneTimeTask import NTEOneTimeTask
 from src.tasks.RecordTask import RecordTask
@@ -20,7 +19,6 @@ class DarkTask(NTEOneTimeTask, RecordTask):
         super().__init__(*args, **kwargs)
         self.name = "黑暗赛车"
         self.description = "自动执行黑暗赛车,请在大世界开始执行"
-        self.icon = FluentIcon.CAR
         self.add_rounds_config()
         self.tr(RECORD_INS)
 

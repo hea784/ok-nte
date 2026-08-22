@@ -226,6 +226,7 @@ class MidiPlaybackController:
         layout = prepared.layout
         mapped_pitches = prepared.mapped_pitches
         og = self._require_og()
+        self._prepare_capture(og)
         method = og.executor.method
         interaction = og.executor.interaction
         client_width = method.width
@@ -310,13 +311,24 @@ class MidiPlaybackController:
         og = self.og_provider() if callable(self.og_provider) else self.og_provider
         if og is None:
             try:
-                from src.globals import og as global_og
+                from ok import og as global_og
             except ImportError as exc:
                 raise RuntimeError("No og provider is available for MIDI playback") from exc
             og = global_og
         if getattr(og, "executor", None) is None:
             raise RuntimeError("Software is not started: executor is unavailable")
         return og
+
+    @staticmethod
+    def _prepare_capture(og) -> None:
+        executor = og.executor
+        if executor.paused:
+            if not og.app.start_controller.do_start():
+                raise RuntimeError(og.app.tr("启动失败"))
+            return
+        og.device_manager.do_refresh(True)
+        if error := og.app.start_controller.check_device_error():
+            raise RuntimeError(error)
 
     async def _call(self, func, *args) -> None:
         result = func(*args)

@@ -13,7 +13,9 @@ comtypes==1.4.16 ; sys_platform == 'win32'
     #   ok-nte
     #   pycaw
 darkdetect==0.8.0 ; sys_platform == 'win32'
-    # via pyside6-fluent-widgets
+    # via
+    #   ok-script
+    #   pyside6-fluent-widgets
 decorator==5.3.1 ; sys_platform == 'win32'
     # via librosa
 evdev==1.9.3 ; sys_platform == 'win32' and 'linux' in sys_platform
@@ -106,12 +108,18 @@ pynput==1.8.2 ; sys_platform == 'win32'
     # via
     #   ok-nte
     #   ok-script
-pyside6-essentials==6.11.1 ; sys_platform == 'win32'
-    # via ok-nte
+pyside6-essentials==6.11.2 ; sys_platform == 'win32'
+    # via
+    #   ok-nte
+    #   ok-script
 pyside6-fluent-widgets==1.11.3 ; sys_platform == 'win32'
-    # via ok-nte
+    # via
+    #   ok-nte
+    #   ok-script
 pysidesix-frameless-window==0.8.2 ; sys_platform == 'win32'
-    # via pyside6-fluent-widgets
+    # via
+    #   ok-script
+    #   pyside6-fluent-widgets
 python-xlib==0.33 ; sys_platform == 'win32' and 'linux' in sys_platform
     # via pynput
 pywin32==311 ; sys_platform == 'win32'
@@ -134,7 +142,7 @@ scipy==1.18.0 ; sys_platform == 'win32'
     #   scikit-learn
 shapely==2.1.2 ; sys_platform == 'win32'
     # via onnxocr-ppocrv5
-shiboken6==6.11.1 ; sys_platform == 'win32'
+shiboken6==6.11.2 ; sys_platform == 'win32'
     # via pyside6-essentials
 six==1.17.0 ; sys_platform == 'win32'
     # via

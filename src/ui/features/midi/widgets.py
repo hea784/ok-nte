@@ -1,10 +1,12 @@
+"""Widgets used only by the MIDI player tab."""
+
 from ok import og
 from PySide6.QtCore import QSize, Qt, QTimer, Signal
 from PySide6.QtGui import QColor, QFont, QFontMetrics, QPainter, QPen
 from PySide6.QtWidgets import QFrame, QHBoxLayout, QSizePolicy, QVBoxLayout, QWidget
 from qfluentwidgets import BodyLabel, ExpandGroupSettingCard, FluentIcon, LineEdit, SubtitleLabel
 
-from src.ui.common import FluentSystemIcon
+from src.ui.foundation.icons import FluentSystemIcon
 
 
 class _MarqueeLabelMixin:

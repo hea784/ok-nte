@@ -7,7 +7,6 @@ from functools import cached_property
 import cv2
 import requests
 from ok import TaskDisabledException, get_path_relative_to_exe
-from qfluentwidgets import FluentIcon
 
 from src.tasks.BaseNTETask import BaseNTETask
 from src.tasks.NTEOneTimeTask import NTEOneTimeTask
@@ -54,7 +53,6 @@ class BagelAITools(NTEOneTimeTask, BaseNTETask):
         super().__init__(*args, **kwargs)
         self.name = "呗果智能体"
         self.description = "请详阅使用说明"
-        self.icon = FluentIcon.HEART
         self.instructions = INS if self.is_chinese() else EN_INS
         self.bagel_supported_languages = [
             "zh_CN",

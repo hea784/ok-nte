@@ -513,14 +513,27 @@ class CustomCharManager:
         out["impl_name"] = self.get_impl_name(impl_id)
         return out
 
+    def get_team_presets(self) -> list[dict]:
+        return self._db.get_team_presets()
+
+    def create_team_preset(self, name: str) -> dict:
+        return self._db.create_team_preset(name)
+
+    def update_team_preset(self, preset_id: str, name=None, slots=None) -> bool:
+        return self._db.update_team_preset(preset_id, name=name, slots=slots)
+
+    def delete_team_preset(self, preset_id: str) -> bool:
+        return self._db.delete_team_preset(preset_id)
+
+    def apply_team_preset(self, preset_id: str, fixed=False) -> list[str] | None:
+        return self._db.apply_team_preset(preset_id, fixed=fixed)
+
+    def clear_fixed_team_preset(self) -> bool:
+        return self._db.clear_fixed_team_preset()
+
     def get_fixed_team(self):
+        """Compatibility facade for combat code that reads fixed slots."""
         return self._db.get_fixed_team()
-
-    def set_fixed_team(self, enabled: bool, slots):
-        self._db.set_fixed_team(enabled, slots)
-
-    def clear_fixed_team(self):
-        self._db.clear_fixed_team()
 
     def export_custom_data(self, zip_path: str | Path) -> bool:
         """Export custom-character data using a stable archive layout."""

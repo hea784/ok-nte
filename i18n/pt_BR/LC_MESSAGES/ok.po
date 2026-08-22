@@ -11,14 +11,6 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n > 1);\n"
 
-msgid ""
-"<b style=\"color: #0078d7;\">角色</b> 和 <b style=\"color: "
-"#0078d7;\">{combo}</b> 支持输入并创建，也支持选择已有项。"
-msgstr ""
-"<b style=\"color: #0078d7;\">Personagem</b> e <b style=\"color: "
-"#0078d7;\">{combo}</b> suportam entrada e criação, e também suportam a "
-"seleção de itens existentes."
-
 msgid "Arc Key"
 msgstr "Tecla do Arco"
 
@@ -61,11 +53,6 @@ msgstr "Ative para evitar interrupção pelo passe mensal ao executar tarefas"
 msgid "Ultimate Key"
 msgstr "Tecla do Ultimate"
 
-msgid ""
-"Your computer's local time when the monthly card will popup, hour in (1-24)"
-msgstr ""
-"Horário local do computador para o pop-up do passe mensal, hora em (1-24)"
-
 msgid "[内置代码]"
 msgstr "[Código Interno]"
 
@@ -77,15 +64,6 @@ msgstr "{combo}: {} vinculado com sucesso"
 
 msgid "{combo}语法错误"
 msgstr "Erro de sintaxe em {combo}"
-
-msgid "{fixed_team}已保存"
-msgstr "{fixed_team} salvo"
-
-msgid "{fixed_team}已停用"
-msgstr "{fixed_team} desativado"
-
-msgid "{fixed_team}已清空"
-msgstr "{fixed_team} limpo"
 
 msgid "{} 号位"
 msgstr "Espaço {}"
@@ -105,9 +83,6 @@ msgstr "Salvo com sucesso"
 
 msgid "停用"
 msgstr "Desativar"
-
-msgid "先扫描并关联特征或手动填写"
-msgstr "Escanear e vincular características primeiro, ou preencher manualmente"
 
 msgid "出招表"
 msgstr "Lista de Combos"
@@ -162,9 +137,6 @@ msgstr "Clique automático em teletransporte no mapa"
 msgid "填入扫描"
 msgstr "Preencher Escaneamento"
 
-msgid "这是个用于向数据库关联或添加 <b style=\"color: #0078d7;\">角色特征</b> 的工具面板。<br>点击 <b style=\"color: #0078d7;\">{scan_team}</b> 后点击 <b style=\"color: #0078d7;\">关联或添加</b> 特征，自动战斗时就会识别对应的角色。<br><b style=\"color: #d83b01;\">💡 注意：</b>此面板 <b style=\"color: #d83b01;\">不会</b> 在进入战斗或更换阵容时实时自动刷新或同步显示, 因为这是工具面板。<br>如果不想管理 <b style=\"color: #0078d7;\">角色特征</b>，可以直接使用 <b style=\"color: #0078d7;\">{fixed_team}</b> 功能。"
-msgstr "Este é um painel de ferramentas para vincular ou adicionar <b style=\"color: #0078d7;\">Características do Personagem</b> ao banco de dados.<br>Clique em <b style=\"color: #0078d7;\">{scan_team}</b> e depois clique em <b style=\"color: #0078d7;\">Vincular ou Adicionar</b> característica, e o personagem correspondente será identificado durante o combate automático.<br><b style=\"color: #d83b01;\">💡 Nota:</b> Este painel <b style=\"color: #d83b01;\">não será atualizado</b> ou sincronizado automaticamente em tempo real ao entrar em combate ou alterar a composição da equipe, pois este é um painel de ferramentas.<br>Se não quiser gerenciar as <b style=\"color: #0078d7;\">Características do Personagem</b>, pode usar diretamente a função <b style=\"color: #0078d7;\">{fixed_team}</b>."
-
 msgid "完成每日活跃度"
 msgstr "Completar Atividade Diária"
 
@@ -180,33 +152,12 @@ msgstr "Importar Dados"
 msgid "导出数据"
 msgstr "Exportar Dados"
 
-msgid "已保存 {}/4"
-msgstr "Salvo {}/4"
-
-msgid "已启用 {}/4"
-msgstr "Ativado {}/4"
-
-msgid "已启用{fixed_team}"
-msgstr "{fixed_team} ativado"
-
-msgid "已填入 {}"
-msgstr "Preenchido {}"
-
-msgid "已填入扫描结果"
-msgstr "Resultado do escaneamento preenchido"
-
 msgid "已导入 {} 个文件"
 msgstr "{} arquivos importados"
-
-msgid "已恢复自动识别"
-msgstr "Reconhecimento automático restaurado"
 
 msgid "已成功删除角色: {} 以及关联的特征图"
 msgstr ""
 "Personagem excluído com sucesso: {} e mapas de características associados"
-
-msgid "已清空槽位"
-msgstr "Espaços limpos"
 
 msgid "已解除 {} 的{combo}绑定"
 msgstr "{combo} desvinculado de {}"
@@ -270,17 +221,11 @@ msgstr ""
 "Este script Python não pode ser modificado aqui.\n"
 "Modifique o código diretamente no arquivo de origem correspondente."
 
-msgid "没有可用扫描结果"
-msgstr "Nenhum resultado de escaneamento disponível"
-
 msgid "没有找到匹配的指令。"
 msgstr "Nenhum comando correspondente encontrado."
 
 msgid "清空"
 msgstr "Limpar"
-
-msgid "点击上方按钮扫描..."
-msgstr "Clique no botão acima para escanear..."
 
 msgid "点击时将短暂控制物理鼠标"
 msgstr "Controla brevemente o mouse físico ao clicar"
@@ -636,22 +581,6 @@ msgstr "Digite ou selecione um personagem"
 msgid "自动战斗任务不可用"
 msgstr "A tarefa de combate automático não está disponível"
 
-msgid "<span style=\"color: #2ecc71;\">● 自动识别：已启用</span>"
-msgstr ""
-"<span style=\"color: #2ecc71;\">● Reconhecimento automático: ativado</span>"
-
-msgid "<span style=\"color: #95a5a6;\">○ 自动识别：仅空槽启用</span>"
-msgstr ""
-"<span style=\"color: #95a5a6;\">○ Reconhecimento automático: apenas espaços "
-"vazios</span>"
-
-msgid "<span style=\"color: #2ecc71;\">● {fixed_team}：已启用 ({count}/4)</span>"
-msgstr ""
-"<span style=\"color: #2ecc71;\">● {fixed_team}: ativada ({count}/4)</span>"
-
-msgid "<span style=\"color: #95a5a6;\">○ {fixed_team}：已停用</span>"
-msgstr "<span style=\"color: #95a5a6;\">○ {fixed_team}: desativada</span>"
-
 msgid "启动失败"
 msgstr "Falha ao iniciar"
 
@@ -690,7 +619,6 @@ msgstr "Móveis de Anomalia"
 
 msgid "每2小时重新登入"
 msgstr "Fazer login novamente a cada 2 horas"
-
 
 msgid "除了选择内建存在的<b style=\"color: #0078d7;\">{combo}</b>外，您也可以自己输入名称来建立自己的<b style=\"color: #0078d7;\">{combo}</b>。"
 msgstr "Além de selecionar um <b style=\"color: #0078d7;\">{combo}</b> integrado, você também pode inserir um nome para criar seu próprio <b style=\"color: #0078d7;\">{combo}</b>."
@@ -1018,3 +946,78 @@ msgstr "Desafiar Mammon"
 
 msgid "自动闯关"
 msgstr "Desafio Automático"
+
+msgid "{} 个空槽位"
+msgstr "{} espaços vazios"
+
+msgid "固定"
+msgstr "Fixar"
+
+msgid "已从列表移除"
+msgstr "Removido da lista"
+
+msgid "已删除"
+msgstr "Excluído"
+
+msgid "已填入"
+msgstr "Preenchido"
+
+msgid "已应用"
+msgstr "Aplicado"
+
+msgid "已更新 {} 位角色的出招表"
+msgstr "Combo atualizado para {} personagens"
+
+msgid "应用方案"
+msgstr "Aplicar Predefinição"
+
+msgid "扫描失败"
+msgstr "Falha no Escaneamento"
+
+msgid "搜索方案"
+msgstr "Pesquisar Predefinições"
+
+msgid "新建方案"
+msgstr "Nova Predefinição"
+
+msgid "方案中不能重复选择角色"
+msgstr "Não é possível selecionar personagens duplicados em uma predefinição"
+
+msgid "方案列表"
+msgstr "Lista de Predefinições"
+
+msgid "方案名称重复或内容无效"
+msgstr "Nome de predefinição duplicado ou conteúdo inválido"
+
+msgid "无法保存"
+msgstr "Não foi possível salvar"
+
+msgid "无法填入"
+msgstr "Não foi possível preencher"
+
+msgid "没有可填入的角色"
+msgstr "Nenhum personagem disponível para preencher"
+
+msgid "等待扫描..."
+msgstr "Aguardando escaneamento..."
+
+msgid "输入或选择出招表"
+msgstr "Insira ou selecione o combo"
+
+msgid "队伍方案"
+msgstr "Predefinições de Equipe"
+
+msgid "队伍识别"
+msgstr "Reconhecimento de Equipe"
+
+msgid "提示"
+msgstr "Dicas"
+
+msgid "<p><b style=\"color: #d83b01;\">注意：</b>此面板 <b style=\"color: #d83b01;\">不会</b> 在进入战斗或更换阵容时实时自动刷新或同步显示。<br>这是个用于向数据库关联或添加 <b style=\"color: #0078d7;\">角色特征</b> 的工具面板。<br>点击 <b style=\"color: #0078d7;\">{scan_team}</b> 后点击 <b style=\"color: #0078d7;\">关联或添加</b> 特征, 自动战斗时就会识别对应的角色。<br>如果不想管理 <b style=\"color: #0078d7;\">角色特征</b>, 可以直接使用 <b style=\"color: #0078d7;\">{fixed_team}</b> 功能。</p>"
+msgstr "<p><b style=\"color: #d83b01;\">Nota:</b> Este painel <b style=\"color: #d83b01;\">NÃO</b> atualiza ou sincroniza automaticamente em tempo real ao entrar em combate ou trocar de formação.<br>Este é um painel de ferramentas para associar ou adicionar <b style=\"color: #0078d7;\">Características de Personagem</b> ao banco de dados.<br>Clique em <b style=\"color: #0078d7;\">{scan_team}</b> e depois em <b style=\"color: #0078d7;\">Associar ou Adicionar</b> característica para que o combate automático reconheça os personagens correspondentes.<br>Se não quiser gerenciar <b style=\"color: #0078d7;\">Características de Personagem</b>, você pode usar diretamente a função <b style=\"color: #0078d7;\">{fixed_team}</b>.</p>"
+
+msgid "<p>用于配置并保存常用的 4 人队伍阵容与出招表, 修改后立即生效。<br>点击 <b style=\"color: #0078d7;\">{apply_preset}</b> 可一键更新应用方案中各角色的出招表 (未选择出招表则保持原配置不变)。<br>开启 <b style=\"color: #0078d7;\">{fixed_preset}</b> 后自动战斗将直接采用此阵容, 无需等待特征识别 (未录入特征的角色亦可直接战斗)。<br>点击 <b style=\"color: #0078d7;\">{fill_scan}</b> 可将上方特征扫描识别出的队伍角色快速填入当前方案。</p>"
+msgstr "<p>Configure e salve formações e combos de equipe de 4 personagens, com efeito imediato após a modificação.<br>Clique em <b style=\"color: #0078d7;\">{apply_preset}</b> para aplicar os combos de cada personagem neste modelo predefinido (espaços sem combo selecionado manterão a configuração original).<br>Ative <b style=\"color: #0078d7;\">{fixed_preset}</b> para que o combate automático adote diretamente esta equipe sem esperar pelo reconhecimento de características (personagens sem características registradas podem combater diretamente).<br>Clique em <b style=\"color: #0078d7;\">{fill_scan}</b> para preencher rapidamente no modelo atual os personagens reconhecidos no escaneamento acima.</p>"
+
+msgid "OpenVINO 单次推理超时，已自动关闭目标检测；重启程序后会重新尝试启用。"
+msgstr "O tempo de inferência única do OpenVINO esgotou, a detecção de alvos foi desativada automaticamente. Será tentada a reativação ao reiniciar o programa."

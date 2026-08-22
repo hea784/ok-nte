@@ -3,9 +3,9 @@ import re
 import cv2
 import numpy as np
 from ok import CannotFindException, TaskDisabledException
-from qfluentwidgets import FluentIcon
 
 from src.gifts.GiftManager import GiftManager
+from src.gifts.layout import GIFT_LAYOUT
 from src.Labels import Labels
 from src.tasks.BaseNTETask import BaseNTETask
 from src.tasks.NTEOneTimeTask import NTEOneTimeTask
@@ -18,49 +18,106 @@ class GiftTask(NTEOneTimeTask, BaseNTETask):
     MAX_GIFTS_PER_CHARACTER = 3
     NAME_MATCH_THRESHOLD = 0.82
     GIFT_MATCH_THRESHOLD = 0.80
-    NAME_RATIO = (0.524, 0.166, 0.750, 0.240)
-    GIFT_FIRST_RATIO = (0.533, 0.497, 0.584, 0.534)
-    GIFT_COLUMNS = 5
-    GIFT_ROWS = 2
-    GIFT_COLUMN_STEP = 0.0651
-    GIFT_ROW_STEP = 0.1351
-    UNLIMIT_ICON_X_OFFSET_RATIO = 0.10
-    UNLIMIT_ICON_Y_OFFSET_RATIO = 0.74
-    UNLIMIT_ICON_WIDTH_REDUCTION_RATIO = 0.45
-    CHARACTER_SLOT_X = 0.946
-    CHARACTER_SLOT_YS = (0.177, 0.326, 0.472, 0.624, 0.772)
-    SIDEBAR_BOX = (0.936, 0.146, 0.971, 0.205)
-    SIDEBAR_SCROLL_X = 0.947
-    SIDEBAR_SCROLL_Y = 0.500
-    SIDEBAR_SCROLL_STEP = -5
-    SIDEBAR_RESET_STEP = 40
-    SIDEBAR_SCROLLS_PER_CHARACTER = 5
-    MAX_SIDEBAR_PAGES = 30
-    # These controls are not saved templates; they are stable controls on the gift page.
-    SEND_BUTTON = (0.713, 0.806)
-    COUNTER_BOX = (0.646, 0.780, 0.790, 0.840)
+    NAME_RATIO = GIFT_LAYOUT.name_ratio
+    GIFT_FIRST_RATIO = GIFT_LAYOUT.gift_first_ratio
+    GIFT_COLUMNS = GIFT_LAYOUT.gift_columns
+    GIFT_ROWS = GIFT_LAYOUT.gift_rows
+    GIFT_COLUMN_STEP = GIFT_LAYOUT.gift_column_step
+    GIFT_ROW_STEP = GIFT_LAYOUT.gift_row_step
+    UNLIMIT_ICON_X_OFFSET_RATIO = GIFT_LAYOUT.unlimited_icon_x_offset_ratio
+    UNLIMIT_ICON_Y_OFFSET_RATIO = GIFT_LAYOUT.unlimited_icon_y_offset_ratio
+    UNLIMIT_ICON_WIDTH_REDUCTION_RATIO = GIFT_LAYOUT.unlimited_icon_width_reduction_ratio
+    CHARACTER_SLOT_X = GIFT_LAYOUT.character_slot_x
+    CHARACTER_SLOT_YS = GIFT_LAYOUT.character_slot_ys
+    SIDEBAR_BOX = GIFT_LAYOUT.sidebar_box
+    SIDEBAR_SCROLL_X = GIFT_LAYOUT.sidebar_scroll_x
+    SIDEBAR_SCROLL_Y = GIFT_LAYOUT.sidebar_scroll_y
+    SIDEBAR_SCROLL_STEP = GIFT_LAYOUT.sidebar_scroll_step
+    SIDEBAR_RESET_STEP = GIFT_LAYOUT.sidebar_reset_step
+    SIDEBAR_SCROLLS_PER_CHARACTER = GIFT_LAYOUT.sidebar_scrolls_per_character
+    MAX_SIDEBAR_PAGES = GIFT_LAYOUT.max_sidebar_pages
+    SEND_BUTTON = GIFT_LAYOUT.send_button
+    COUNTER_BOX = GIFT_LAYOUT.counter_box
     COUNTER_RE = re.compile(r"(\d+)\s*/\s*3")
+    MODE_CAPTURE = "capture"
+    MODE_RUN = "run"
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.name = "羁遇赠礼"
-        self.icon = FluentIcon.HEART
         self.visible = False
         self.manager = GiftManager()
+        self.mode: str | None = None
+        self.capture_profile_id: str | None = None
+        self.capture_frame = None
+        self.capture_name = ""
+        self.capture_blocked_slots: tuple[int, ...] = ()
+        self.capture_error = ""
+
+    def capture_profile(self, profile_id: str | None) -> None:
+        self.mode = self.MODE_CAPTURE
+        self.capture_profile_id = profile_id
+        self.capture_frame = None
+        self.capture_name = ""
+        self.capture_blocked_slots = ()
+        self.capture_error = ""
+
+    def run_gift_mode(self) -> None:
+        self.mode = self.MODE_RUN
+
+    def _capture_profile(self) -> None:
+
+        frame = self.frame
+        if frame is None or not getattr(frame, "size", 0):
+            self.capture_error = self.tr("没有可用的游戏画面")
+            return
+
+        name = self.tr("未命名角色")
+        try:
+            results = self.ocr(box=self.get_name_box(), frame=frame)
+            recognized = "".join(str(result.name).strip() for result in results or [])
+            if recognized:
+                name = recognized
+        except Exception as error:
+            self.log_debug(f"gift capture name OCR failed: {type(error).__name__}")
+
+        blocked_slots = []
+        try:
+            blocked_slots = [
+                index
+                for index, badge_box in enumerate(self.get_unlimit_gift_boxes())
+                if self.find_one("unlimit_gift", box=badge_box, frame=frame)
+            ]
+        except Exception as error:
+            self.log_debug(f"gift capture unlimited-gift detection failed: {type(error).__name__}")
+        self.capture_frame = frame
+        self.capture_name = name
+        self.capture_blocked_slots = tuple(blocked_slots)
 
     def _report(self, message: str) -> None:
         self.log_info(message)
 
     def run(self):
-        super().run()
+        mode = self.mode or self.MODE_RUN
         try:
-            self.do_run()
+            super().run()
+            if mode == self.MODE_CAPTURE:
+                self._capture_profile()
+            else:
+                self.do_run()
         except TaskDisabledException:
+            if mode == self.MODE_CAPTURE:
+                self.capture_error = self.tr("任务已停止")
             raise
         except Exception as e:
-            self.screenshot("gift_task_failure")
-            self.log_error("GiftTask error", e)
+            if mode == self.MODE_CAPTURE:
+                self.capture_error = str(e).strip() or e.__class__.__name__
+            else:
+                self.screenshot("gift_task_failure")
+                self.log_error("GiftTask error", e)
             raise
+        finally:
+            self.mode = None
 
     def do_run(self) -> bool:
         summary = self.run_gifts()

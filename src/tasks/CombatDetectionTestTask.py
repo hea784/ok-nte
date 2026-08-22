@@ -2,11 +2,10 @@ import time
 from dataclasses import dataclass, field
 
 from ok import Logger, TaskDisabledException, get_path_relative_to_exe, og
-from qfluentwidgets import FluentIcon
 
 from src.combat.CombatCheck import CombatCheck
 from src.tasks.NTEOneTimeTask import NTEOneTimeTask
-from src.YOLO26OpenVINOAsyncDetector import YOLO26OpenVINOAsyncDetector
+from src.vision.openvino_detector import YOLO26OpenVINOAsyncDetector
 
 logger = Logger.get_logger(__name__)
 
@@ -96,7 +95,6 @@ class CombatDetectionTestTask(NTEOneTimeTask, CombatCheck):
         self.description = (
             "持续检测诊断 Lv, 锁定目标标记(白色菱形)和红色血条; 请手动停止以查看完整报告"
         )
-        self.icon = FluentIcon.INFO
         self._stats: CombatDetectionTestStats | None = None
         self._original_detector = None
         self._using_avx2_bypass = False

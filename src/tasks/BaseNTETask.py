@@ -1,4 +1,4 @@
-﻿import inspect
+import inspect
 import re
 import threading
 import time
@@ -1043,8 +1043,7 @@ class BaseNTETask(
     ):
         return not self.run_and_check_changed(
             action=lambda: self.operate(
-                lambda: self.scroll(x, y, count=count),
-                block=True,
+                lambda: self.scroll(x, y, count=count), block=True, restore_cursor=False
             ),
             snap_box=snap_box,
             check_box=check_box,

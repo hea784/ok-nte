@@ -1,8 +1,6 @@
-
 import cv2
 import numpy as np
 from ok import TaskDisabledException
-from qfluentwidgets import FluentIcon
 
 from src.combat.BaseCombatTask import BaseCombatTask
 from src.Labels import Labels
@@ -60,7 +58,6 @@ class AnomalyHunter(NTEOneTimeTask, BaseCombatTask):
         super().__init__(*args, **kwargs)
         self.name = "异象追猎"
         self.description = "自动进行异象追猎任务"
-        self.icon = FluentIcon.FLAG
         self._outer_config = None
         self.setup_config(self)
 

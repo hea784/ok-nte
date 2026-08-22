@@ -44,7 +44,6 @@ class RhythmTask(NTEOneTimeTask, BaseNTETask):
         super().__init__(*args, **kwargs)
         self.name = "自动音游"
         self.description = "异环鼓组音游自动打击与重试"
-        self.icon = FluentIcon.MUSIC
         self.group_name = "都市闲趣"
         self.group_icon = FluentIcon.GAME
         self.add_rounds_config()
@@ -90,7 +89,6 @@ class RhythmTask(NTEOneTimeTask, BaseNTETask):
     def do_run(self):
         self.start_rounds()
         while self.begin_round():
-
             # 点击开始演奏
             self.log_round_info("点击开始演奏")
             self.operate_click(SONG_START_POS[0], SONG_START_POS[1])

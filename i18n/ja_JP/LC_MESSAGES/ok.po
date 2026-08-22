@@ -9,9 +9,6 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-msgid "<b style=\"color: #0078d7;\">角色</b> 和 <b style=\"color: #0078d7;\">{combo}</b> 支持输入并创建，也支持选择已有项。"
-msgstr "「キャラクター」と「{combo}」は入力して作成でき、既存の項目を選択することもできます。"
-
 msgid "Arc Key"
 msgstr "アークキー"
 
@@ -69,36 +66,17 @@ msgstr "{combo}: {} 紐付け成功"
 msgid "{combo}语法错误"
 msgstr "{combo}構文エラー"
 
-msgid "{fixed_team}已保存"
-msgstr "{fixed_team}保存済み"
-
-msgid "{fixed_team}已停用"
-msgstr "{fixed_team}無効化済み"
-
-msgid "{fixed_team}已清空"
-msgstr "{fixed_team}クリア済み"
-
 msgid "{} 号位"
 msgstr "{} 番目のスロット"
 
 msgid "任务跳过对话"
 msgstr "会話スキップタスク"
 
-msgid ""
-"供非中/英语用户自定义传送文字, 逗号分隔\n"
-"例: Teleport, 传送"
-msgstr ""
-"非中/英語ユーザーがテレポートテキストをカスタマイズするため、カンマで区切ります\n"
-"例: Teleport, 传送"
-
 msgid "保存成功"
 msgstr "保存成功"
 
 msgid "停用"
 msgstr "無効化"
-
-msgid "先扫描并关联特征或手动填写"
-msgstr "先にスキャンして特徴を関連付けるか、手動で入力してください"
 
 msgid "出招表"
 msgstr "コンボリスト"
@@ -151,9 +129,6 @@ msgstr "マップ内で自動テレポート"
 msgid "填入扫描"
 msgstr "スキャン結果を入力"
 
-msgid "这是个用于向数据库关联或添加 <b style=\"color: #0078d7;\">角色特征</b> 的工具面板。<br>点击 <b style=\"color: #0078d7;\">{scan_team}</b> 后点击 <b style=\"color: #0078d7;\">关联或添加</b> 特征，自动战斗时就会识别对应的角色。<br><b style=\"color: #d83b01;\">💡 注意：</b>此面板 <b style=\"color: #d83b01;\">不会</b> 在进入战斗或更换阵容时实时自动刷新或同步显示, 因为这是工具面板。<br>如果不想管理 <b style=\"color: #0078d7;\">角色特征</b>，可以直接使用 <b style=\"color: #0078d7;\">{fixed_team}</b> 功能。"
-msgstr "これはデータベースに<b style=\"color: #0078d7;\">キャラクター特徴</b>を関連付け、または追加するためのツールパネルです。<br><b style=\"color: #0078d7;\">{scan_team}</b>をクリックした後に、特徴の<b style=\"color: #0078d7;\">関連付けまたは追加</b>をクリックすると、自動戦闘時に対応するキャラクターが識別されます。<br><b style=\"color: #d83b01;\">💡 注意：</b>このパネルはツールパネルであるため、戦闘に入ったときやチーム編成を変更したときにリアルタイムで自動更新または同期表示<b style=\"color: #d83b01;\">されません</b>。<br><b style=\"color: #0078d7;\">キャラクター特徴</b>を管理したくない場合は、<b style=\"color: #0078d7;\">{fixed_team}</b>機能を直接使用できます。"
-
 msgid "完成每日活跃度"
 msgstr "デイリーアクティビティを完了"
 
@@ -169,45 +144,17 @@ msgstr "データインポート"
 msgid "导出数据"
 msgstr "データエクスポート"
 
-msgid "已保存 {}/4"
-msgstr "保存済み {}/4"
-
-msgid "已启用 {}/4"
-msgstr "有効化済み {}/4"
-
-msgid "已启用{fixed_team}"
-msgstr "{fixed_team}有効化済み"
-
-msgid "已填入 {}"
-msgstr "{} を入力しました"
-
-msgid "已填入扫描结果"
-msgstr "スキャン結果を入力しました"
-
 msgid "已导入 {} 个文件"
 msgstr "{} 個のファイルをインポートしました"
 
-msgid "已恢复自动识别"
-msgstr "自動認識を復元しました"
-
 msgid "已成功删除角色: {} 以及关联的特征图"
 msgstr "キャラクター: {} と関連する特徴マップを正常に削除しました"
-
-msgid "已清空槽位"
-msgstr "スロットをクリアしました"
 
 msgid "已解除 {} 的{combo}绑定"
 msgstr "{} の{combo}紐付けを解除しました"
 
 msgid "应用更改"
 msgstr "変更を適用"
-
-msgid ""
-"当前未绑定任何{combo}。\n"
-"遇到此角色将默认使用基础通用脚本(BaseChar)。"
-msgstr ""
-"現在、{combo}は紐付けられていません。\n"
-"このキャラクターにはデフォルトで基本汎用スクリプト(BaseChar)が使用されます。"
 
 msgid "循环次数"
 msgstr "ループ回数"
@@ -258,17 +205,11 @@ msgstr ""
 "この Python スクリプトはここでは変更できません。\n"
 "対応するソースファイルで直接コードを修正してください。"
 
-msgid "没有可用扫描结果"
-msgstr "利用可能なスキャン結果がありません"
-
 msgid "没有找到匹配的指令。"
 msgstr "一致するコマンドが見つかりませんでした。"
 
 msgid "清空"
 msgstr "クリア"
-
-msgid "点击上方按钮扫描..."
-msgstr "上のボタンをクリックしてスキャンしてください..."
 
 msgid "点击时将短暂控制物理鼠标"
 msgstr "クリック時に物理マウスを一瞬制御します"
@@ -602,18 +543,6 @@ msgstr "キャラクターを入力または選択"
 
 msgid "自动战斗任务不可用"
 msgstr "自動戦闘タスクは利用できません"
-
-msgid "<span style=\"color: #2ecc71;\">● 自动识别：已启用</span>"
-msgstr "<span style=\"color: #2ecc71;\">● 自動認識：有効</span>"
-
-msgid "<span style=\"color: #95a5a6;\">○ 自动识别：仅空槽启用</span>"
-msgstr "<span style=\"color: #95a5a6;\">○ 自動認識：空きスロットのみ有効</span>"
-
-msgid "<span style=\"color: #2ecc71;\">● {fixed_team}：已启用 ({count}/4)</span>"
-msgstr "<span style=\"color: #2ecc71;\">● {fixed_team}：有効 ({count}/4)</span>"
-
-msgid "<span style=\"color: #95a5a6;\">○ {fixed_team}：已停用</span>"
-msgstr "<span style=\"color: #95a5a6;\">○ {fixed_team}：無効</span>"
 
 msgid "启动失败"
 msgstr "起動に失敗しました"
@@ -1290,3 +1219,78 @@ msgstr "マモンに挑戦"
 
 msgid "自动闯关"
 msgstr "自動クリア"
+
+msgid "{} 个空槽位"
+msgstr "{} 個の空きスロット"
+
+msgid "固定"
+msgstr "固定"
+
+msgid "已从列表移除"
+msgstr "リストから削除しました"
+
+msgid "已删除"
+msgstr "削除しました"
+
+msgid "已填入"
+msgstr "入力しました"
+
+msgid "已应用"
+msgstr "適用しました"
+
+msgid "已更新 {} 位角色的出招表"
+msgstr "{} 人のキャラクターのスキルコンボを更新しました"
+
+msgid "应用方案"
+msgstr "プリセットを適用"
+
+msgid "扫描失败"
+msgstr "スキャン失敗"
+
+msgid "搜索方案"
+msgstr "プリセットを検索"
+
+msgid "新建方案"
+msgstr "新規プリセット"
+
+msgid "方案中不能重复选择角色"
+msgstr "プリセット内で重複するキャラクターを選択することはできません"
+
+msgid "方案列表"
+msgstr "プリセット一覧"
+
+msgid "方案名称重复或内容无效"
+msgstr "プリセット名が重複しているか、内容が無効です"
+
+msgid "无法保存"
+msgstr "保存できません"
+
+msgid "无法填入"
+msgstr "入力できません"
+
+msgid "没有可填入的角色"
+msgstr "入力可能なキャラクターがありません"
+
+msgid "等待扫描..."
+msgstr "スキャン待機中..."
+
+msgid "输入或选择出招表"
+msgstr "スキルコンボを入力または選択"
+
+msgid "队伍方案"
+msgstr "チームプリセット"
+
+msgid "队伍识别"
+msgstr "チーム認識"
+
+msgid "提示"
+msgstr "ヒント"
+
+msgid "<p><b style=\"color: #d83b01;\">注意：</b>此面板 <b style=\"color: #d83b01;\">不会</b> 在进入战斗或更换阵容时实时自动刷新或同步显示。<br>这是个用于向数据库关联或添加 <b style=\"color: #0078d7;\">角色特征</b> 的工具面板。<br>点击 <b style=\"color: #0078d7;\">{scan_team}</b> 后点击 <b style=\"color: #0078d7;\">关联或添加</b> 特征, 自动战斗时就会识别对应的角色。<br>如果不想管理 <b style=\"color: #0078d7;\">角色特征</b>, 可以直接使用 <b style=\"color: #0078d7;\">{fixed_team}</b> 功能。</p>"
+msgstr "<p><b style=\"color: #d83b01;\">注意：</b>このパネルは戦闘開始や編成変更時にリアルタイムで自動更新または同期表示されません。<br>これはデータベースに<b style=\"color: #0078d7;\">キャラクター特徴</b>を関連付けまたは追加するためのツールパネルです。<br><b style=\"color: #0078d7;\">{scan_team}</b>をクリックして特徴を<b style=\"color: #0078d7;\">関連付け/追加</b>すると、自動戦闘時に対象キャラクターが認識されます。<br><b style=\"color: #0078d7;\">キャラクター特徴</b>を管理したくない場合は、<b style=\"color: #0078d7;\">{fixed_team}</b>機能を直接使用できます。</p>"
+
+msgid "<p>用于配置并保存常用的 4 人队伍阵容与出招表, 修改后立即生效。<br>点击 <b style=\"color: #0078d7;\">{apply_preset}</b> 可一键更新应用方案中各角色的出招表 (未选择出招表则保持原配置不变)。<br>开启 <b style=\"color: #0078d7;\">{fixed_preset}</b> 后自动战斗将直接采用此阵容, 无需等待特征识别 (未录入特征的角色亦可直接战斗)。<br>点击 <b style=\"color: #0078d7;\">{fill_scan}</b> 可将上方特征扫描识别出的队伍角色快速填入当前方案。</p>"
+msgstr "<p>よく使う4人編成とスキルコンボを設定・保存します。変更は即座に反映されます。<br><b style=\"color: #0078d7;\">{apply_preset}</b> をクリックすると、このプリセットの各キャラクターのスキルコンボを一括適用します（未選択のスロットは既存の設定を維持）。<br><b style=\"color: #0078d7;\">{fixed_preset}</b> を有効化すると、特徴認識を待たずにこの編成を直接使用して自動戦闘を行います（特徴未登録のキャラも即時戦闘可能）。<br><b style=\"color: #0078d7;\">{fill_scan}</b> をクリックすると、上記の特徴スキャンで認識されたキャラクターを現在のプリセットに素早く反映します。</p>"
+
+msgid "OpenVINO 单次推理超时，已自动关闭目标检测；重启程序后会重新尝试启用。"
+msgstr "OpenVINOの単一推論がタイムアウトしたため、ターゲット検出を自動的に無効化しました。プログラム再起動後に再有効化を試みます。"

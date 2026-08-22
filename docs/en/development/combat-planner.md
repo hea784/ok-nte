@@ -1,6 +1,8 @@
 # Combat Planner Development Guide
 
-> **Tip**: Concrete character implementations can be found in [`src/char`](../../src/char).
+> **Tip**: Concrete character implementations can be found in `src/char`, or viewed in the
+> [GitHub](https://github.com/BnanZ0/ok-nte/tree/main/src/char) and
+> [CNB](https://cnb.cool/BnanZ0/ok-nte-update/-/tree/main/src/char) code directories.
 
 The planner is the team's brain. A character declares one `CombatPlan`:
 

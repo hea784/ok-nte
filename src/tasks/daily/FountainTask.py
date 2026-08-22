@@ -35,7 +35,6 @@ class FountainTask(NTEOneTimeTask, BaseNTETask):
         super().__init__(*args, **kwargs)
         self._check_confirm_timer = 0
         self.name = "喷泉签到"
-        self.icon = FluentIcon.SYNC
         self.group_name = "日常/周常"
         self.group_icon = FluentIcon.CALENDAR
         self.visible = False

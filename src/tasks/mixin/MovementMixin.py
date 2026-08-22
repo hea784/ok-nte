@@ -13,16 +13,23 @@ class MovementMixin(BaseTask):
     def walk_to_box(
         self, find_function, time_out=30, end_condition=None, y_offset=0.05, x_threshold=0.07
     ):
-        start = time.time()
-        while time.time() - start < time_out:
-            if ended := self._do_walk_to_box(
-                find_function,
-                time_out=time_out - (time.time() - start),
-                end_condition=end_condition,
-                y_offset=y_offset,
-                x_threshold=x_threshold,
-            ):
-                return ended
+        if not find_function:
+            return False
+
+        if not self.wait_until(
+            lambda: (end_condition and end_condition()) or find_function(),
+            raise_if_not_found=False,
+            time_out=min(time_out, 0.5),
+        ):
+            return False
+
+        return self._walk_to_box_loop(
+            find_function,
+            time_out=time_out,
+            end_condition=end_condition,
+            y_offset=y_offset,
+            x_threshold=x_threshold,
+        )
 
     @staticmethod
     def _resolve_target(result):
@@ -67,19 +74,9 @@ class MovementMixin(BaseTask):
         lateral_change_times.append(now)
         return len(lateral_change_times) >= LATERAL_DIRECTION_CHANGE_LIMIT
 
-    def _do_walk_to_box(
+    def _walk_to_box_loop(
         self, find_function, time_out=30, end_condition=None, y_offset=0.05, x_threshold=0.07
     ):
-        if find_function:
-            if not self.wait_until(
-                lambda: (not end_condition or end_condition()) or find_function(),
-                raise_if_not_found=False,
-                time_out=min(time_out, 0.5),
-            ):
-                return False
-        else:
-            return
-
         last_direction = None
         start = time.time()
         ended = False
@@ -92,7 +89,7 @@ class MovementMixin(BaseTask):
                 if end_condition:
                     ended = end_condition()
                     if ended:
-                        logger.info(f"_do_walk_to_box ended {ended}")
+                        logger.info(f"_walk_to_box_loop ended {ended}")
                         break
                 target = self._resolve_target(find_function())
                 if target:
