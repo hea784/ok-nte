@@ -11,6 +11,7 @@ class MigrationContext:
     iter_builtin_impl_items: Callable[[], Iterable[tuple[str, str]]]
     generate_combo_id: Callable[[set[str] | None], str]
     get_external_impl_ids_by_class_name: Callable[[str], Iterable[str]] = lambda _class_name: ()
+    is_registered_impl: Callable[[str], bool] | None = None
 
 
 @dataclass
@@ -96,9 +97,7 @@ class CustomCharDbMigrator:
             if not impl_id.startswith("external:"):
                 return
             class_name = impl_id.removeprefix("external:")
-            matching_impl_ids = list(
-                self._context.get_external_impl_ids_by_class_name(class_name)
-            )
+            matching_impl_ids = list(self._context.get_external_impl_ids_by_class_name(class_name))
             if len(matching_impl_ids) == 1:
                 record["impl_id"] = matching_impl_ids[0]
             else:

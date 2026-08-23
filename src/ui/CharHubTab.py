@@ -68,5 +68,5 @@ class CharHubTab(CustomTab):
         self.separator.setStyleSheet(f"background-color: {color}; border: none;")
 
     @property
-    def name(self):
+    def name(self): # type: ignore
         return self.tr_name_tab

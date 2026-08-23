@@ -18,18 +18,6 @@ msgstr "檢查月卡"
 msgid "Check for monthly card to avoid interruption of tasks"
 msgstr "檢查月卡以避免任務中斷"
 
-msgid "F10"
-msgstr "F10"
-
-msgid "F11"
-msgstr "F11"
-
-msgid "F12"
-msgstr "F12"
-
-msgid "F9"
-msgstr "F9"
-
 msgid "Game Hotkey Config"
 msgstr "遊戲熱鍵設定"
 
@@ -180,12 +168,6 @@ msgstr "無畫面"
 msgid "日常任务"
 msgstr "日常任務"
 
-msgid "暂不可用"
-msgstr "暫不可用"
-
-msgid "更新"
-msgstr "更新"
-
 msgid "未启用"
 msgstr "未啟用"
 
@@ -198,18 +180,11 @@ msgstr "未獲取到特徵"
 msgid "关联特征"
 msgstr "關聯特徵"
 
-msgid ""
-"此为 Python 脚本，不可在此修改。\n"
-"请在对应的源文件中直接修改代码。"
-msgstr ""
-"此為 Python 腳本，不可在此修改。\n"
-"請在對應的源文件中直接修改代碼。"
+msgid "此为 Python 脚本, 不可在此修改.\n请在对应的源文件中直接修改代码."
+msgstr "此為 Python 腳本, 不可在此修改.\n請在對應的源檔案中直接修改程式碼."
 
 msgid "没有找到匹配的指令。"
 msgstr "沒有找到匹配的指令。"
-
-msgid "清空"
-msgstr "清空"
 
 msgid "点击时将短暂控制物理鼠标"
 msgstr "點擊時將短暫控制物理滑鼠"
@@ -265,8 +240,8 @@ msgstr "跳過劇情"
 msgid "运行一次测试"
 msgstr "運行一次測試"
 
-msgid "下拉选择，或直接输入名称以创建新{combo}"
-msgstr "下拉選擇，或直接輸入名稱以建立新{combo}"
+msgid "下拉选择, 或直接输入名称以创建新{combo}"
+msgstr "下拉選擇, 或直接輸入名稱以創建新{combo}"
 
 msgid "重命名失败"
 msgstr "重新命名失敗"
@@ -289,9 +264,6 @@ msgstr "隊伍人數少於2人"
 
 msgid "队伍管理"
 msgstr "隊伍管理"
-
-msgid "使用ESC"
-msgstr "使用 ESC"
 
 msgid "关闭时仅在中键选中敌人且画面识别到 'Lv' 文字时开启战斗"
 msgstr "關閉時僅在中鍵選中敵人且畫面識別到 'Lv' 文字時開啟戰鬥"
@@ -332,9 +304,6 @@ msgstr "閃避所有攻擊"
 
 msgid "Dodge all attacks without performing counter attacks"
 msgstr "閃避所有攻擊，不執行反擊"
-
-msgid "不支持从OK启动游戏"
-msgstr "不支援從 OK 啟動遊戲"
 
 msgid "任务完成后自动切换至下一个项目"
 msgstr "任務完成後自動切換至下一個項目"
@@ -435,9 +404,6 @@ msgstr "單曲超時時間(秒)"
 msgid "异环鼓组音游自动打击与重试"
 msgstr "異環鼓組音遊自動打擊與重試"
 
-msgid "打歌次数, 0=无限循环"
-msgstr "打歌次數, 0=無限循環"
-
 msgid "自动音游"
 msgstr "自動音遊"
 
@@ -508,9 +474,6 @@ msgstr "輸入或選擇關聯的角色名稱"
 msgid "输入或选择绑定的{combo} (可选)"
 msgstr "輸入或選擇綁定的{combo}（可選）"
 
-msgid "循环次数(0为无限次)"
-msgstr "循環次數（0 為無限次）"
-
 msgid "清空已记录的操作"
 msgstr "清除已記錄的操作"
 
@@ -540,9 +503,6 @@ msgstr "※ 列表可直接輸入並建立"
 
 msgid "输入或选择角色"
 msgstr "輸入或選擇角色"
-
-msgid "自动战斗任务不可用"
-msgstr "自動戰鬥任務不可用"
 
 msgid "启动失败"
 msgstr "啟動失敗"
@@ -636,9 +596,6 @@ msgstr "測試全部鍵"
 
 msgid "自动弹琴"
 msgstr "自動彈琴"
-
-msgid "自动战斗任务不可用"
-msgstr "自動戰鬥任務不可用"
 
 msgid "自动音高"
 msgstr "自動音高"
@@ -763,23 +720,14 @@ msgstr "模型調用 API_Key"
 msgid "模型调用地址"
 msgstr "模型調用位址"
 
-msgid "次数"
-msgstr "次數"
-
 msgid "游戏语言"
 msgstr "遊戲語言"
 
 msgid "请选择游戏所设置的语言"
 msgstr "請選擇遊戲內設定的語言"
 
-msgid "留言"
-msgstr "留言"
-
 msgid "自动发帖"
 msgstr "自動發文"
-
-msgid "自动呗果"
-msgstr "自動唄果"
 
 msgid "自动回帖"
 msgstr "自動回覆"
@@ -883,8 +831,8 @@ msgstr "異象家具"
 msgid "每2小时重新登入"
 msgstr "每2小時重新登入"
 
-msgid "除了选择内建存在的<b style=\"color: #0078d7;\">{combo}</b>外，您也可以自己输入名称来建立自己的<b style=\"color: #0078d7;\">{combo}</b>。"
-msgstr "除了選擇內建存在的<b style=\"color: #0078d7;\">{combo}</b>外，您也可以自己輸入名稱來建立自己的<b style=\"color: #0078d7;\">{combo}</b>。"
+msgid "除了选择内建存在的<b style=\"color: #0078d7;\">{combo}</b>外,您也可以自己输入名称来建立自己的<b style=\"color: #0078d7;\">{combo}</b>."
+msgstr "除了選擇內建存在的<b style=\"color: #0078d7;\">{combo}</b>外,您也可以自己輸入名稱來建立自己的<b style=\"color: #0078d7;\">{combo}</b>."
 
 msgid "九百九十九夜"
 msgstr "九百九十九夜"
@@ -1166,9 +1114,6 @@ msgstr "[外置代碼]"
 msgid "打开外置代码目录"
 msgstr "開啟外置程式碼目錄"
 
-msgid "手动添加或修改 Python 代码后, 需点击 [{refresh}] 按钮以生效。<br>关于编写角色出招表的指南, 请参考 <a href='{doc_url}'>文档</a>。"
-msgstr "手動新增或修改 Python 程式碼後，需點擊 [{refresh}] 按鈕以生效。<br>關於編寫角色出招表的指南，請參考 <a href='{doc_url}'>文件</a>。"
-
 msgid "日常领取"
 msgstr "日常領取"
 
@@ -1294,3 +1239,67 @@ msgstr "<p>用於配置並儲存常用的 4 人隊伍陣容與出招表, 修改�
 
 msgid "OpenVINO 单次推理超时，已自动关闭目标检测；重启程序后会重新尝试启用。"
 msgstr "OpenVINO 單次推論超時，已自動關閉目標檢測；重啟程式後會重新嘗試啟用。"
+
+msgid "管理"
+msgstr "管理"
+
+msgid "批量删除"
+msgstr "批量刪除"
+
+msgid "当前未绑定任何{combo}.\n遇到此角色将默认使用基础通用脚本(BaseChar)."
+msgstr "目前未綁定任何{combo}.\n遇到此角色將預設使用基礎通用腳本(BaseChar)."
+
+
+msgid "显示内置"
+msgstr "顯示內建"
+
+msgid "复制为外置"
+msgstr "複製為外置"
+
+msgid "复制成功"
+msgstr "複製成功"
+
+msgid "复制失败"
+msgstr "複製失敗"
+
+msgid "已成功创建外置代码: {}"
+msgstr "已成功建立外置代碼: {}"
+
+msgid "复制为外置代码"
+msgstr "複製為外置代碼"
+
+msgid "目录"
+msgstr "目錄"
+
+msgid "脚本文件名 (.py)"
+msgstr "腳本檔案名 (.py)"
+
+msgid "将在 external_chars/ 目录下生成独立的 Python 脚本供您编辑与调试."
+msgstr "將在 external_chars/ 目錄下產生獨立的 Python 腳本供您編輯與除錯."
+
+msgid "无法读取 Python 脚本."
+msgstr "無法讀取 Python 腳本."
+
+msgid "外置代码应用失败"
+msgstr "外置代碼套用失敗"
+
+msgid "已应用外置代码: {}"
+msgstr "已套用外置代碼: {}"
+
+msgid "手动添加或修改 Python 代码后, 需点击 [{refresh}] 以生效. 关于编写角色出招表的指南, 请参考 <a href='{doc_url}'>文档</a>."
+msgstr "手動新增或修改 Python 代碼後, 需點擊 [{refresh}] 以生效. 關於撰寫角色出招表的指南, 請參考 <a href='{doc_url}'>文件</a>."
+
+msgid "角色"
+msgstr "角色"
+
+msgid "指令"
+msgstr "指令"
+
+msgid "请先应用外置代码更改后再运行测试."
+msgstr "請先套用外置代碼變更後再運行測試."
+
+msgid "角色工具任务未注册"
+msgstr "角色工具任務未註冊"
+
+msgid "角色工具任务不可用"
+msgstr "角色工具任務不可用"

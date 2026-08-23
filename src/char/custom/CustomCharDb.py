@@ -407,7 +407,8 @@ class CustomCharDb:
             return self._as_text(combo_id) in self._data["combos"]
 
     def has_impl_id(self, impl_id: str) -> bool:
-        return self.context.is_builtin_impl(impl_id) or self.has_custom_combo(impl_id)
+        is_registered = self.context.is_registered_impl or self.context.is_builtin_impl
+        return is_registered(impl_id) or self.has_custom_combo(impl_id)
 
     def get_combo(self, combo_id: str) -> str:
         with self._lock:

@@ -18,18 +18,6 @@ msgstr "检查月卡"
 msgid "Check for monthly card to avoid interruption of tasks"
 msgstr "检查月卡以避免任务中断"
 
-msgid "F10"
-msgstr ""
-
-msgid "F11"
-msgstr ""
-
-msgid "F12"
-msgstr ""
-
-msgid "F9"
-msgstr ""
-
 msgid "Game Hotkey Config"
 msgstr "游戏热键配置"
 
@@ -180,12 +168,6 @@ msgstr ""
 msgid "日常任务"
 msgstr ""
 
-msgid "暂不可用"
-msgstr ""
-
-msgid "更新"
-msgstr ""
-
 msgid "未启用"
 msgstr ""
 
@@ -198,15 +180,10 @@ msgstr ""
 msgid "关联特征"
 msgstr ""
 
-msgid ""
-"此为 Python 脚本，不可在此修改。\n"
-"请在对应的源文件中直接修改代码。"
+msgid "此为 Python 脚本, 不可在此修改.\n请在对应的源文件中直接修改代码."
 msgstr ""
 
 msgid "没有找到匹配的指令。"
-msgstr ""
-
-msgid "清空"
 msgstr ""
 
 msgid "点击时将短暂控制物理鼠标"
@@ -263,7 +240,7 @@ msgstr ""
 msgid "运行一次测试"
 msgstr ""
 
-msgid "下拉选择，或直接输入名称以创建新{combo}"
+msgid "下拉选择, 或直接输入名称以创建新{combo}"
 msgstr ""
 
 msgid "重命名失败"
@@ -284,9 +261,6 @@ msgid "队伍人数少于2人"
 msgstr ""
 
 msgid "队伍管理"
-msgstr ""
-
-msgid "使用ESC"
 msgstr ""
 
 msgid "关闭时仅在中键选中敌人且画面识别到 'Lv' 文字时开启战斗"
@@ -326,9 +300,6 @@ msgstr "闪避所有攻击"
 
 msgid "Dodge all attacks without performing counter attacks"
 msgstr "闪避所有攻击，不执行反击"
-
-msgid "不支持从OK启动游戏"
-msgstr ""
 
 msgid "任务完成后自动切换至下一个项目"
 msgstr ""
@@ -417,9 +388,6 @@ msgstr ""
 msgid "自动补饵卖鱼"
 msgstr ""
 
-msgid "首次抛竿失败时，补充默认鱼饵并出售鱼获"
-msgstr ""
-
 msgid "4列对应的键盘按键"
 msgstr ""
 
@@ -427,9 +395,6 @@ msgid "单曲超时时间(秒)"
 msgstr ""
 
 msgid "异环鼓组音游自动打击与重试"
-msgstr ""
-
-msgid "打歌次数, 0=无限循环"
 msgstr ""
 
 msgid "自动音游"
@@ -502,9 +467,6 @@ msgstr ""
 msgid "不执行"
 msgstr "不执行"
 
-msgid "循环次数(0为无限次)"
-msgstr ""
-
 msgid "抛竿失败时，补充默认鱼饵并出售鱼获后重试"
 msgstr ""
 
@@ -536,9 +498,6 @@ msgid "※ 列表可直接输入并创建"
 msgstr ""
 
 msgid "输入或选择角色"
-msgstr ""
-
-msgid "自动战斗任务不可用"
 msgstr ""
 
 msgid "启动失败"
@@ -632,9 +591,6 @@ msgid "测试全部键"
 msgstr ""
 
 msgid "自动弹琴"
-msgstr ""
-
-msgid "自动战斗任务不可用"
 msgstr ""
 
 msgid "自动音高"
@@ -760,22 +716,13 @@ msgstr ""
 msgid "模型调用地址"
 msgstr ""
 
-msgid "次数"
-msgstr ""
-
 msgid "游戏语言"
 msgstr ""
 
 msgid "请选择游戏所设置的语言"
 msgstr ""
 
-msgid "留言"
-msgstr ""
-
 msgid "自动发帖"
-msgstr ""
-
-msgid "自动呗果"
 msgstr ""
 
 msgid "自动回帖"
@@ -880,7 +827,7 @@ msgstr ""
 msgid "每2小时重新登入"
 msgstr ""
 
-msgid "除了选择内建存在的<b style=\"color: #0078d7;\">{combo}</b>外，您也可以自己输入名称来建立自己的<b style=\"color: #0078d7;\">{combo}</b>。"
+msgid "除了选择内建存在的<b style=\"color: #0078d7;\">{combo}</b>外,您也可以自己输入名称来建立自己的<b style=\"color: #0078d7;\">{combo}</b>."
 msgstr ""
 
 msgid "九百九十九夜"
@@ -1153,9 +1100,6 @@ msgstr ""
 msgid "打开外置代码目录"
 msgstr ""
 
-msgid "手动添加或修改 Python 代码后, 需点击 [{refresh}] 按钮以生效。<br>关于编写角色出招表的指南, 请参考 <a href='{doc_url}'>文档</a>。"
-msgstr ""
-
 msgid "日常领取"
 msgstr ""
 
@@ -1281,3 +1225,67 @@ msgstr "<p>用于配置并保存常用的 4 人队伍阵容与出招表, 修改�
 
 msgid "OpenVINO 单次推理超时，已自动关闭目标检测；重启程序后会重新尝试启用。"
 msgstr ""
+
+msgid "管理"
+msgstr ""
+
+msgid "批量删除"
+msgstr ""
+
+msgid "当前未绑定任何{combo}.\n遇到此角色将默认使用基础通用脚本(BaseChar)."
+msgstr ""
+
+
+msgid "显示内置"
+msgstr "显示内置"
+
+msgid "复制为外置"
+msgstr "复制为外置"
+
+msgid "复制成功"
+msgstr "复制成功"
+
+msgid "复制失败"
+msgstr "复制失败"
+
+msgid "已成功创建外置代码: {}"
+msgstr "已成功创建外置代码: {}"
+
+msgid "复制为外置代码"
+msgstr "复制为外置代码"
+
+msgid "目录"
+msgstr "目录"
+
+msgid "脚本文件名 (.py)"
+msgstr "脚本文件名 (.py)"
+
+msgid "将在 external_chars/ 目录下生成独立的 Python 脚本供您编辑与调试."
+msgstr "将在 external_chars/ 目录下生成独立的 Python 脚本供您编辑与调试."
+
+msgid "无法读取 Python 脚本."
+msgstr "无法读取 Python 脚本."
+
+msgid "外置代码应用失败"
+msgstr "外置代码应用失败"
+
+msgid "已应用外置代码: {}"
+msgstr "已应用外置代码: {}"
+
+msgid "手动添加或修改 Python 代码后, 需点击 [{refresh}] 以生效. 关于编写角色出招表的指南, 请参考 <a href='{doc_url}'>文档</a>."
+msgstr "手动添加或修改 Python 代码后, 需点击 [{refresh}] 以生效. 关于编写角色出招表的指南, 请参考 <a href='{doc_url}'>文档</a>."
+
+msgid "角色"
+msgstr "角色"
+
+msgid "指令"
+msgstr "指令"
+
+msgid "请先应用外置代码更改后再运行测试."
+msgstr "请先应用外置代码更改后再运行测试."
+
+msgid "角色工具任务未注册"
+msgstr "角色工具任务未注册"
+
+msgid "角色工具任务不可用"
+msgstr "角色工具任务不可用"

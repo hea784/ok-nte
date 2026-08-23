@@ -18,18 +18,6 @@ msgstr "Check Monthly Card"
 msgid "Check for monthly card to avoid interruption of tasks"
 msgstr "Check for monthly card to avoid interruption of tasks"
 
-msgid "F10"
-msgstr "F10"
-
-msgid "F11"
-msgstr "F11"
-
-msgid "F12"
-msgstr "F12"
-
-msgid "F9"
-msgstr "F9"
-
 msgid "Game Hotkey Config"
 msgstr "Game Hotkey Config"
 
@@ -180,12 +168,6 @@ msgstr "No Display"
 msgid "日常任务"
 msgstr "Daily Tasks"
 
-msgid "暂不可用"
-msgstr "Temporarily Unavailable"
-
-msgid "更新"
-msgstr "Update"
-
 msgid "未启用"
 msgstr "Disabled"
 
@@ -198,18 +180,11 @@ msgstr "Feature not obtained"
 msgid "关联特征"
 msgstr "Link Feature"
 
-msgid ""
-"此为 Python 脚本，不可在此修改。\n"
-"请在对应的源文件中直接修改代码。"
-msgstr ""
-"This Python script cannot be modified here.\n"
-"Please modify the code directly in the corresponding source file."
+msgid "此为 Python 脚本, 不可在此修改.\n请在对应的源文件中直接修改代码."
+msgstr "This is a Python script and cannot be modified here.\nPlease modify the code directly in the corresponding source file."
 
 msgid "没有找到匹配的指令。"
 msgstr "No matching commands found."
-
-msgid "清空"
-msgstr "Clear"
 
 msgid "点击时将短暂控制物理鼠标"
 msgstr "Briefly controls the physical mouse when clicked"
@@ -265,8 +240,8 @@ msgstr "Skip Story"
 msgid "运行一次测试"
 msgstr "Run a test"
 
-msgid "下拉选择，或直接输入名称以创建新{combo}"
-msgstr "Select from dropdown, or directly enter a name to create a new {combo}"
+msgid "下拉选择, 或直接输入名称以创建新{combo}"
+msgstr "Select from drop-down, or enter a name to create a new {combo}"
 
 msgid "重命名失败"
 msgstr "Rename failed"
@@ -289,9 +264,6 @@ msgstr "Team size less than 2"
 
 msgid "队伍管理"
 msgstr "Team Mgmt"
-
-msgid "使用ESC"
-msgstr "Use ESC"
 
 msgid "关闭时仅在中键选中敌人且画面识别到 'Lv' 文字时开启战斗"
 msgstr "When disabled, combat starts only if an enemy is middle-clicked and 'Lv' is detected on screen"
@@ -332,9 +304,6 @@ msgstr "Dodge All Attacks"
 
 msgid "Dodge all attacks without performing counter attacks"
 msgstr "Dodge all attacks without performing counter attacks"
-
-msgid "不支持从OK启动游戏"
-msgstr "Launching the game from OK is not supported"
 
 msgid "任务完成后自动切换至下一个项目"
 msgstr "Automatically switch to the next item after task completion"
@@ -435,9 +404,6 @@ msgstr "Single song timeout (s)"
 msgid "异环鼓组音游自动打击与重试"
 msgstr "NTE Rhythm Game Auto Play & Retry"
 
-msgid "打歌次数, 0=无限循环"
-msgstr "Play count, 0=Endless"
-
 msgid "自动音游"
 msgstr "Auto Rhythm Game"
 
@@ -508,9 +474,6 @@ msgstr "Choose how to handle Cafe daily tasks"
 msgid "不执行"
 msgstr "Do not execute"
 
-msgid "循环次数(0为无限次)"
-msgstr "Loop count (0 for unlimited)"
-
 msgid "清空已记录的操作"
 msgstr "Clear recorded operations"
 
@@ -540,9 +503,6 @@ msgstr "※ You can type directly in the list to create entries"
 
 msgid "输入或选择角色"
 msgstr "Enter or select a character"
-
-msgid "自动战斗任务不可用"
-msgstr "Auto combat task is unavailable"
 
 msgid "启动失败"
 msgstr "Failed to start"
@@ -636,9 +596,6 @@ msgstr "Test All Keys"
 
 msgid "自动弹琴"
 msgstr "Auto Piano"
-
-msgid "自动战斗任务不可用"
-msgstr "Auto-combat Tasks Unavailable"
 
 msgid "自动音高"
 msgstr "Auto Pitch"
@@ -763,23 +720,14 @@ msgstr "Model API_Key"
 msgid "模型调用地址"
 msgstr "Model API URL"
 
-msgid "次数"
-msgstr "Count"
-
 msgid "游戏语言"
 msgstr "Game Language"
 
 msgid "请选择游戏所设置的语言"
 msgstr "Please select the language you set in Game"
 
-msgid "留言"
-msgstr "Comment"
-
 msgid "自动发帖"
 msgstr "Auto Post"
-
-msgid "自动呗果"
-msgstr "Auto Bagel"
 
 msgid "自动回帖"
 msgstr "Auto Reply"
@@ -883,7 +831,7 @@ msgstr "Anomaly Furniture"
 msgid "每2小时重新登入"
 msgstr "Re-login every 2 hours"
 
-msgid "除了选择内建存在的<b style=\"color: #0078d7;\">{combo}</b>外，您也可以自己输入名称来建立自己的<b style=\"color: #0078d7;\">{combo}</b>。"
+msgid "除了选择内建存在的<b style=\"color: #0078d7;\">{combo}</b>外,您也可以自己输入名称来建立自己的<b style=\"color: #0078d7;\">{combo}</b>."
 msgstr "In addition to selecting a built-in <b style=\"color: #0078d7;\">{combo}</b>, you can also enter a name to create your own <b style=\"color: #0078d7;\">{combo}</b>."
 
 msgid "九百九十九夜"
@@ -1166,9 +1114,6 @@ msgstr "[External Code]"
 msgid "打开外置代码目录"
 msgstr "Open External Code Folder"
 
-msgid "手动添加或修改 Python 代码后, 需点击 [{refresh}] 按钮以生效。<br>关于编写角色出招表的指南, 请参考 <a href='{doc_url}'>文档</a>。"
-msgstr "After manually adding or modifying Python code, click the [{refresh}] button for changes to take effect.<br>For a guide on writing character combo tables, please refer to the <a href='{doc_url}'>documentation</a>."
-
 msgid "日常领取"
 msgstr "Daily Claim"
 
@@ -1294,3 +1239,67 @@ msgstr "<p>Configure and save common 4-character team lineups and combos, effect
 
 msgid "OpenVINO 单次推理超时，已自动关闭目标检测；重启程序后会重新尝试启用。"
 msgstr "OpenVINO single inference timed out, target detection has been automatically disabled. It will be re-enabled upon restarting the program."
+
+msgid "管理"
+msgstr "Manage"
+
+msgid "批量删除"
+msgstr "Batch Delete"
+
+msgid "当前未绑定任何{combo}.\n遇到此角色将默认使用基础通用脚本(BaseChar)."
+msgstr "No {combo} is currently bound.\nThis character will use the generic base script (BaseChar) by default when encountered."
+
+
+msgid "显示内置"
+msgstr "Show Built-in"
+
+msgid "复制为外置"
+msgstr "Copy to External"
+
+msgid "复制成功"
+msgstr "Copied Successfully"
+
+msgid "复制失败"
+msgstr "Copy Failed"
+
+msgid "已成功创建外置代码: {}"
+msgstr "Successfully created external code: {}"
+
+msgid "复制为外置代码"
+msgstr "Copy as External Code"
+
+msgid "目录"
+msgstr "Directory"
+
+msgid "脚本文件名 (.py)"
+msgstr "Script Filename (.py)"
+
+msgid "将在 external_chars/ 目录下生成独立的 Python 脚本供您编辑与调试."
+msgstr "A standalone Python script will be created in external_chars/ for editing and debugging."
+
+msgid "无法读取 Python 脚本."
+msgstr "Failed to read Python script."
+
+msgid "外置代码应用失败"
+msgstr "Failed to Apply External Code"
+
+msgid "已应用外置代码: {}"
+msgstr "Applied external code: {}"
+
+msgid "手动添加或修改 Python 代码后, 需点击 [{refresh}] 以生效. 关于编写角色出招表的指南, 请参考 <a href='{doc_url}'>文档</a>."
+msgstr "After manually adding or modifying Python code, click [{refresh}] to take effect. For guidelines on writing character combos, please refer to the <a href='{doc_url}'>documentation</a>."
+
+msgid "角色"
+msgstr "Character"
+
+msgid "指令"
+msgstr "Command"
+
+msgid "请先应用外置代码更改后再运行测试."
+msgstr "Please apply external code changes before running the test."
+
+msgid "角色工具任务未注册"
+msgstr "Character tool task is not registered"
+
+msgid "角色工具任务不可用"
+msgstr "Character tool task is unavailable"

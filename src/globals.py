@@ -28,6 +28,7 @@ class Globals:
         from src.ui.foundation.dialogs import install_confirmation_handler
         from src.ui.foundation.overlay import install_overlay_window
 
+        main_window.setMinimumSize(1200, 800)
         main_window._confirmation_handler = install_confirmation_handler(main_window)
         install_overlay_window(main_window)
 

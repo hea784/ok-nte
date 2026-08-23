@@ -18,18 +18,6 @@ msgstr "Comprobar tarjeta mensual"
 msgid "Check for monthly card to avoid interruption of tasks"
 msgstr "Comprobar la tarjeta mensual para evitar la interrupción de las tareas"
 
-msgid "F10"
-msgstr "F10"
-
-msgid "F11"
-msgstr "F11"
-
-msgid "F12"
-msgstr "F12"
-
-msgid "F9"
-msgstr "F9"
-
 msgid "Game Hotkey Config"
 msgstr "Configuración de teclas de acceso rápido"
 
@@ -180,12 +168,6 @@ msgstr "Sin imagen"
 msgid "日常任务"
 msgstr "Tareas diarias"
 
-msgid "暂不可用"
-msgstr "Temporalmente no disponible"
-
-msgid "更新"
-msgstr "Actualizar"
-
 msgid "未启用"
 msgstr "Deshabilitado"
 
@@ -198,18 +180,11 @@ msgstr "Característica no obtenida"
 msgid "关联特征"
 msgstr "Vincular característica"
 
-msgid ""
-"此为 Python 脚本，不可在此修改。\n"
-"请在对应的源文件中直接修改代码。"
-msgstr ""
-"Este script de Python no se puede modificar aquí.\n"
-"Modifique el código directamente en el archivo fuente correspondiente."
+msgid "此为 Python 脚本, 不可在此修改.\n请在对应的源文件中直接修改代码."
+msgstr "Este es un script de Python y no se puede modificar aquí.\nPor favor, modifique el código directamente en el archivo fuente correspondiente."
 
 msgid "没有找到匹配的指令。"
 msgstr "No se encontraron comandos coincidentes."
-
-msgid "清空"
-msgstr "Vaciar"
 
 msgid "点击时将短暂控制物理鼠标"
 msgstr "Controla brevemente el ratón físico al hacer clic"
@@ -265,8 +240,8 @@ msgstr "Omitir historia"
 msgid "运行一次测试"
 msgstr "Ejecutar una prueba"
 
-msgid "下拉选择，或直接输入名称以创建新{combo}"
-msgstr "Seleccione en el menú desplegable o ingrese directamente un nombre para crear un nuevo {combo}"
+msgid "下拉选择, 或直接输入名称以创建新{combo}"
+msgstr "Seleccione del menú desplegable o ingrese un nombre para crear un nuevo {combo}"
 
 msgid "重命名失败"
 msgstr "Error al renombrar"
@@ -289,9 +264,6 @@ msgstr "Tamaño del equipo inferior a 2"
 
 msgid "队伍管理"
 msgstr "Gestión Equipo"
-
-msgid "使用ESC"
-msgstr "Usar ESC"
 
 msgid "关闭时仅在中键选中敌人且画面识别到 'Lv' 文字时开启战斗"
 msgstr "Cuando está desactivado, el combate solo comienza si se selecciona un enemigo con el botón central y se detecta 'Lv' en pantalla"
@@ -332,9 +304,6 @@ msgstr "Esquivar todos los ataques"
 
 msgid "Dodge all attacks without performing counter attacks"
 msgstr "Esquivar todos los ataques sin realizar contraataques"
-
-msgid "不支持从OK启动游戏"
-msgstr "No se admite iniciar el juego desde OK"
 
 msgid "任务完成后自动切换至下一个项目"
 msgstr "Cambiar automáticamente al siguiente elemento tras completar la tarea"
@@ -435,9 +404,6 @@ msgstr "Tiempo de espera por canción (s)"
 msgid "异环鼓组音游自动打击与重试"
 msgstr "Juego de ritmo NTE Auto Play y Reintento"
 
-msgid "打歌次数, 0=无限循环"
-msgstr "Número de ejecuciones, 0=Infinito"
-
 msgid "自动音游"
 msgstr "Auto Juego de Ritmo"
 
@@ -508,9 +474,6 @@ msgstr "Introduce o selecciona el nombre del personaje asociado"
 msgid "输入或选择绑定的{combo} (可选)"
 msgstr "Introduce o selecciona el {combo} vinculado (opcional)"
 
-msgid "循环次数(0为无限次)"
-msgstr "Número de bucles (0 para infinito)"
-
 msgid "清空已记录的操作"
 msgstr "Borrar operaciones grabadas"
 
@@ -540,9 +503,6 @@ msgstr "※ Puede escribir directamente en la lista para crear entradas"
 
 msgid "输入或选择角色"
 msgstr "Introduce o selecciona un personaje"
-
-msgid "自动战斗任务不可用"
-msgstr "La tarea de combate automático no está disponible"
 
 msgid "启动失败"
 msgstr "Error al iniciar"
@@ -636,9 +596,6 @@ msgstr "Probar todas las teclas"
 
 msgid "自动弹琴"
 msgstr "Piano Auto"
-
-msgid "自动战斗任务不可用"
-msgstr "Tareas de combate automático no disponibles"
 
 msgid "自动音高"
 msgstr "Tono automático"
@@ -763,23 +720,14 @@ msgstr "API_Key del modelo"
 msgid "模型调用地址"
 msgstr "URL de llamada al modelo"
 
-msgid "次数"
-msgstr "Frecuencia"
-
 msgid "游戏语言"
 msgstr "Idioma del juego"
 
 msgid "请选择游戏所设置的语言"
 msgstr "Seleccione el idioma configurado en el juego"
 
-msgid "留言"
-msgstr "Comentario"
-
 msgid "自动发帖"
 msgstr "Publicación automática"
-
-msgid "自动呗果"
-msgstr "Bagel automático"
 
 msgid "自动回帖"
 msgstr "Respuesta automática"
@@ -883,8 +831,8 @@ msgstr "Muebles de anomalía"
 msgid "每2小时重新登入"
 msgstr "Reiniciar sesión cada 2 horas"
 
-msgid "除了选择内建存在的<b style=\"color: #0078d7;\">{combo}</b>外，您也可以自己输入名称来建立自己的<b style=\"color: #0078d7;\">{combo}</b>。"
-msgstr "Además de seleccionar un <b style=\"color: #0078d7;\">{combo}</b> integrado, también puede ingresar un nombre para crear su propio <b style=\"color: #0078d7;\">{combo}</b>."
+msgid "除了选择内建存在的<b style=\"color: #0078d7;\">{combo}</b>外,您也可以自己输入名称来建立自己的<b style=\"color: #0078d7;\">{combo}</b>."
+msgstr "Además de seleccionar un <b style=\"color: #0078d7;\">{combo}</b> integrado, también puedes ingresar un nombre para crear tu propio <b style=\"color: #0078d7;\">{combo}</b>."
 
 msgid "九百九十九夜"
 msgstr "999 Nights"
@@ -1166,9 +1114,6 @@ msgstr "[Código externo]"
 msgid "打开外置代码目录"
 msgstr "Abrir carpeta de código externo"
 
-msgid "手动添加或修改 Python 代码后, 需点击 [{refresh}] 按钮以生效。<br>关于编写角色出招表的指南, 请参考 <a href='{doc_url}'>文档</a>。"
-msgstr "Después de añadir o modificar código Python manualmente, haga clic en el botón [{refresh}] para que surta efecto.<br>Para obtener una guía sobre cómo escribir listas de combos de personajes, consulte la <a href='{doc_url}'>documentación</a>."
-
 msgid "日常领取"
 msgstr "Reclamación diaria"
 
@@ -1294,3 +1239,67 @@ msgstr "<p>Configura y guarda alineaciones y combos de equipo de 4 personajes, c
 
 msgid "OpenVINO 单次推理超时，已自动关闭目标检测；重启程序后会重新尝试启用。"
 msgstr "Se agotó el tiempo de inferencia única de OpenVINO, la detección de objetivos se ha desactivado automáticamente. Se intentará volver a activar al reiniciar el programa."
+
+msgid "管理"
+msgstr "Gestionar"
+
+msgid "批量删除"
+msgstr "Eliminación masiva"
+
+msgid "当前未绑定任何{combo}.\n遇到此角色将默认使用基础通用脚本(BaseChar)."
+msgstr "Actualmente no hay ningún {combo} vinculado.\nSe utilizará el script base genérico (BaseChar) por defecto al encontrar a este personaje."
+
+
+msgid "显示内置"
+msgstr "Mostrar Integrados"
+
+msgid "复制为外置"
+msgstr "Copiar como Externo"
+
+msgid "复制成功"
+msgstr "Copiado con Éxito"
+
+msgid "复制失败"
+msgstr "Error al Copiar"
+
+msgid "已成功创建外置代码: {}"
+msgstr "Código externo creado con éxito: {}"
+
+msgid "复制为外置代码"
+msgstr "Copiar como Código Externo"
+
+msgid "目录"
+msgstr "Directorio"
+
+msgid "脚本文件名 (.py)"
+msgstr "Nombre del Archivo de Script (.py)"
+
+msgid "将在 external_chars/ 目录下生成独立的 Python 脚本供您编辑与调试."
+msgstr "Se generará un script de Python independiente en el directorio external_chars/ para su edición y depuración."
+
+msgid "无法读取 Python 脚本."
+msgstr "No se pudo leer el script de Python."
+
+msgid "外置代码应用失败"
+msgstr "Error al Aplicar Código Externo"
+
+msgid "已应用外置代码: {}"
+msgstr "Código externo aplicado: {}"
+
+msgid "手动添加或修改 Python 代码后, 需点击 [{refresh}] 以生效. 关于编写角色出招表的指南, 请参考 <a href='{doc_url}'>文档</a>."
+msgstr "Después de añadir o modificar el código de Python manualmente, haga clic en [{refresh}] para aplicar los cambios. Para consultar la guía sobre cómo escribir combos de personajes, consulte la <a href='{doc_url}'>documentación</a>."
+
+msgid "角色"
+msgstr "Personaje"
+
+msgid "指令"
+msgstr "Comando"
+
+msgid "请先应用外置代码更改后再运行测试."
+msgstr "Por favor, aplique los cambios del código externo antes de ejecutar la prueba."
+
+msgid "角色工具任务未注册"
+msgstr "La tarea de herramientas de personagem no está registrada"
+
+msgid "角色工具任务不可用"
+msgstr "La tarea de herramientas de personaje no está disponible"

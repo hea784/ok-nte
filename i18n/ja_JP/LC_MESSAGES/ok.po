@@ -18,18 +18,6 @@ msgstr "月額カード確認"
 msgid "Check for monthly card to avoid interruption of tasks"
 msgstr "タスクの中断を避けるために月額カードを確認する"
 
-msgid "F10"
-msgstr "F10"
-
-msgid "F11"
-msgstr "F11"
-
-msgid "F12"
-msgstr "F12"
-
-msgid "F9"
-msgstr "F9"
-
 msgid "Game Hotkey Config"
 msgstr "ゲームホットキー設定"
 
@@ -180,12 +168,6 @@ msgstr "画面なし"
 msgid "日常任务"
 msgstr "デイリー任務"
 
-msgid "暂不可用"
-msgstr "一時的に利用不可"
-
-msgid "更新"
-msgstr "更新"
-
 msgid "未启用"
 msgstr "無効"
 
@@ -198,18 +180,11 @@ msgstr "特徴を取得できませんでした"
 msgid "关联特征"
 msgstr "特徴を関連付け"
 
-msgid ""
-"此为 Python 脚本，不可在此修改。\n"
-"请在对应的源文件中直接修改代码。"
-msgstr ""
-"この Python スクリプトはここでは変更できません。\n"
-"対応するソースファイルで直接コードを修正してください。"
+msgid "此为 Python 脚本, 不可在此修改.\n请在对应的源文件中直接修改代码."
+msgstr "これは Python スクリプトのため、ここでは編集できません。\n対応するソースファイルで直接コードを編集してください。"
 
 msgid "没有找到匹配的指令。"
 msgstr "一致するコマンドが見つかりませんでした。"
-
-msgid "清空"
-msgstr "クリア"
 
 msgid "点击时将短暂控制物理鼠标"
 msgstr "クリック時に物理マウスを一瞬制御します"
@@ -265,8 +240,8 @@ msgstr "ストーリースキップ"
 msgid "运行一次测试"
 msgstr "テストを1回実行"
 
-msgid "下拉选择，或直接输入名称以创建新{combo}"
-msgstr "ドロップダウンから選択するか、名前を直接入力して新しい{combo}を作成します"
+msgid "下拉选择, 或直接输入名称以创建新{combo}"
+msgstr "ドロップダウンから選択するか、名前を入力して新しい{combo}を作成してください"
 
 msgid "重命名失败"
 msgstr "名前変更失敗"
@@ -289,9 +264,6 @@ msgstr "チーム人数が2人未満です"
 
 msgid "队伍管理"
 msgstr "チーム管理"
-
-msgid "使用ESC"
-msgstr "ESCを使用"
 
 msgid "关闭时仅在中键选中敌人且画面识别到 'Lv' 文字时开启战斗"
 msgstr "オフの場合、中クリックで敵を選択し、画面上で「Lv」の文字が認識された時のみ戦闘を開始します"
@@ -332,9 +304,6 @@ msgstr "すべての攻撃を回避"
 
 msgid "Dodge all attacks without performing counter attacks"
 msgstr "カウンター攻撃を行わず、すべての攻撃を回避します"
-
-msgid "不支持从OK启动游戏"
-msgstr "OKからのゲーム起動はサポートされていません"
 
 msgid "任务完成后自动切换至下一个项目"
 msgstr "タスク完了後に次の項目へ自動で切り替えます"
@@ -435,9 +404,6 @@ msgstr "1曲あたりのタイムアウト時間(秒)"
 msgid "异环鼓组音游自动打击与重试"
 msgstr "NTEリズムゲームの自動演奏とリトライ"
 
-msgid "打歌次数, 0=无限循环"
-msgstr "演奏回数、0=無限ループ"
-
 msgid "自动音游"
 msgstr "自動リズムゲーム"
 
@@ -508,9 +474,6 @@ msgstr "関連キャラクター名を入力または選択"
 msgid "输入或选择绑定的{combo} (可选)"
 msgstr "紐付け{combo}を入力または選択（任意）"
 
-msgid "循环次数(0为无限次)"
-msgstr "ループ回数（0で無制限）"
-
 msgid "清空已记录的操作"
 msgstr "記録済みの操作を消去"
 
@@ -540,9 +503,6 @@ msgstr "※ リストには直接入力して作成できます"
 
 msgid "输入或选择角色"
 msgstr "キャラクターを入力または選択"
-
-msgid "自动战斗任务不可用"
-msgstr "自動戦闘タスクは利用できません"
 
 msgid "启动失败"
 msgstr "起動に失敗しました"
@@ -636,9 +596,6 @@ msgstr "すべてのキーをテスト"
 
 msgid "自动弹琴"
 msgstr "自動ピアノ"
-
-msgid "自动战斗任务不可用"
-msgstr "自動戦闘タスクは利用できません"
 
 msgid "自动音高"
 msgstr "自動ピッチ"
@@ -763,23 +720,14 @@ msgstr "モデルAPI_Key"
 msgid "模型调用地址"
 msgstr "モデルAPIエンドポイント"
 
-msgid "次数"
-msgstr "回数"
-
 msgid "游戏语言"
 msgstr "ゲーム言語"
 
 msgid "请选择游戏所设置的语言"
 msgstr "ゲーム内で設定されている言語を選択してください"
 
-msgid "留言"
-msgstr "コメント"
-
 msgid "自动发帖"
 msgstr "自動投稿"
-
-msgid "自动呗果"
-msgstr "ベーグル自動実行"
 
 msgid "自动回帖"
 msgstr "自動返信"
@@ -883,7 +831,7 @@ msgstr "アノマリー家具"
 msgid "每2小时重新登入"
 msgstr "2時間ごとに再ログイン"
 
-msgid "除了选择内建存在的<b style=\"color: #0078d7;\">{combo}</b>外，您也可以自己输入名称来建立自己的<b style=\"color: #0078d7;\">{combo}</b>。"
+msgid "除了选择内建存在的<b style=\"color: #0078d7;\">{combo}</b>外,您也可以自己输入名称来建立自己的<b style=\"color: #0078d7;\">{combo}</b>."
 msgstr "組み込みの<b style=\"color: #0078d7;\">{combo}</b>を選択するだけでなく、名前を入力して独自の<b style=\"color: #0078d7;\">{combo}</b>を作成することもできます。"
 
 msgid "九百九十九夜"
@@ -1166,9 +1114,6 @@ msgstr "[外部コード]"
 msgid "打开外置代码目录"
 msgstr "外部コードフォルダーを開く"
 
-msgid "手动添加或修改 Python 代码后, 需点击 [{refresh}] 按钮以生效。<br>关于编写角色出招表的指南, 请参考 <a href='{doc_url}'>文档</a>。"
-msgstr "Pythonコードを手動で追加または修正した後は、[{refresh}]ボタンをクリックして反映させてください。<br>キャラクターのコンボ表の作成ガイドについては、<a href='{doc_url}'>ドキュメント</a>を参照してください。"
-
 msgid "日常领取"
 msgstr "デイリー受取"
 
@@ -1294,3 +1239,67 @@ msgstr "<p>よく使う4人編成とスキルコンボを設定・保存しま�
 
 msgid "OpenVINO 单次推理超时，已自动关闭目标检测；重启程序后会重新尝试启用。"
 msgstr "OpenVINOの単一推論がタイムアウトしたため、ターゲット検出を自動的に無効化しました。プログラム再起動後に再有効化を試みます。"
+
+msgid "管理"
+msgstr "管理"
+
+msgid "批量删除"
+msgstr "一括削除"
+
+msgid "当前未绑定任何{combo}.\n遇到此角色将默认使用基础通用脚本(BaseChar)."
+msgstr "現在{combo}が割り当てられていません。\nこのキャラクターにはデフォルトで基本汎用スクリプト(BaseChar)が使用されます。"
+
+
+msgid "显示内置"
+msgstr "内蔵を表示"
+
+msgid "复制为外置"
+msgstr "外部としてコピー"
+
+msgid "复制成功"
+msgstr "コピーに成功しました"
+
+msgid "复制失败"
+msgstr "コピーに失敗しました"
+
+msgid "已成功创建外置代码: {}"
+msgstr "外部コードを作成しました: {}"
+
+msgid "复制为外置代码"
+msgstr "外部コードとしてコピー"
+
+msgid "目录"
+msgstr "ディレクトリ"
+
+msgid "脚本文件名 (.py)"
+msgstr "スクリプトファイル名 (.py)"
+
+msgid "将在 external_chars/ 目录下生成独立的 Python 脚本供您编辑与调试."
+msgstr "編集やデバッグ用に、external_chars/ ディレクトリ内に独立した Python スクリプトが生成されます。"
+
+msgid "无法读取 Python 脚本."
+msgstr "Python スクリプトを読み込めません。"
+
+msgid "外置代码应用失败"
+msgstr "外部コードの適用に失敗しました"
+
+msgid "已应用外置代码: {}"
+msgstr "外部コードを適用しました: {}"
+
+msgid "手动添加或修改 Python 代码后, 需点击 [{refresh}] 以生效. 关于编写角色出招表的指南, 请参考 <a href='{doc_url}'>文档</a>."
+msgstr "Python コードを手動で追加または変更した後は、[{refresh}] をクリックして反映してください。キャラクタースキルコンボの作成ガイドについては、<a href='{doc_url}'>ドキュメント</a>を参照してください。"
+
+msgid "角色"
+msgstr "キャラクター"
+
+msgid "指令"
+msgstr "コマンド"
+
+msgid "请先应用外置代码更改后再运行测试."
+msgstr "テストを実行する前に、外部コードの変更を適用してください。"
+
+msgid "角色工具任务未注册"
+msgstr "キャラクターツールタスクが登録されていません"
+
+msgid "角色工具任务不可用"
+msgstr "キャラクターツールタスクは利用できません"
