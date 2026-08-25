@@ -25,7 +25,6 @@ from qfluentwidgets import (
     InfoBarIcon,
     InfoBarPosition,
     LineEdit,
-    MessageBoxBase,
     PrimaryPushButton,
     PushButton,
     SimpleCardWidget,
@@ -37,6 +36,7 @@ from qfluentwidgets import (
 from src.char.custom.CustomCharManager import CustomCharManager
 from src.events import communicate
 from src.tasks.DebugCharTask import DebugCharTask, TeamScanResult
+from src.ui.foundation.dialogs import MessageBoxBase
 from src.ui.foundation.images import cv_to_pixmap
 from src.ui.foundation.widgets.cards import BorderCardWidget
 from src.ui.foundation.widgets.search import (
@@ -49,8 +49,7 @@ class NewCharDialog(MessageBoxBase):
     """Select or create a character while associating a scanned feature."""
 
     def __init__(self, mat, manager: CustomCharManager, parent=None):
-        self._owner_parent = parent or QWidget()
-        super().__init__(self._owner_parent)
+        super().__init__(parent)
         self.manager = manager
         self.tr_title = og.app.tr("关联特征")
         self.tr_name_ph = og.app.tr("输入或选择关联的角色名称")
@@ -135,8 +134,7 @@ class AddCharacterDialog(MessageBoxBase):
     """Create a new character without exposing the existing-character picker."""
 
     def __init__(self, manager: CustomCharManager, parent=None):
-        self._owner_parent = parent or QWidget()
-        super().__init__(self._owner_parent)
+        super().__init__(parent)
         self.manager = manager
         self.tr_name_duplicate = og.app.tr("角色名称无效或已存在")
         self.viewLayout.setSpacing(10)
@@ -448,8 +446,6 @@ class PresetSlotRow(QWidget):
         self.combo_list.blockSignals(True)
         if char_info is not None:
             self._set_combo_by_id(char_info["impl_id"])
-        else:
-            self.combo_list.setCurrentIndex(0)
         self.combo_list.blockSignals(False)
         self.changed.emit(self.index)
 
@@ -480,8 +476,7 @@ class PresetSlotRow(QWidget):
         self._loading = False
 
     def get_data(self) -> tuple[str, str]:
-        char_id = self._selected_char_id()
-        return char_id, self._selected_combo_id() if char_id else ""
+        return self._selected_char_id(), self._selected_combo_id()
 
     def set_editor_enabled(self, enabled: bool) -> None:
         self.char_combo.setEnabled(enabled)
@@ -948,7 +943,9 @@ class TeamManagerTab(CustomTab):
                 continue
             char_info = self.manager.get_character_info_by_id(char_id)
             if char_info:
-                slots[index] = {"char_id": char_id, "impl_id": char_info["impl_id"]}
+                slots[index]["char_id"] = char_id
+                if not slots[index]["impl_id"]:
+                    slots[index]["impl_id"] = char_info["impl_id"]
                 filled_count += 1
         if not filled_count:
             self._show_bar(self.tr("无法填入"), self.tr_fill_failed, success=False)

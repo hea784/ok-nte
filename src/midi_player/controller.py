@@ -324,7 +324,7 @@ class MidiPlaybackController:
         executor = og.executor
         if executor.paused:
             if not og.app.start_controller.do_start():
-                raise RuntimeError(og.app.tr("启动失败"))
+                raise RuntimeError("OK start_controller failed")
             return
         og.device_manager.do_refresh(True)
         if error := og.app.start_controller.check_device_error():

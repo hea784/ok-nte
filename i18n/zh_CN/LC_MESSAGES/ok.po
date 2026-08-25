@@ -1235,7 +1235,6 @@ msgstr ""
 msgid "当前未绑定任何{combo}.\n遇到此角色将默认使用基础通用脚本(BaseChar)."
 msgstr ""
 
-
 msgid "显示内置"
 msgstr "显示内置"
 
@@ -1289,3 +1288,18 @@ msgstr "角色工具任务未注册"
 
 msgid "角色工具任务不可用"
 msgstr "角色工具任务不可用"
+
+msgid "询问AI"
+msgstr ""
+
+msgid "AI提示模版已复制。请粘贴到AI聊天机器人中。"
+msgstr ""
+
+msgid "{SOURCE}\n\n我想实现: \n\n请修改上面完整的 {class_name} 角色自动化代码。\n\n只返回整个文件完整修改后的 Python 代码，不要返回补丁或解释。\n保持类名为 {class_name}。保留仍然需要的 import。\n\n在思考辅助方法、任务 API、状态、切人、冷却和战斗流程时, 请参考: \nBaseChar 角色基类: {BASE_CHAR_URL}\nCombat Planner 开发指南: {COMBAT_PLANNER_URL}"
+msgstr ""
+
+msgid "OK"
+msgstr "确认"
+
+msgid "设置"
+msgstr ""

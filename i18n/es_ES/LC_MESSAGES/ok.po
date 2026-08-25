@@ -1249,7 +1249,6 @@ msgstr "Eliminación masiva"
 msgid "当前未绑定任何{combo}.\n遇到此角色将默认使用基础通用脚本(BaseChar)."
 msgstr "Actualmente no hay ningún {combo} vinculado.\nSe utilizará el script base genérico (BaseChar) por defecto al encontrar a este personaje."
 
-
 msgid "显示内置"
 msgstr "Mostrar Integrados"
 
@@ -1303,3 +1302,18 @@ msgstr "La tarea de herramientas de personagem no está registrada"
 
 msgid "角色工具任务不可用"
 msgstr "La tarea de herramientas de personaje no está disponible"
+
+msgid "询问AI"
+msgstr "Preguntar a la IA"
+
+msgid "AI提示模版已复制。请粘贴到AI聊天机器人中。"
+msgstr "Plantilla de aviso de IA copiada. Péguela en un chatbot de IA."
+
+msgid "{SOURCE}\n\n我想实现: \n\n请修改上面完整的 {class_name} 角色自动化代码。\n\n只返回整个文件完整修改后的 Python 代码，不要返回补丁或解释。\n保持类名为 {class_name}。保留仍然需要的 import。\n\n在思考辅助方法、任务 API、状态、切人、冷却和战斗流程时, 请参考: \nBaseChar 角色基类: {BASE_CHAR_URL}\nCombat Planner 开发指南: {COMBAT_PLANNER_URL}"
+msgstr "{SOURCE}\n\nQuiero lograr: \n\nModifique el código de automatización completo del personaje {class_name} anterior.\n\nDevuelva únicamente el código Python completamente modificado para todo el archivo, sin parches ni explicaciones.\nMantenga el nombre de la clase como {class_name}. Conserve los imports necesarios.\n\nAl considerar métodos auxiliares, API de tareas, estado, cambio de personajes, enfriamientos y flujo de combate, consulte: \nClase base de personaje BaseChar: {BASE_CHAR_URL}\nGuía de desarrollo de Combat Planner: {COMBAT_PLANNER_URL}"
+
+msgid "OK"
+msgstr "Aceptar"
+
+msgid "设置"
+msgstr "Ajustes"

@@ -11,7 +11,7 @@ from ok import Box, Logger, safe_get
 
 from src import text_white_color
 from src.char.BaseChar import BaseChar, Element
-from src.char.core.CharFactory import get_char_by_id, get_char_by_pos
+from src.char.core.CharFactory import get_char_by_id, get_char_by_impl_id, get_char_by_pos
 from src.char.custom.CustomCharManager import CustomCharManager
 from src.combat.CombatCheck import CombatCheck
 from src.combat.planner import CombatPlanner
@@ -968,6 +968,9 @@ class BaseCombatTask(CharElementUIMixin, CombatCheck):
                     return get_char_by_id(
                         self, index, fixed_char_id, confidence=1, impl_id=fixed_impl_id
                     )
+            if fixed_impl_id:
+                self.logger.info(f"Using fixed implementation {index}: {fixed_impl_id}")
+                return get_char_by_impl_id(self, index, fixed_impl_id, confidence=1)
 
         box_scaled = self.get_char_box(index).scale(1.1, 1.1)
 

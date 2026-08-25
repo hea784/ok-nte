@@ -3,13 +3,24 @@
 import threading
 from typing import Any
 
-from ok import Logger
+from ok import Logger, og
 from PySide6.QtCore import QEvent, QObject, Qt, QThread, QTimer, Signal, Slot
 from PySide6.QtWidgets import QApplication, QWidget
+from qfluentwidgets import MessageBoxBase as _MessageBoxBase
 
 from src.events import ConfirmationRequested, communicate
 
 logger = Logger.get_logger(__name__)
+
+
+class MessageBoxBase(_MessageBoxBase):
+    """MessageBoxBase wrapper that delegates tr() to og.app.tr()."""
+
+    def tr(self, sourceText: str, *args, **kwargs) -> str:
+        if not (args or kwargs) and og.app is not None and hasattr(og.app, "tr"):
+            return og.app.tr(sourceText)
+        return super().tr(sourceText, *args, **kwargs)
+
 
 _dialog_dispatcher = None
 _dialog_dispatcher_lock = threading.Lock()

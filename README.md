@@ -14,10 +14,10 @@
   </p>
 
   <p>
-    <a href="https://github.com/BnanZ0/ok-nte/releases">📥 下载最新版</a> ·
+    <a href="docs/zh-CN/getting-started/installation.md">📥 下载最新版</a> ·
     <a href="docs/zh-CN/index.md">📖 使用文档</a> ·
     <a href="docs/zh-CN/guides/quick-start.md">🚀 快速上手</a> ·
-    <a href="https://github.com/BnanZ0/ok-nte/issues">🛠️ 问题反馈</a>
+    <a href="docs/zh-CN/guides/troubleshooting.md">🛠️ 常见问题与反馈</a>
   </p>
 
   <p>

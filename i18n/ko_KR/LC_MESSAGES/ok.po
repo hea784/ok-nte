@@ -1249,7 +1249,6 @@ msgstr "일괄 삭제"
 msgid "当前未绑定任何{combo}.\n遇到此角色将默认使用基础通用脚本(BaseChar)."
 msgstr "현재 바인딩된 {combo}가 없습니다.\n이 캐릭터를 만날 경우 기본 공용 스크립트(BaseChar)가 사용됩니다."
 
-
 msgid "显示内置"
 msgstr "내장 표시"
 
@@ -1303,3 +1302,18 @@ msgstr "캐릭터 도구 작업이 등록되지 않았습니다"
 
 msgid "角色工具任务不可用"
 msgstr "캐릭터 도구 작업을 사용할 수 없습니다"
+
+msgid "询问AI"
+msgstr "AI에게 질문"
+
+msgid "AI提示模版已复制。请粘贴到AI聊天机器人中。"
+msgstr "AI 프롬프트 템플릿이 복사되었습니다. AI 챗봇에 붙여넣으세요."
+
+msgid "{SOURCE}\n\n我想实现: \n\n请修改上面完整的 {class_name} 角色自动化代码。\n\n只返回整个文件完整修改后的 Python 代码，不要返回补丁或解释。\n保持类名为 {class_name}。保留仍然需要的 import。\n\n在思考辅助方法、任务 API、状态、切人、冷却和战斗流程时, 请参考: \nBaseChar 角色基类: {BASE_CHAR_URL}\nCombat Planner 开发指南: {COMBAT_PLANNER_URL}"
+msgstr "{SOURCE}\n\n구현하려는 내용: \n\n위의 완전한 {class_name} 캐릭터 자동화 코드를 수정해 주세요.\n\n패치나 설명 없이 전체 파일의 완전히 수정된 Python 코드만 반환해 주세요.\n클래스 이름은 {class_name}로 유지하고, 필요한 import를 유지해 주세요.\n\n보조 메서드, 작업 API, 상태, 캐릭터 교체, 쿨다운 및 전투 흐름을 고려할 때 다음을 참고하세요: \nBaseChar 캐릭터 기본 클래스: {BASE_CHAR_URL}\nCombat Planner 개발 가이드: {COMBAT_PLANNER_URL}"
+
+msgid "OK"
+msgstr "확인"
+
+msgid "设置"
+msgstr "설정"

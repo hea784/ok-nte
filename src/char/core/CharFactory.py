@@ -24,33 +24,33 @@ def iter_char_implementations():
 def _build_char_instance(
     task,
     index,
-    match_id,
+    char_id,
     sim,
     manager: "CustomCharManager",
     impl_id_override: str | None = None,
 ):
     from src.char.custom.CustomChar import CustomChar
 
-    char_info = manager.get_character_info_by_id(match_id)
-    char_name = char_info["char_name"] if char_info else "unknown"
+    char_info = manager.get_character_info_by_id(char_id)
     impl_id = (
         impl_id_override
         if impl_id_override is not None
         else (char_info["impl_id"] if char_info else "")
     )
+    char_name = char_info["char_name"] if char_info else manager.get_impl_name(impl_id)
 
     resolved = False
     if not impl_id:
-        instance = BaseChar(task, index, char_id=match_id or "unknown", confidence=sim)
+        instance = BaseChar(task, index, char_id=char_id or "unknown", confidence=sim)
     elif char_class := get_char_implementation_class(impl_id):
-        instance = char_class(task, index, char_id=match_id, confidence=sim)
+        instance = char_class(task, index, char_id=char_id, confidence=sim)
         resolved = True
     elif manager.is_custom_combo_exist(impl_id):
-        instance = CustomChar(task, index, char_id=match_id, impl_id=impl_id, confidence=sim)
+        instance = CustomChar(task, index, char_id=char_id, impl_id=impl_id, confidence=sim)
         resolved = True
     else:
         task.log_warning(f"Unknown character implementation '{impl_id}', using BaseChar")
-        instance = BaseChar(task, index, char_id=match_id or "unknown", confidence=sim)
+        instance = BaseChar(task, index, char_id=char_id or "unknown", confidence=sim)
 
     instance.char_name = char_name
     instance.impl_id = impl_id if resolved else ""
@@ -67,8 +67,6 @@ def get_char_by_id(
     from src.char.custom.CustomCharManager import CustomCharManager
 
     manager = CustomCharManager()
-    if not char_id:
-        return BaseChar(task, index, char_id="unknown", confidence=confidence)
     return _build_char_instance(
         task,
         index,
@@ -77,6 +75,13 @@ def get_char_by_id(
         manager,
         impl_id_override=impl_id,
     )
+
+
+def get_char_by_impl_id(
+    task: "BaseCombatTask", index: int, impl_id: str, confidence=1
+):
+    """Create a character implementation for a preset slot without a character record."""
+    return get_char_by_id(task, index, "", confidence=confidence, impl_id=impl_id)
 
 
 def get_char_by_pos(task: "BaseCombatTask", box: "Box", index: int, old_char: BaseChar | None):

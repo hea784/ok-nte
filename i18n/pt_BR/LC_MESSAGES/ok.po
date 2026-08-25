@@ -981,7 +981,6 @@ msgstr "Gerenciar"
 msgid "批量删除"
 msgstr "Exclusão em Lote"
 
-
 msgid "显示内置"
 msgstr "Mostrar Embutidos"
 
@@ -1035,3 +1034,18 @@ msgstr "A tarefa de ferramentas de personagem não está registrada"
 
 msgid "角色工具任务不可用"
 msgstr "A tarefa de ferramentas de personagem não está disponível"
+
+msgid "询问AI"
+msgstr "Perguntar à IA"
+
+msgid "AI提示模版已复制。请粘贴到AI聊天机器人中。"
+msgstr "Modelo de prompt de IA copiado. Cole-o em um chatbot de IA."
+
+msgid "{SOURCE}\n\n我想实现: \n\n请修改上面完整的 {class_name} 角色自动化代码。\n\n只返回整个文件完整修改后的 Python 代码，不要返回补丁或解释。\n保持类名为 {class_name}。保留仍然需要的 import。\n\n在思考辅助方法、任务 API、状态、切人、冷却和战斗流程时, 请参考: \nBaseChar 角色基类: {BASE_CHAR_URL}\nCombat Planner 开发指南: {COMBAT_PLANNER_URL}"
+msgstr "{SOURCE}\n\nQuero realizar: \n\nModifique o código completo de automação do personagem {class_name} acima.\n\nRetorne apenas o código Python totalmente modificado de todo o arquivo, sem patches ou explicações.\nMantenha o nome da classe como {class_name}. Mantenha os imports necessários.\n\nAo considerar métodos auxiliares, APIs de tarefas, estados, troca de personagens, recargas e fluxo de combate, consulte: \nClasse base de personagem BaseChar: {BASE_CHAR_URL}\nGuia de desenvolvimento do Combat Planner: {COMBAT_PLANNER_URL}"
+
+msgid "OK"
+msgstr "OK"
+
+msgid "设置"
+msgstr "Configurações"

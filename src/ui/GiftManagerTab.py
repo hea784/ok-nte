@@ -7,6 +7,7 @@ from qfluentwidgets import (
     BodyLabel,
     ComboBox,
     FluentIcon,
+    GroupHeaderCardWidget,
     ImageLabel,
     InfoBar,
     InfoBarPosition,
@@ -14,7 +15,6 @@ from qfluentwidgets import (
     ListWidget,
     PrimaryPushButton,
     PushButton,
-    SettingCard,
     SimpleCardWidget,
     SmoothScrollArea,
     SwitchButton,
@@ -182,39 +182,45 @@ class GiftManagerTab(CustomTab):
         hint.setWordWrap(True)
         layout.addWidget(hint)
 
-        settings = QWidget(editor)
-        settings_layout = QVBoxLayout(settings)
-        settings_layout.setContentsMargins(0, 0, 0, 0)
-        settings_layout.setSpacing(2)
-        self.status_setting_card = SettingCard(
-            FluentIcon.HEART,
-            self.tr("赠礼状态"),
-            parent=settings,
-        )
-        self.enabled_switch = SwitchButton(self.status_setting_card)
+        self.settings_card = GroupHeaderCardWidget(self.tr("设置"), editor)
+
+        status_widget = QWidget(self.settings_card)
+        status_layout = QHBoxLayout(status_widget)
+        self.enabled_switch = SwitchButton(status_widget)
         self.enabled_switch.setOnText("")
         self.enabled_switch.setOffText("")
-        self.enabled_status = BodyLabel(self.tr("未启用"), self.status_setting_card)
-        self.status_setting_card.hBoxLayout.addWidget(self.enabled_switch)
-        self.status_setting_card.hBoxLayout.addSpacing(8)
-        self.status_setting_card.hBoxLayout.addWidget(self.enabled_status)
-        self.status_setting_card.hBoxLayout.addSpacing(16)
-        self.count_combo = ComboBox(settings)
-        for count in range(1, 4):
-            self.count_combo.addItem(str(count), userData=count)
-        self.name_edit = LineEdit(settings)
+        self.enabled_status = BodyLabel(self.tr("未启用"), status_widget)
+        status_layout.addWidget(self.enabled_switch)
+        status_layout.addWidget(self.enabled_status)
+
+        self.name_edit = LineEdit(self.settings_card)
         self.name_edit.setMinimumWidth(360)
         self.name_edit.setPlaceholderText(self.tr("角色显示名称"))
-        self.name_setting_card = SettingCard(FluentIcon.EDIT, self.tr("名称"), parent=settings)
-        self.name_setting_card.hBoxLayout.addWidget(self.name_edit)
-        self.name_setting_card.hBoxLayout.addSpacing(16)
-        self.count_setting_card = SettingCard(FluentIcon.TAG, self.tr("赠送次数"), parent=settings)
-        self.count_setting_card.hBoxLayout.addWidget(self.count_combo)
-        self.count_setting_card.hBoxLayout.addSpacing(16)
-        settings_layout.addWidget(self.status_setting_card)
-        settings_layout.addWidget(self.name_setting_card)
-        settings_layout.addWidget(self.count_setting_card)
-        layout.addWidget(settings)
+
+        self.count_combo = ComboBox(self.settings_card)
+        for count in range(1, 4):
+            self.count_combo.addItem(str(count), userData=count)
+
+        self.settings_card.addGroup(
+            FluentIcon.HEART,
+            self.tr("赠礼状态"),
+            "",
+            status_widget,
+        ).contentLabel.hide()
+        self.settings_card.addGroup(
+            FluentIcon.EDIT,
+            self.tr("名称"),
+            "",
+            self.name_edit,
+        ).contentLabel.hide()
+        self.settings_card.addGroup(
+            FluentIcon.TAG,
+            self.tr("赠送次数"),
+            "",
+            self.count_combo,
+        ).contentLabel.hide()
+
+        layout.addWidget(self.settings_card)
 
         self.name_card = SimpleCardWidget(editor)
         name_layout = QHBoxLayout(self.name_card)

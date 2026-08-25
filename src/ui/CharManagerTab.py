@@ -4,12 +4,16 @@ from pathlib import Path
 
 import requests
 from ok import og
+from ok.ui.qt.tasks.EditTaskTab import CodeEditor
+from ok.ui.qt.tasks.PythonHighlighter import PythonHighlighter
+from ok.ui.qt.util.app import show_info_bar
 from ok.ui.qt.widget.CustomTab import CustomTab
 from ok.util.explorer import open_explorer_folder, reveal_in_explorer
 from PySide6.QtCore import QEvent, Qt, QTimer, Signal, Slot
 from PySide6.QtGui import QAction, QColor
 from PySide6.QtWidgets import (
     QAbstractItemView,
+    QApplication,
     QFileDialog,
     QGraphicsBlurEffect,
     QHBoxLayout,
@@ -31,7 +35,7 @@ from qfluentwidgets import (
     InfoBarIcon,
     InfoBarPosition,
     LineEdit,
-    MessageBoxBase,
+    PlainTextEdit,
     PrimaryPushButton,
     PrimaryToolButton,
     PushButton,
@@ -51,6 +55,7 @@ from src.char.custom.CustomCharManager import EXTERNAL_CHARS_DIR, CustomCharMana
 from src.events import communicate
 from src.tasks.DebugCharTask import DebugCharTask
 from src.ui.features.characters.safety_dialog import confirm_external_code_import
+from src.ui.foundation.dialogs import MessageBoxBase
 from src.ui.foundation.images import cv_to_pixmap
 from src.ui.foundation.widgets.cards import BorderCardWidget
 from src.ui.foundation.widgets.search import (
@@ -95,6 +100,8 @@ class CharManagerTab(CustomTab):
         self.tr_code_source_unavailable = self.tr("无法读取 Python 脚本.")
         self.tr_external_save_failed = self.tr("外置代码应用失败")
         self.tr_external_save_msg = self.tr("已应用外置代码: {}")
+        self.tr_ask_ai = self.tr("询问AI")
+        self.tr_ask_ai_copied = self.tr("AI提示模版已复制。请粘贴到AI聊天机器人中。")
         self.tr_data_manager_hint = self.tr(
             "导入数据会完整覆盖当前用户资料.\n导出数据会导出完整用户资料."
         )
@@ -307,14 +314,21 @@ class CharManagerTab(CustomTab):
         self.combo_main_layout.addLayout(self.combo_header_layout)
 
         # 【区块 2：出招表编辑区】
-        self.combo_text = TextEdit(self.combo_main_widget)
+        self.combo_text = CodeEditor(self.combo_main_widget)
+        self.combo_text.setLineWrapMode(PlainTextEdit.LineWrapMode.NoWrap)
         self.combo_text.setPlaceholderText("skill,wait(0.5),l_click(3),ultimate")
         self.combo_text.setMinimumHeight(140)
+        self.highlighter = PythonHighlighter(self.combo_text.document())
         self.combo_main_layout.addWidget(self.combo_text, 1)
 
         # 【区块 4：动作按钮组 (靠右排列)】
         self.combo_actions_layout = QHBoxLayout()
         self.combo_actions_layout.addStretch(1)
+
+        self.ask_ai_btn = PushButton(FluentIcon.ROBOT, self.tr_ask_ai, self.combo_main_widget)
+        self.ask_ai_btn.setEnabled(False)
+        self.ask_ai_btn.clicked.connect(self.on_ask_ai)
+        self.combo_actions_layout.addWidget(self.ask_ai_btn)
 
         self.combo_test_btn = PushButton(
             FluentIcon.PLAY_SOLID, self.tr("运行一次测试"), self.combo_main_widget
@@ -682,14 +696,10 @@ class CharManagerTab(CustomTab):
 
             dialog.setProperty("combos_modified", True)
             populate_combos(target_selected_id=new_impl_id)
-            InfoBar.success(
-                title=self.tr_copy_success,
-                content=self.tr_copy_success_msg.format(new_impl_id.removeprefix("external:")),
-                orient=Qt.Orientation.Horizontal,
-                isClosable=True,
-                position=InfoBarPosition.TOP,
-                duration=2500,
-                parent=dialog,
+            show_info_bar(
+                dialog,
+                self.tr_copy_success_msg.format(new_impl_id.removeprefix("external:")),
+                self.tr_copy_success,
             )
 
         copy_builtin_action.triggered.connect(on_copy_builtin)
@@ -726,15 +736,7 @@ class CharManagerTab(CustomTab):
             editor_text.clear()
 
             deleted_names = ", ".join([name for _, name in deletable_items])
-            InfoBar.success(
-                title=self.tr_del_success,
-                content=self.tr_del_combo_msg.format(deleted_names),
-                orient=Qt.Orientation.Horizontal,
-                isClosable=True,
-                position=InfoBarPosition.TOP,
-                duration=2000,
-                parent=dialog,
-            )
+            show_info_bar(dialog, self.tr_del_combo_msg.format(deleted_names), self.tr_del_success)
 
         batch_delete_action.triggered.connect(on_batch_delete)
 
@@ -838,15 +840,7 @@ class CharManagerTab(CustomTab):
         self.manager.validate_db()
         self.refresh_list()
 
-        InfoBar.success(
-            title=self.tr_import_success,
-            content=self.tr_import_msg.format(imported),
-            orient=Qt.Orientation.Horizontal,
-            isClosable=True,
-            position=InfoBarPosition.TOP,
-            duration=2000,
-            parent=self.window(),
-        )
+        show_info_bar(self.window(), self.tr_import_msg.format(imported), self.tr_import_success)
 
     def on_char_selected(self, item):
         if not item:
@@ -940,10 +934,11 @@ class CharManagerTab(CustomTab):
 
     def on_combo_changed(self, combo_name, combo_id=None):
         if combo_name == "":
-            self.combo_text.setText(self.tr_unbound_text)
+            self.combo_text.setPlainText(self.tr_unbound_text)
             self.combo_text.setReadOnly(True)
             self.combo_text.setEnabled(False)
             self.combo_save_btn.setEnabled(True)
+            self.ask_ai_btn.setEnabled(False)
             self.combo_test_btn.setEnabled(False)
             self.combo_select.setText(combo_name)
             self.combo_select.setReadOnly(False)
@@ -959,6 +954,7 @@ class CharManagerTab(CustomTab):
             self.combo_text.setReadOnly(True)
             self.combo_text.setEnabled(True)
             self.combo_save_btn.setEnabled(self.current_char_id is not None)
+            self.ask_ai_btn.setEnabled(False)
             self.combo_test_btn.setEnabled(getattr(og.app, "debug", False))
             self.combo_select.setReadOnly(False)
             return
@@ -970,6 +966,7 @@ class CharManagerTab(CustomTab):
             self.combo_text.setReadOnly(False)
             self.combo_text.setEnabled(True)
             self.combo_save_btn.setEnabled(bool(source))
+            self.ask_ai_btn.setEnabled(bool(source))
             self.combo_test_btn.setEnabled(getattr(og.app, "debug", False))
             self.combo_select.setReadOnly(False)
             return
@@ -977,17 +974,53 @@ class CharManagerTab(CustomTab):
         self.combo_text.setReadOnly(False)
         self.combo_text.setEnabled(True)
         self.combo_save_btn.setEnabled(True)
+        self.ask_ai_btn.setEnabled(False)
         self.combo_select.setReadOnly(False)
 
         # If the combo matches an existing one, update the text area to show its content
         combo_content = self.manager.get_combo(combo_id)
         if combo_content:
-            self.combo_text.setText(combo_content)
+            self.combo_text.setPlainText(combo_content)
         else:
             self.combo_text.clear()
 
         # Update test button state
         self.combo_test_btn.setEnabled(True)
+
+    def on_ask_ai(self):
+        combo_id = self._resolve_combo_id(self.combo_select.currentText())
+        if self.manager.is_builtin_impl(combo_id) or not self.manager.is_registered_impl(combo_id):
+            return
+        entry = char_registry.get(combo_id)
+        if entry is None or entry.source != "external":
+            return
+
+        source = self.combo_text.toPlainText().strip()
+        if not source:
+            return
+        class_name = entry.char_cls.__name__
+        SOURCE = f"```python\n{source}\n```"
+        BASE_CHAR_URL = (
+            "https://raw.githubusercontent.com/BnanZ0/ok-nte/refs/heads/main/src/char/BaseChar.py"
+        )
+        COMBAT_PLANNER_URL = "https://raw.githubusercontent.com/BnanZ0/ok-nte/refs/heads/main/docs/zh-CN/development/combat-planner.md"
+        prompt = self.tr(
+            "{SOURCE}\n\n"
+            "我想实现: \n\n"
+            "请修改上面完整的 {class_name} 角色自动化代码。\n\n"
+            "只返回整个文件完整修改后的 Python 代码，不要返回补丁或解释。\n"
+            "保持类名为 {class_name}。保留仍然需要的 import。\n\n"
+            "在思考辅助方法、任务 API、状态、切人、冷却和战斗流程时, 请参考: \n"
+            "BaseChar 角色基类: {BASE_CHAR_URL}\n"
+            "Combat Planner 开发指南: {COMBAT_PLANNER_URL}"
+        ).format(
+            SOURCE=SOURCE,
+            class_name=class_name,
+            BASE_CHAR_URL=BASE_CHAR_URL,
+            COMBAT_PLANNER_URL=COMBAT_PLANNER_URL,
+        )
+        QApplication.clipboard().setText(prompt)
+        show_info_bar(self.window(), self.tr_ask_ai_copied, self.tr_copy_success)
 
     def on_test_combo(self):
         combo_input = self.combo_select.currentText().strip()
@@ -1109,18 +1142,14 @@ class CharManagerTab(CustomTab):
             self._reload_combo_options()
             self._set_combo_selection_by_id(combo_id)
 
-            InfoBar.success(
-                title=self.tr_save_success,
-                content=(
+            show_info_bar(
+                self.window(),
+                (
                     self.tr_external_save_msg.format(combo_name)
                     if is_code_impl and not is_builtin_impl
                     else self.tr_combo_msg.format(combo_name)
                 ),
-                orient=Qt.Orientation.Horizontal,
-                isClosable=True,
-                position=InfoBarPosition.TOP,
-                duration=2000,
-                parent=self.window(),
+                self.tr_save_success,
             )
 
     def on_delete_char(self):
@@ -1137,14 +1166,8 @@ class CharManagerTab(CustomTab):
         self.delete_char_btn.setEnabled(False)
         self.refresh_list()
 
-        InfoBar.success(
-            title=self.tr_del_success,
-            content=self.tr_del_char_msg.format(char_name_to_delete),
-            orient=Qt.Orientation.Horizontal,
-            isClosable=True,
-            position=InfoBarPosition.TOP,
-            duration=2000,
-            parent=self.window(),
+        show_info_bar(
+            self.window(), self.tr_del_char_msg.format(char_name_to_delete), self.tr_del_success
         )
 
     def _show_edit_dialog(self, old_name):
@@ -1195,15 +1218,7 @@ class CharManagerTab(CustomTab):
         if items:
             self.char_list_widget.setCurrentItem(items[0])
 
-        InfoBar.success(
-            title=self.tr_save_success,
-            content=self.tr_rename_msg.format(new_name),
-            orient=Qt.Orientation.Horizontal,
-            isClosable=True,
-            position=InfoBarPosition.TOP,
-            duration=2000,
-            parent=self.window(),
-        )
+        show_info_bar(self.window(), self.tr_rename_msg.format(new_name), self.tr_save_success)
 
     def on_unbind_combo(self):
         if not self.current_char_id:
@@ -1214,14 +1229,8 @@ class CharManagerTab(CustomTab):
         # 刷新列表和右侧界面
         self._render_right_panel()
 
-        InfoBar.success(
-            title=self.tr_unbind_success,
-            content=self.tr_unbind_msg.format(self.current_char_name),
-            orient=Qt.Orientation.Horizontal,
-            isClosable=True,
-            position=InfoBarPosition.TOP,
-            duration=2000,
-            parent=self.window(),
+        show_info_bar(
+            self.window(), self.tr_unbind_msg.format(self.current_char_name), self.tr_unbind_success
         )
 
     def on_delete_combo(self):
@@ -1246,15 +1255,7 @@ class CharManagerTab(CustomTab):
         else:
             self.on_combo_changed("")
 
-        InfoBar.success(
-            title=self.tr_del_success,
-            content=self.tr_del_combo_msg.format(combo_name),
-            orient=Qt.Orientation.Horizontal,
-            isClosable=True,
-            position=InfoBarPosition.TOP,
-            duration=2000,
-            parent=self.window(),
-        )
+        show_info_bar(self.window(), self.tr_del_combo_msg.format(combo_name), self.tr_del_success)
 
     def generate_doc(self, start_translation: bool = True):
         try:

@@ -706,7 +706,7 @@ class CustomCharManager:
         return self._db.clear_fixed_team_preset()
 
     def get_fixed_team(self):
-        """Compatibility facade for combat code that reads fixed slots."""
+        """Return the currently selected fixed team preset."""
         return self._db.get_fixed_team()
 
     def export_custom_data(self, zip_path: str | Path) -> bool:

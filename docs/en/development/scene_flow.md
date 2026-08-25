@@ -59,7 +59,7 @@ StepPolicy(max_attempts=None, interval=0.0)
 - `max_attempts`: The maximum number of times the same action may run. `None` means unlimited.
 - `interval`: The minimum delay before running the same action again. It does not replace throttling for the click or key press itself.
 
-`StepPolicy` does not manage action duration. Long actions own their domain-specific timeout, such as the fishing bar's `CONTROL_TIMEOUT`. This follows the same responsibility split as the MAA Pipeline: the pipeline recognizes successor scenes after an action completes, while the node layer provides `maxTimes`, error routing, and delays around the action rather than one shared action timeout. See the [MAA task flow protocol](https://docs.maa.plus/zh-cn/protocol/task-schema.html).
+`StepPolicy` does not manage action duration. Long actions own their domain-specific timeout, such as the fishing bar's `CONTROL_TIMEOUT`. The pipeline recognizes successor scenes only after an action completes; node policies primarily provide retry counts, minimum retry intervals, and error routing rather than managing business action timeouts.
 
 If an action raises `WaitFailedException`:
 

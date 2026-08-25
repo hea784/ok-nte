@@ -48,7 +48,6 @@ class CustomCharDb:
 
     @staticmethod
     def _default_fixed_team() -> dict:
-        """Compatibility view used by combat code while it reads fixed slots."""
         return {"enabled": False, "slots": [{"char_id": "", "impl_id": ""} for _ in range(4)]}
 
     @staticmethod
@@ -65,17 +64,14 @@ class CustomCharDb:
         }
 
     @classmethod
-    def _normalize_fixed_team_slot(cls, slot) -> dict:
+    def _normalize_team_slot(cls, slot) -> dict:
         slot = slot if isinstance(slot, dict) else {}
         char_id = cls._as_text(slot.get("char_id", "")).strip()
         impl_id = cls._as_text(slot.get("impl_id", "")).strip()
-        if cls._is_blank_text(char_id):
-            char_id = ""
-            impl_id = ""
         return {"char_id": char_id, "impl_id": impl_id}
 
     @classmethod
-    def _normalize_team_presets(cls, presets, valid_char_ids, valid_impl_ids) -> list[dict]:
+    def _normalize_team_presets(cls, presets, valid_char_ids, is_valid_impl) -> list[dict]:
         if not isinstance(presets, list):
             return []
 
@@ -98,15 +94,16 @@ class CustomCharDb:
             seen_char_ids = set()
             if isinstance(raw_slots, list):
                 for index in range(min(4, len(raw_slots))):
-                    slot = cls._normalize_fixed_team_slot(raw_slots[index])
+                    slot = cls._normalize_team_slot(raw_slots[index])
                     char_id = slot["char_id"]
                     impl_id = slot["impl_id"]
-                    if char_id not in valid_char_ids or char_id in seen_char_ids:
-                        slot = {"char_id": "", "impl_id": ""}
-                    else:
-                        seen_char_ids.add(char_id)
-                        if impl_id and impl_id not in valid_impl_ids:
-                            slot["impl_id"] = ""
+                    if impl_id and not is_valid_impl(impl_id):
+                        slot["impl_id"] = ""
+                    if char_id:
+                        if char_id not in valid_char_ids or char_id in seen_char_ids:
+                            slot["char_id"] = ""
+                        else:
+                            seen_char_ids.add(char_id)
                     preset["slots"][index] = slot
 
             preset["is_fixed"] = bool(raw_preset.get("is_fixed", False)) and not has_fixed_preset
@@ -286,22 +283,13 @@ class CustomCharDb:
                 del db["features"][feature_id]
                 modified = True
 
-        valid_impl_ids = set(db["combos"])
-        valid_impl_ids.update(
-            impl_id
-            for _impl_name, impl_id in self.context.iter_builtin_impl_items()
-            if isinstance(impl_id, str)
-        )
-        # Registered external implementations are intentionally allowed even when their
-        # source is temporarily unavailable; character records use the same convention.
-        valid_impl_ids.update(
-            self._as_text(record.get("impl_id", "")).strip()
-            for record in db["characters"].values()
-            if isinstance(record, dict)
-            and self._as_text(record.get("impl_id", "")).strip().startswith("external:")
-        )
+        is_registered_impl = self.context.is_registered_impl or self.context.is_builtin_impl
+
+        def is_valid_impl(impl_id: str) -> bool:
+            return impl_id in db["combos"] or is_registered_impl(impl_id)
+
         normalized_presets = self._normalize_team_presets(
-            db.get("team_presets"), set(db["characters"]), valid_impl_ids
+            db.get("team_presets"), set(db["characters"]), is_valid_impl
         )
         if normalized_presets != db.get("team_presets"):
             db["team_presets"] = normalized_presets
@@ -485,7 +473,6 @@ class CustomCharDb:
                 for slot in preset["slots"]:
                     if slot["char_id"] == char_id:
                         slot["char_id"] = ""
-                        slot["impl_id"] = ""
             self._save_locked()
             return feature_ids
 
@@ -588,30 +575,19 @@ class CustomCharDb:
                     return False
                 seen_char_ids = set()
                 normalized_slots = []
-                valid_impl_ids = set(self._data["combos"])
-                valid_impl_ids.update(
-                    self._as_text(record.get("impl_id", "")).strip()
-                    for record in self._data["characters"].values()
-                    if isinstance(record, dict)
-                    and self._as_text(record.get("impl_id", "")).strip().startswith("external:")
-                )
                 for index in range(4):
                     raw_slot = slots[index] if index < len(slots) else {}
-                    slot = self._normalize_fixed_team_slot(raw_slot)
+                    slot = self._normalize_team_slot(raw_slot)
                     char_id = slot["char_id"]
                     impl_id = slot["impl_id"]
-                    if not char_id:
-                        normalized_slots.append(slot)
-                        continue
-                    if char_id not in self._data["characters"] or char_id in seen_char_ids:
+                    if impl_id and not self.has_impl_id(impl_id):
                         return False
-                    if (
-                        impl_id
-                        and impl_id not in valid_impl_ids
-                        and not self.context.is_builtin_impl(impl_id)
+                    if char_id and (
+                        char_id not in self._data["characters"] or char_id in seen_char_ids
                     ):
                         return False
-                    seen_char_ids.add(char_id)
+                    if char_id:
+                        seen_char_ids.add(char_id)
                     normalized_slots.append(slot)
 
             if name is not None:
@@ -666,7 +642,7 @@ class CustomCharDb:
             return changed
 
     def get_fixed_team(self) -> dict:
-        """Return the fixed preset through the legacy combat-facing shape."""
+        """Return the fixed team preset, if one is selected."""
         with self._lock:
             preset = next(
                 (preset for preset in self._data["team_presets"] if preset["is_fixed"]), None

@@ -12,7 +12,7 @@ from src.process_feature import process_feature
 if "PATH" not in os.environ:
     os.environ["PATH"] = ""
 
-version = "v1.3.9"
+version = "v1.3.10"
 # 不需要修改version, Github Action打包会自动修改
 
 key_config_option = ConfigOption(
@@ -150,7 +150,7 @@ config = {
             "sponsor": "https://cnb.cool/BnanZ0/ok-nte-update/-/blob/main/SPONSOR.md",
             "share": "下载 OK-NTE https://ok-script.com/ok-nte",
             "faq": "https://ok-script.com/ok-nte",
-            "qq_group": "https://qm.qq.com/q/bIiSLoUTVS",
+            "qq_group": "https://qm.qq.com/q/ZJaIaEb5iE",
             "qq_channel": "https://pd.qq.com/s/djmm6l44y",
         },
     },

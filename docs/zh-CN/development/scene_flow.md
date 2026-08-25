@@ -59,7 +59,7 @@ StepPolicy(max_attempts=None, interval=0.0)
 - `max_attempts`: 同一个 action 最多执行几次。`None` 表示不限制。
 - `interval`: 同一个 action 再次执行前的最小间隔。它不替代点击或按键自身的节流。
 
-`StepPolicy` 不管理 action 的执行时长。长动作自己拥有领域 timeout, 例如钓鱼控条的 `CONTROL_TIMEOUT`。这和 MAA Pipeline 的职责一致: Pipeline 在 action 完成后才继续识别后继步骤; 节点层主要提供 `maxTimes`、错误路由以及 action 前后的 delay, 而非统一的 action timeout。[MAA 任务流程协议](https://docs.maa.plus/zh-cn/protocol/task-schema.html)
+`StepPolicy` 不管理 action 的执行时长。长动作自己拥有领域 timeout, 例如钓鱼控条的 `CONTROL_TIMEOUT`。Pipeline 在 action 完成后才继续识别后继步骤; 节点策略主要提供重复次数、最小重试间隔与错误路由, 而非统一接管业务 action timeout。
 
 如果 action 抛出 `WaitFailedException`:
 
