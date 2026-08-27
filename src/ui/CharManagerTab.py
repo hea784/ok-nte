@@ -56,6 +56,7 @@ from src.events import communicate
 from src.tasks.DebugCharTask import DebugCharTask
 from src.ui.features.characters.safety_dialog import confirm_external_code_import
 from src.ui.foundation.dialogs import MessageBoxBase
+from src.ui.foundation.i18n import is_chinese
 from src.ui.foundation.images import cv_to_pixmap
 from src.ui.foundation.widgets.cards import BorderCardWidget
 from src.ui.foundation.widgets.search import (
@@ -114,7 +115,7 @@ class CharManagerTab(CustomTab):
             "关于编写角色出招表的指南, 请参考 <a href='{doc_url}'>文档</a>."
         ).format(
             refresh=self.tr("刷新列表"),
-            doc_url=cnb_doc_url if "zh" in og.app.locale.name() else gh_doc_url,
+            doc_url=cnb_doc_url if is_chinese() else gh_doc_url,
         )
         self.tr_import_failed = self.tr("导入失败")
         self.tr_import_success = self.tr("导入成功")
@@ -814,7 +815,7 @@ class CharManagerTab(CustomTab):
             return
         downloads_path = Path.home() / "Downloads"
         file_path, _ = QFileDialog.getOpenFileName(
-            self, self.tr_import_data, str(downloads_path), "Zip Files (*.zip)"
+            self, self.tr_import_data, str(downloads_path), "ZIP (*.zip)"
         )
         if not file_path:
             return

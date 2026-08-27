@@ -1,5 +1,6 @@
 import json
 import os
+import re
 import shutil
 import uuid
 import zipfile
@@ -25,6 +26,11 @@ CUSTOM_CHARS_DIR = get_path_relative_to_exe("custom_chars")
 FEATURES_DIR = get_path_relative_to_exe("custom_chars", "features")
 DB_PATH = get_path_relative_to_exe("custom_chars", "db.json")
 EXTERNAL_CHARS_DIR = get_path_relative_to_exe("custom_chars", "external_chars")
+WINDOWS_RESERVED_NAMES = frozenset(
+    {"CON", "PRN", "AUX", "NUL"}
+    | {f"COM{index}" for index in range(1, 10)}
+    | {f"LPT{index}" for index in range(1, 10)}
+)
 
 
 class CustomCharManager:
@@ -285,6 +291,85 @@ class CustomCharManager:
     def get_external_impl_source(self, impl_id: str) -> str:
         return self._read_impl_source(self._external_impl_path(impl_id), "external")
 
+    @staticmethod
+    def validate_external_directory(directory: str) -> str:
+        """Return a safe single directory name for managed external sources."""
+        directory = str(directory or "")
+        if not directory:
+            raise ValueError("External character directory cannot be empty")
+        if directory != directory.strip() or directory.rstrip(" .") != directory:
+            raise ValueError("External character directory cannot end with a space or dot")
+        if directory.startswith("_"):
+            raise ValueError("External character directory cannot start with an underscore")
+        if directory in {".", ".."} or ".." in directory:
+            raise ValueError("External character directory cannot contain '..'")
+        stem = directory.split(".", 1)[0].upper()
+        if stem in WINDOWS_RESERVED_NAMES:
+            raise ValueError("External character directory cannot use a Windows reserved name")
+        if not re.fullmatch(r"[\w.-]+", directory):
+            raise ValueError("External character directory contains unsupported characters")
+        return directory
+
+    @classmethod
+    def _external_directory_path(cls, directory: str) -> Path | None:
+        try:
+            directory = cls.validate_external_directory(directory)
+        except ValueError:
+            return None
+        root = Path(EXTERNAL_CHARS_DIR).resolve()
+        candidate = (root / directory).resolve()
+        try:
+            candidate.relative_to(root)
+        except ValueError:
+            return None
+        return candidate
+
+    def install_external_sources(self, directory: str, sources: dict[str, str]) -> tuple[bool, str]:
+        """Create one isolated external-code directory through the shared manager."""
+        target_directory = self._external_directory_path(directory)
+        if target_directory is None:
+            return False, "External character directory contains unsupported characters"
+        if target_directory.exists():
+            return False, "External character directory already exists"
+        if not sources:
+            return True, ""
+
+        filenames = set()
+        for filename, source in sources.items():
+            if (
+                not isinstance(filename, str)
+                or Path(filename).name != filename
+                or not filename.lower().endswith(".py")
+                or filename in filenames
+                or not isinstance(source, str)
+            ):
+                return False, "External character sources are invalid"
+            filenames.add(filename)
+
+        try:
+            target_directory.mkdir(parents=True, exist_ok=False)
+            for filename, source in sources.items():
+                (target_directory / filename).write_text(source, encoding="utf-8")
+        except OSError as error:
+            if target_directory.exists():
+                shutil.rmtree(target_directory, ignore_errors=True)
+            logger.error("Failed to install external character sources", error)
+            return False, str(error)
+
+        from src.char.core.CharRegistry import char_registry
+
+        char_registry.rescan_external()
+        return True, ""
+
+    def remove_external_sources(self, directory: str) -> None:
+        """Remove a newly installed external-code directory and refresh the registry."""
+        target_directory = self._external_directory_path(directory)
+        if target_directory is not None and target_directory.is_dir():
+            shutil.rmtree(target_directory, ignore_errors=True)
+        from src.char.core.CharRegistry import char_registry
+
+        char_registry.rescan_external()
+
     def update_external_impl_source(self, impl_id: str, source_code: str) -> tuple[bool, str]:
         source_path = self._external_impl_path(impl_id)
         if source_path is None or not source_path.is_file():
@@ -332,15 +417,10 @@ class CustomCharManager:
         if not source_code:
             return False, "", "Could not read builtin character source code"
 
-        import re
-
-        directory = str(directory or "").strip()
-        if not directory:
-            return False, "", "External character directory is required"
-        if not re.fullmatch(r"[\w-]+", directory):
-            return False, "", "External character directory contains unsupported characters"
-        if directory.startswith("_"):
-            return False, "", "External character directory cannot start with an underscore"
+        try:
+            directory = self.validate_external_directory(directory)
+        except ValueError as error:
+            return False, "", str(error)
 
         target_file_stem = str(filename or "").strip()
         if target_file_stem.lower().endswith(".py"):

@@ -1317,3 +1317,123 @@ msgstr "확인"
 
 msgid "设置"
 msgstr "설정"
+
+msgid "上传"
+msgstr "업로드"
+
+msgid "作者"
+msgstr "작성자"
+
+msgid "全部作者"
+msgstr "모든 작성자"
+
+msgid "全部角色"
+msgstr "모든 캐릭터"
+
+msgid "内置"
+msgstr "내장"
+
+msgid "刷新"
+msgstr "새로 고침"
+
+msgid "加载失败: {}"
+msgstr "로드 실패: {}"
+
+msgid "取消"
+msgstr "취소"
+
+msgid "外置"
+msgstr "외부"
+
+msgid "外置代码目录"
+msgstr "외부 코드 디렉터리"
+
+msgid "大小"
+msgstr "크기"
+
+msgid "导入"
+msgstr "가져오기"
+
+msgid "导入完成"
+msgstr "가져오기 완료"
+
+msgid "导出"
+msgstr "내보내기"
+
+msgid "导出完成"
+msgstr "내보내기 완료"
+
+msgid "导出社区方案"
+msgstr "커뮤니티 프리셋 내보내기"
+
+msgid "导出队伍"
+msgstr "팀 내보내기"
+
+msgid "工坊"
+msgstr "워크숍"
+
+msgid "工坊会显示来自公开仓库的 ZIP 方案."
+msgstr "워크숍에는 공개 저장소의 ZIP 프리셋이 표시됩니다."
+
+msgid "已创建方案: {}"
+msgstr "프리셋이 생성되었습니다: {}"
+
+msgid "已加载 {} 个方案"
+msgstr "{}개의 프리셋을 불러왔습니다"
+
+msgid "当前方案没有可导出的出招表."
+msgstr "현재 프리셋에는 내보낼 콤보표가 없습니다."
+
+msgid "成员"
+msgstr "멤버"
+
+msgid "描述"
+msgstr "설명"
+
+msgid "搜索名称, 说明, 作者或角色"
+msgstr "이름, 설명, 작성자 또는 캐릭터 검색"
+
+msgid "操作失败"
+msgstr "작업 실패"
+
+msgid "方案说明"
+msgstr "프리셋 설명"
+
+msgid "无法导出"
+msgstr "내보낼 수 없음"
+
+msgid "更新时间"
+msgstr "업데이트 시간"
+
+msgid "本地方案名称"
+msgstr "로컬 프리셋 이름"
+
+msgid "正在加载工坊..."
+msgstr "워크숍 로드 중..."
+
+msgid "没有说明."
+msgstr "설명 없음."
+
+msgid "版本"
+msgstr "버전"
+
+msgid "社区方案"
+msgstr "커뮤니티 프리셋"
+
+msgid "社区方案含外置代码; 导入后会以本软件权限运行, 请仅导入可信来源."
+msgstr "커뮤니티 프리셋에는 외부 코드가 포함될 수 있습니다. 가져온 후 이 소프트웨어의 권한으로 실행되므로 신뢰할 수 있는 출처에서만 가져오세요."
+
+msgid "角色阵容"
+msgstr "팀 구성"
+
+msgid "调整筛选条件或稍后刷新工坊."
+msgstr "필터 조건을 조정하거나 나중에 워크숍을 새로 고치세요."
+
+msgid "返回"
+msgstr "돌아가기"
+
+msgid "选择一个方案"
+msgstr "프리셋 선택"
+
+msgid "队伍配置"
+msgstr "팀 구성"

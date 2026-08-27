@@ -1049,3 +1049,123 @@ msgstr "OK"
 
 msgid "设置"
 msgstr "Configurações"
+
+msgid "上传"
+msgstr "Upload"
+
+msgid "作者"
+msgstr "Autor"
+
+msgid "全部作者"
+msgstr "Todos os autores"
+
+msgid "全部角色"
+msgstr "Todos os personagens"
+
+msgid "内置"
+msgstr "Integrado"
+
+msgid "刷新"
+msgstr "Atualizar"
+
+msgid "加载失败: {}"
+msgstr "Falha ao carregar: {}"
+
+msgid "取消"
+msgstr "Cancelar"
+
+msgid "外置"
+msgstr "Externo"
+
+msgid "外置代码目录"
+msgstr "Diretório de código externo"
+
+msgid "大小"
+msgstr "Tamanho"
+
+msgid "导入"
+msgstr "Importar"
+
+msgid "导入完成"
+msgstr "Importação concluída"
+
+msgid "导出"
+msgstr "Exportar"
+
+msgid "导出完成"
+msgstr "Exportação concluída"
+
+msgid "导出社区方案"
+msgstr "Exportar predefinição da comunidade"
+
+msgid "导出队伍"
+msgstr "Exportar equipe"
+
+msgid "工坊"
+msgstr "Oficina"
+
+msgid "工坊会显示来自公开仓库的 ZIP 方案."
+msgstr "A oficina exibe predefinições ZIP do repositório público."
+
+msgid "已创建方案: {}"
+msgstr "Predefinição criada: {}"
+
+msgid "已加载 {} 个方案"
+msgstr "{} predefinições carregadas"
+
+msgid "当前方案没有可导出的出招表."
+msgstr "A predefinição atual não tem uma tabela de combos para exportar."
+
+msgid "成员"
+msgstr "Membros"
+
+msgid "描述"
+msgstr "Descrição"
+
+msgid "搜索名称, 说明, 作者或角色"
+msgstr "Pesquisar nome, descrição, autor ou personagem"
+
+msgid "操作失败"
+msgstr "Operação falhou"
+
+msgid "方案说明"
+msgstr "Descrição da predefinição"
+
+msgid "无法导出"
+msgstr "Não é possível exportar"
+
+msgid "更新时间"
+msgstr "Atualizado em"
+
+msgid "本地方案名称"
+msgstr "Nome da predefinição local"
+
+msgid "正在加载工坊..."
+msgstr "Carregando a oficina..."
+
+msgid "没有说明."
+msgstr "Sem descrição."
+
+msgid "版本"
+msgstr "Versão"
+
+msgid "社区方案"
+msgstr "Predefinição da comunidade"
+
+msgid "社区方案含外置代码; 导入后会以本软件权限运行, 请仅导入可信来源."
+msgstr "As predefinições da comunidade podem conter código externo; após a importação, ele será executado com as permissões deste software. Importe apenas de fontes confiáveis."
+
+msgid "角色阵容"
+msgstr "Formação da equipe"
+
+msgid "调整筛选条件或稍后刷新工坊."
+msgstr "Ajuste os filtros ou atualize a oficina mais tarde."
+
+msgid "返回"
+msgstr "Voltar"
+
+msgid "选择一个方案"
+msgstr "Selecione uma predefinição"
+
+msgid "队伍配置"
+msgstr "Configuração da equipe"

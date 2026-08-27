@@ -1317,3 +1317,123 @@ msgstr "Aceptar"
 
 msgid "设置"
 msgstr "Ajustes"
+
+msgid "上传"
+msgstr "Subir"
+
+msgid "作者"
+msgstr "Autor"
+
+msgid "全部作者"
+msgstr "Todos los autores"
+
+msgid "全部角色"
+msgstr "Todos los personajes"
+
+msgid "内置"
+msgstr "Integrado"
+
+msgid "刷新"
+msgstr "Actualizar"
+
+msgid "加载失败: {}"
+msgstr "Error al cargar: {}"
+
+msgid "取消"
+msgstr "Cancelar"
+
+msgid "外置"
+msgstr "Externo"
+
+msgid "外置代码目录"
+msgstr "Directorio de código externo"
+
+msgid "大小"
+msgstr "Tamaño"
+
+msgid "导入"
+msgstr "Importar"
+
+msgid "导入完成"
+msgstr "Importación completada"
+
+msgid "导出"
+msgstr "Exportar"
+
+msgid "导出完成"
+msgstr "Exportación completada"
+
+msgid "导出社区方案"
+msgstr "Exportar preset comunitario"
+
+msgid "导出队伍"
+msgstr "Exportar equipo"
+
+msgid "工坊"
+msgstr "Taller"
+
+msgid "工坊会显示来自公开仓库的 ZIP 方案."
+msgstr "El taller muestra presets ZIP del repositorio público."
+
+msgid "已创建方案: {}"
+msgstr "Preset creado: {}"
+
+msgid "已加载 {} 个方案"
+msgstr "Se cargaron {} presets"
+
+msgid "当前方案没有可导出的出招表."
+msgstr "El preset actual no tiene una tabla de combos para exportar."
+
+msgid "成员"
+msgstr "Miembros"
+
+msgid "描述"
+msgstr "Descripción"
+
+msgid "搜索名称, 说明, 作者或角色"
+msgstr "Buscar por nombre, descripción, autor o personaje"
+
+msgid "操作失败"
+msgstr "Operación fallida"
+
+msgid "方案说明"
+msgstr "Descripción del preset"
+
+msgid "无法导出"
+msgstr "No se puede exportar"
+
+msgid "更新时间"
+msgstr "Actualizado"
+
+msgid "本地方案名称"
+msgstr "Nombre del preset local"
+
+msgid "正在加载工坊..."
+msgstr "Cargando el taller..."
+
+msgid "没有说明."
+msgstr "Sin descripción."
+
+msgid "版本"
+msgstr "Versión"
+
+msgid "社区方案"
+msgstr "Preset comunitario"
+
+msgid "社区方案含外置代码; 导入后会以本软件权限运行, 请仅导入可信来源."
+msgstr "Los presets comunitarios pueden contener código externo; después de importarlos, se ejecutan con los permisos de este software. Importa solo de fuentes confiables."
+
+msgid "角色阵容"
+msgstr "Personajes del equipo"
+
+msgid "调整筛选条件或稍后刷新工坊."
+msgstr "Ajusta los filtros o actualiza el taller más tarde."
+
+msgid "返回"
+msgstr "Volver"
+
+msgid "选择一个方案"
+msgstr "Selecciona un preset"
+
+msgid "队伍配置"
+msgstr "Configuración del equipo"

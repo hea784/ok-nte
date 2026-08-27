@@ -1317,3 +1317,123 @@ msgstr "OK"
 
 msgid "设置"
 msgstr "設定"
+
+msgid "上传"
+msgstr "アップロード"
+
+msgid "作者"
+msgstr "作者"
+
+msgid "全部作者"
+msgstr "すべての作者"
+
+msgid "全部角色"
+msgstr "すべてのキャラクター"
+
+msgid "内置"
+msgstr "内蔵"
+
+msgid "刷新"
+msgstr "更新"
+
+msgid "加载失败: {}"
+msgstr "読み込みに失敗しました: {}"
+
+msgid "取消"
+msgstr "キャンセル"
+
+msgid "外置"
+msgstr "外部"
+
+msgid "外置代码目录"
+msgstr "外部コードディレクトリ"
+
+msgid "大小"
+msgstr "サイズ"
+
+msgid "导入"
+msgstr "インポート"
+
+msgid "导入完成"
+msgstr "インポート完了"
+
+msgid "导出"
+msgstr "エクスポート"
+
+msgid "导出完成"
+msgstr "エクスポート完了"
+
+msgid "导出社区方案"
+msgstr "コミュニティプリセットをエクスポート"
+
+msgid "导出队伍"
+msgstr "チームをエクスポート"
+
+msgid "工坊"
+msgstr "ワークショップ"
+
+msgid "工坊会显示来自公开仓库的 ZIP 方案."
+msgstr "ワークショップには公開リポジトリの ZIP プリセットが表示されます。"
+
+msgid "已创建方案: {}"
+msgstr "プリセットを作成しました: {}"
+
+msgid "已加载 {} 个方案"
+msgstr "{} 件のプリセットを読み込みました"
+
+msgid "当前方案没有可导出的出招表."
+msgstr "現在のプリセットにはエクスポートできるコンボ表がありません。"
+
+msgid "成员"
+msgstr "メンバー"
+
+msgid "描述"
+msgstr "説明"
+
+msgid "搜索名称, 说明, 作者或角色"
+msgstr "名前、説明、作者、キャラクターを検索"
+
+msgid "操作失败"
+msgstr "操作に失敗しました"
+
+msgid "方案说明"
+msgstr "プリセットの説明"
+
+msgid "无法导出"
+msgstr "エクスポートできません"
+
+msgid "更新时间"
+msgstr "更新日時"
+
+msgid "本地方案名称"
+msgstr "ローカルプリセット名"
+
+msgid "正在加载工坊..."
+msgstr "ワークショップを読み込み中..."
+
+msgid "没有说明."
+msgstr "説明なし。"
+
+msgid "版本"
+msgstr "バージョン"
+
+msgid "社区方案"
+msgstr "コミュニティプリセット"
+
+msgid "社区方案含外置代码; 导入后会以本软件权限运行, 请仅导入可信来源."
+msgstr "コミュニティプリセットには外部コードが含まれる場合があります。インポート後はこのソフトウェアの権限で実行されるため、信頼できるソースからのみインポートしてください。"
+
+msgid "角色阵容"
+msgstr "チーム構成"
+
+msgid "调整筛选条件或稍后刷新工坊."
+msgstr "フィルター条件を調整するか、後でもう一度ワークショップを更新してください。"
+
+msgid "返回"
+msgstr "戻る"
+
+msgid "选择一个方案"
+msgstr "プリセットを選択"
+
+msgid "队伍配置"
+msgstr "チーム設定"

@@ -544,7 +544,7 @@ class AutoHeistTask(NTEOneTimeTask, BaseCombatTask):
 
     def has_extract_panel(self):
         """检查当前画面是否出现“安全撤离”面板。"""
-        return self.find_one(Labels.heist_exit_panel)
+        return self.find_one(Labels.heist_exit_panel, threshold=0.8)
 
     def is_in_team_outside_heist(self):
         """判断角色已回到队伍界面，但已经不在粉爪副本内。"""
@@ -552,13 +552,17 @@ class AutoHeistTask(NTEOneTimeTask, BaseCombatTask):
 
     # 离开粉爪副本
     def exit_heist(self):
-        self.wait_until(
+        if not self.wait_until(
             self.has_extract_panel,
             pre_action=lambda: self.send_key("f", interval=1),
-        )
-        if self.is_in_team_outside_heist():
-            self.log_round_info("当前已在队伍界面且不在粉爪副本中，跳过离开副本")
-            return False
+        ):
+            if self.is_in_team():
+                if self.in_heist():
+                    self.log_round_info("未发现撤离面板且在粉爪副本中，离开副本")
+                    self.abort_heist()
+                else:
+                    self.log_round_info("当前已在队伍界面且不在粉爪副本中，跳过离开副本")
+                return False
 
         self.sleep(1)
         rewards = self.get_heist_rewards()

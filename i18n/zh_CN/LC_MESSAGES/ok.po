@@ -1303,3 +1303,123 @@ msgstr "确认"
 
 msgid "设置"
 msgstr ""
+
+msgid "上传"
+msgstr "上传"
+
+msgid "作者"
+msgstr "作者"
+
+msgid "全部作者"
+msgstr "全部作者"
+
+msgid "全部角色"
+msgstr "全部角色"
+
+msgid "内置"
+msgstr "内置"
+
+msgid "刷新"
+msgstr "刷新"
+
+msgid "加载失败: {}"
+msgstr "加载失败: {}"
+
+msgid "取消"
+msgstr "取消"
+
+msgid "外置"
+msgstr "外置"
+
+msgid "外置代码目录"
+msgstr "外置代码目录"
+
+msgid "大小"
+msgstr "大小"
+
+msgid "导入"
+msgstr "导入"
+
+msgid "导入完成"
+msgstr "导入完成"
+
+msgid "导出"
+msgstr "导出"
+
+msgid "导出完成"
+msgstr "导出完成"
+
+msgid "导出社区方案"
+msgstr "导出社区方案"
+
+msgid "导出队伍"
+msgstr "导出队伍"
+
+msgid "工坊"
+msgstr "工坊"
+
+msgid "工坊会显示来自公开仓库的 ZIP 方案."
+msgstr "工坊会显示来自公开仓库的 ZIP 方案."
+
+msgid "已创建方案: {}"
+msgstr "已创建方案: {}"
+
+msgid "已加载 {} 个方案"
+msgstr "已加载 {} 个方案"
+
+msgid "当前方案没有可导出的出招表."
+msgstr "当前方案没有可导出的出招表."
+
+msgid "成员"
+msgstr "成员"
+
+msgid "描述"
+msgstr "描述"
+
+msgid "搜索名称, 说明, 作者或角色"
+msgstr "搜索名称, 说明, 作者或角色"
+
+msgid "操作失败"
+msgstr "操作失败"
+
+msgid "方案说明"
+msgstr "方案说明"
+
+msgid "无法导出"
+msgstr "无法导出"
+
+msgid "更新时间"
+msgstr "更新时间"
+
+msgid "本地方案名称"
+msgstr "本地方案名称"
+
+msgid "正在加载工坊..."
+msgstr "正在加载工坊..."
+
+msgid "没有说明."
+msgstr "没有说明."
+
+msgid "版本"
+msgstr "版本"
+
+msgid "社区方案"
+msgstr "社区方案"
+
+msgid "社区方案含外置代码; 导入后会以本软件权限运行, 请仅导入可信来源."
+msgstr "社区方案含外置代码; 导入后会以本软件权限运行, 请仅导入可信来源."
+
+msgid "角色阵容"
+msgstr "角色阵容"
+
+msgid "调整筛选条件或稍后刷新工坊."
+msgstr "调整筛选条件或稍后刷新工坊."
+
+msgid "返回"
+msgstr "返回"
+
+msgid "选择一个方案"
+msgstr "选择一个方案"
+
+msgid "队伍配置"
+msgstr "队伍配置"

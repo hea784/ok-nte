@@ -1317,3 +1317,123 @@ msgstr "OK"
 
 msgid "设置"
 msgstr "Settings"
+
+msgid "上传"
+msgstr "Upload"
+
+msgid "作者"
+msgstr "Author"
+
+msgid "全部作者"
+msgstr "All authors"
+
+msgid "全部角色"
+msgstr "All characters"
+
+msgid "内置"
+msgstr "Built-in"
+
+msgid "刷新"
+msgstr "Refresh"
+
+msgid "加载失败: {}"
+msgstr "Failed to load: {}"
+
+msgid "取消"
+msgstr "Cancel"
+
+msgid "外置"
+msgstr "External"
+
+msgid "外置代码目录"
+msgstr "External code directory"
+
+msgid "大小"
+msgstr "Size"
+
+msgid "导入"
+msgstr "Import"
+
+msgid "导入完成"
+msgstr "Import complete"
+
+msgid "导出"
+msgstr "Export"
+
+msgid "导出完成"
+msgstr "Export complete"
+
+msgid "导出社区方案"
+msgstr "Export community preset"
+
+msgid "导出队伍"
+msgstr "Export team"
+
+msgid "工坊"
+msgstr "Workshop"
+
+msgid "工坊会显示来自公开仓库的 ZIP 方案."
+msgstr "The workshop displays ZIP presets from the public repository."
+
+msgid "已创建方案: {}"
+msgstr "Preset created: {}"
+
+msgid "已加载 {} 个方案"
+msgstr "Loaded {} presets"
+
+msgid "当前方案没有可导出的出招表."
+msgstr "The current preset has no combo table to export."
+
+msgid "成员"
+msgstr "Members"
+
+msgid "描述"
+msgstr "Description"
+
+msgid "搜索名称, 说明, 作者或角色"
+msgstr "Search by name, description, author, or character"
+
+msgid "操作失败"
+msgstr "Operation failed"
+
+msgid "方案说明"
+msgstr "Preset description"
+
+msgid "无法导出"
+msgstr "Unable to export"
+
+msgid "更新时间"
+msgstr "Updated"
+
+msgid "本地方案名称"
+msgstr "Local preset name"
+
+msgid "正在加载工坊..."
+msgstr "Loading workshop..."
+
+msgid "没有说明."
+msgstr "No description."
+
+msgid "版本"
+msgstr "Version"
+
+msgid "社区方案"
+msgstr "Community preset"
+
+msgid "社区方案含外置代码; 导入后会以本软件权限运行, 请仅导入可信来源."
+msgstr "Community presets may contain external code; after import, it runs with this software's permissions. Import only from trusted sources."
+
+msgid "角色阵容"
+msgstr "Team characters"
+
+msgid "调整筛选条件或稍后刷新工坊."
+msgstr "Adjust the filters or refresh the workshop later."
+
+msgid "返回"
+msgstr "Back"
+
+msgid "选择一个方案"
+msgstr "Select a preset"
+
+msgid "队伍配置"
+msgstr "Team configuration"

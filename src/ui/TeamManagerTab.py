@@ -1,10 +1,12 @@
+from pathlib import Path
 from typing import Literal
 
 from ok import og
 from ok.ui.qt.widget.CustomTab import CustomTab
-from PySide6.QtCore import Qt, QTimer, Signal
-from PySide6.QtGui import QAction, QIcon, QPixmap
+from PySide6.QtCore import Qt, QTimer, QUrl, Signal
+from PySide6.QtGui import QAction, QDesktopServices, QIcon, QPixmap
 from PySide6.QtWidgets import (
+    QFileDialog,
     QGridLayout,
     QHBoxLayout,
     QListWidgetItem,
@@ -34,8 +36,19 @@ from qfluentwidgets import (
 )
 
 from src.char.custom.CustomCharManager import CustomCharManager
+from src.char.workshop.archive import default_archive_name
+from src.char.workshop.models import PackageSlot, TeamPackage
+from src.char.workshop.repository import IndexSource, WorkshopRepository
+from src.char.workshop.service import WorkshopPackageService
 from src.events import communicate
 from src.tasks.DebugCharTask import DebugCharTask, TeamScanResult
+from src.ui.features.characters.safety_dialog import confirm_external_code_import
+from src.ui.features.characters.workshop_dialog import (
+    BackgroundCall,
+    PackageImportDialog,
+    PackageMetadataDialog,
+    WorkshopDialog,
+)
 from src.ui.foundation.dialogs import MessageBoxBase
 from src.ui.foundation.images import cv_to_pixmap
 from src.ui.foundation.widgets.cards import BorderCardWidget
@@ -43,6 +56,18 @@ from src.ui.foundation.widgets.search import (
     SearchableComboBox,
     SearchableListWidget,
 )
+
+WORKSHOP_REPOSITORY = {
+    "github": {
+        "index_url": "https://raw.githubusercontent.com/BnanZ0/ok-nte-char-code/main/teams.json",
+        "archive_base_url": "https://raw.githubusercontent.com/BnanZ0/ok-nte-char-code/main",
+    },
+    "cnb": {
+        "index_url": "https://cnb.cool/BnanZ0/ok-nte-char-code/-/git/raw/main/teams.json",
+        "archive_base_url": "https://cnb.cool/BnanZ0/ok-nte-char-code/-/git/raw/main",
+    },
+    "upload_url": "https://github.com/BnanZ0/ok-nte-char-code",
+}
 
 
 class NewCharDialog(MessageBoxBase):
@@ -627,9 +652,14 @@ class TeamManagerTab(CustomTab):
         command_layout = QHBoxLayout(self.preset_command_card)
         command_layout.setContentsMargins(10, 8, 10, 8)
 
+        self.command_stack_layout = QStackedLayout()
+        command_layout.addLayout(self.command_stack_layout, 1)
+
         self.preset_command_bar = CommandBar(self.preset_command_card)
         self.preset_command_bar.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
         self.preset_command_bar.setButtonTight(True)
+
+        self._add_workshop_actions()
 
         self.add_character_action = QAction(
             FluentIcon.ADD.icon(), self.tr("新增角色"), self.preset_command_bar
@@ -647,13 +677,25 @@ class TeamManagerTab(CustomTab):
         )
         self.apply_action.triggered.connect(self.on_apply_preset)
 
+        self.switch_to_community_action = QAction(
+            FluentIcon.PEOPLE.icon(), self.tr("社区方案"), self.preset_command_bar
+        )
+        self.switch_to_community_action.triggered.connect(
+            lambda: self.command_stack_layout.setCurrentIndex(1)
+        )
+
         self.preset_command_bar.addAction(self.add_character_action)
         self.preset_command_bar.addSeparator()
         self.preset_command_bar.addAction(self.fill_from_scan_action)
         self.preset_command_bar.addAction(self.fixed_action)
         self.preset_command_bar.addSeparator()
         self.preset_command_bar.addAction(self.apply_action)
-        command_layout.addWidget(self.preset_command_bar, 1)
+        self.preset_command_bar.addSeparator()
+        self.preset_command_bar.addAction(self.switch_to_community_action)
+
+        self.command_stack_layout.addWidget(self.preset_command_bar)
+        self.command_stack_layout.addWidget(self.workshop_command_bar)
+        self.command_stack_layout.setCurrentIndex(0)
         right_layout.addWidget(self.preset_command_card)
 
         self.preset_top_card = SimpleCardWidget(self.view)
@@ -697,6 +739,161 @@ class TeamManagerTab(CustomTab):
         self.vbox.addLayout(content, 1)
         self._set_editor_enabled(False)
 
+    def _add_workshop_actions(self) -> None:
+        self.workshop_service = WorkshopPackageService(self.manager)
+        self.workshop_repository = WorkshopRepository(
+            IndexSource("GitHub", **WORKSHOP_REPOSITORY["github"]),
+            IndexSource("CNB", **WORKSHOP_REPOSITORY["cnb"]),
+        )
+        self._workshop_workers: list[BackgroundCall] = []
+        self.workshop_command_bar = CommandBar(self.preset_command_card)
+        self.workshop_command_bar.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
+        self.workshop_command_bar.setButtonTight(True)
+
+        self.import_package_action = QAction(
+            FluentIcon.DOWNLOAD.icon(), self.tr("导入"), self.workshop_command_bar
+        )
+        self.export_package_action = QAction(
+            FluentIcon.SHARE.icon(), self.tr("导出"), self.workshop_command_bar
+        )
+        self.workshop_action = QAction(
+            FluentIcon.BOOK_SHELF.icon(), self.tr("工坊"), self.workshop_command_bar
+        )
+        self.upload_package_action = QAction(
+            FluentIcon.GITHUB.icon(), self.tr("上传"), self.workshop_command_bar
+        )
+        self.switch_to_preset_action = QAction(
+            FluentIcon.RETURN.icon(), self.tr("返回"), self.workshop_command_bar
+        )
+
+        self.import_package_action.triggered.connect(self.on_import_package)
+        self.export_package_action.triggered.connect(self.on_export_package)
+        self.workshop_action.triggered.connect(self.on_open_workshop)
+        self.upload_package_action.triggered.connect(self.on_upload_package)
+        self.switch_to_preset_action.triggered.connect(
+            lambda: self.command_stack_layout.setCurrentIndex(0)
+        )
+
+        self.workshop_command_bar.addAction(self.import_package_action)
+        self.workshop_command_bar.addAction(self.export_package_action)
+        self.workshop_command_bar.addAction(self.workshop_action)
+        self.workshop_command_bar.addAction(self.upload_package_action)
+        self.workshop_command_bar.addSeparator()
+        self.workshop_command_bar.addAction(self.switch_to_preset_action)
+
+    def _start_workshop_call(self, action, succeeded) -> None:
+        worker = BackgroundCall(action, self)
+        self._workshop_workers.append(worker)
+
+        def finish(result):
+            if worker in self._workshop_workers:
+                self._workshop_workers.remove(worker)
+            succeeded(result)
+
+        def failed(error):
+            if worker in self._workshop_workers:
+                self._workshop_workers.remove(worker)
+            self._show_bar(self.tr("操作失败"), error, success=False)
+
+        worker.succeeded.connect(finish)
+        worker.failed.connect(failed)
+        worker.start()
+
+    def on_open_workshop(self) -> None:
+        dialog = WorkshopDialog(self.workshop_repository, self.window())
+        dialog.import_requested.connect(self.on_remote_package_requested)
+        dialog.exec()
+
+    def on_import_package(self) -> None:
+        if not confirm_external_code_import(self.window()):
+            return
+        path, _ = QFileDialog.getOpenFileName(self.window(), self.tr("导入数据"), "", "ZIP (*.zip)")
+        if not path:
+            return
+        self._start_workshop_call(
+            lambda: self.workshop_service.load_archive(Path(path)),
+            lambda contents: self._show_import_preview(contents, Path(path).name),
+        )
+
+    def on_remote_package_requested(self, entry, source) -> None:
+        self._start_workshop_call(
+            lambda: self.workshop_service.load_archive(
+                self.workshop_repository.download_archive(source, entry)
+            ),
+            lambda contents: self._show_import_preview(contents, entry.filename),
+        )
+
+    def _show_import_preview(self, contents, archive_name: str) -> None:
+        dialog = PackageImportDialog(contents.package, archive_name, self.window())
+        if not dialog.exec():
+            return
+        preset_name, directory = dialog.installation()
+        self._start_workshop_call(
+            lambda: self.workshop_service.install_contents(contents, preset_name, directory),
+            self._on_package_imported,
+        )
+
+    def _on_package_imported(self, imported) -> None:
+        self.reload_preset_options()
+        self.reload_presets(imported.preset_id)
+        self._show_bar(self.tr("导入完成"), self.tr("已创建方案: {}").format(imported.preset_name))
+
+    def _export_slots(self, preset: dict) -> tuple[PackageSlot, ...]:
+        slots = []
+        for index, raw_slot in enumerate(preset["slots"]):
+            impl_id = str(raw_slot.get("impl_id", "")).strip()
+            entry = self.workshop_service.registry.get(impl_id) if impl_id else None
+            if entry is None:
+                continue
+            display = {"zh_CN": entry.cn_name, "en_US": entry.en_name}
+            if entry.source == "builtin":
+                slots.append(PackageSlot(index, "builtin", display, impl_id=impl_id))
+            elif entry.source == "external":
+                slots.append(
+                    PackageSlot(
+                        index,
+                        "external",
+                        display,
+                        file_name=f"{impl_id.rsplit('/', 1)[-1]}.py",
+                        class_name=entry.char_cls.__name__,
+                    )
+                )
+        return tuple(slots)
+
+    def on_export_package(self) -> None:
+        preset = self._current_preset()
+        if preset is None:
+            return
+        defaults = TeamPackage(preset["name"], "", "", "1.0.0", self._export_slots(preset))
+        if not defaults.slots:
+            self._show_bar(
+                self.tr("无法导出"), self.tr("当前方案没有可导出的出招表."), success=False
+            )
+            return
+        dialog = PackageMetadataDialog(defaults, self.window())
+        if not dialog.exec():
+            return
+        package = TeamPackage(
+            dialog.package().name,
+            dialog.package().description,
+            dialog.package().author,
+            dialog.package().version,
+            defaults.slots,
+        )
+        path, _ = QFileDialog.getSaveFileName(
+            self.window(), self.tr("导出社区方案"), default_archive_name(package), "ZIP (*.zip)"
+        )
+        if not path:
+            return
+        export_path = Path(path)
+        self._start_workshop_call(
+            lambda: self.workshop_service.export_preset(preset["id"], package, export_path),
+            lambda _result: self._show_bar(self.tr("导出完成"), export_path.name),
+        )
+
+    def on_upload_package(self) -> None:
+        QDesktopServices.openUrl(QUrl(WORKSHOP_REPOSITORY["upload_url"]))
+
     def _set_editor_enabled(self, enabled: bool) -> None:
         self.preset_name_edit.setEnabled(enabled)
         self.delete_preset_btn.setEnabled(enabled)
@@ -704,6 +901,12 @@ class TeamManagerTab(CustomTab):
         self.apply_action.setEnabled(enabled)
         self.fixed_action.setEnabled(enabled)
         self.fill_from_scan_action.setEnabled(enabled)
+        self.export_package_action.setEnabled(enabled)
+        self.workshop_action.setEnabled(True)
+        self.import_package_action.setEnabled(True)
+        self.upload_package_action.setEnabled(True)
+        self.switch_to_community_action.setEnabled(True)
+        self.switch_to_preset_action.setEnabled(True)
         for row in self.preset_rows:
             row.set_editor_enabled(enabled)
         if not enabled:
