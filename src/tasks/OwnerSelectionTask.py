@@ -1,6 +1,6 @@
 import time
 
-from ok import TaskDisabledException, og
+from ok import TaskDisabledException, WaitFailedException, og
 from qfluentwidgets import FluentIcon
 
 from src.events import ConfirmationRequested, communicate
@@ -147,12 +147,14 @@ class OwnerSelectionTask(NTEOneTimeTask, RecordTask):
     def run_round(self) -> bool:
         # 步骤1：按 F 进入店长特供页面
         self.info_set("当前阶段", "进入店长特供")
-        self.wait_until(
-            lambda: self.find_confirm(box=self.box_of_screen(0.922, 0.889, 0.969, 0.972)),
-            time_out=60,
-            raise_if_not_found=True,
-            settle_time=0.25,
-        )
+        deadline = time.time() + 60
+        while time.time() < deadline:
+            if self.find_confirm(box=self.box_of_screen(0.922, 0.889, 0.969, 0.972)):
+                break
+            if self.find_confirm(box=self.box_of_screen(0.514, 0.740, 0.582, 0.822)):
+                self.operate_click(0.788, 0.183, after_sleep=1)
+        else:
+            raise WaitFailedException()
         self.sleep(1)
         if self.config.get(self.CONF_USE_RECORD, False):
             record_instruction = RECORD_INS if self.is_chinese() else EN_RECORD_INS
