@@ -192,18 +192,16 @@ class PackageImportDialog(MessageBoxBase):
         self.viewLayout.setSpacing(6)
         self.viewLayout.addWidget(SubtitleLabel(package.name, self))
         summary = f"{self.tr('作者')}: {package.author}\n{self.tr('版本')}: {package.version}"
-        if package.description:
-            summary += f"\n{package.description}"
         self.viewLayout.addWidget(BodyLabel(summary, self))
         members = ", ".join(package.members("zh_CN" if is_chinese() else "en_US"))
         self.viewLayout.addWidget(CaptionLabel(f"{self.tr('成员')}: {members}", self))
 
-        self.viewLayout.addWidget(BodyLabel(self.tr("本地方案名称"), self))
+        self.viewLayout.addWidget(StrongBodyLabel(self.tr("本地方案名称"), self))
         self.preset_name_edit = LineEdit(self)
         self.preset_name_edit.setText(package.name)
         self.viewLayout.addWidget(self.preset_name_edit)
 
-        self.viewLayout.addWidget(BodyLabel(self.tr("外置代码目录"), self))
+        self.viewLayout.addWidget(StrongBodyLabel(self.tr("外置代码目录"), self))
         self.directory_edit = LineEdit(self)
         try:
             self.directory_edit.setText(
