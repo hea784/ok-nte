@@ -1,5 +1,4 @@
 from ok import TaskDisabledException
-from qfluentwidgets import FluentIcon
 
 from src.coffee import ALLOWED_DURATIONS, CoffeeRuntime
 from src.Labels import Labels
@@ -33,8 +32,6 @@ class CoffeeTask(NTEOneTimeTask, BaseNTETask):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.name = "一咖舍"
-        self.group_name = "日常/周常"
-        self.group_icon = FluentIcon.CALENDAR
         self.visible = False
         # 一咖舍页面的所有 OCR 判定 (商品名、价格表、营收弹窗、补货时长选项等)
         # 仅在简体中文 UI 下匹配, 因此只对 zh_CN 暴露此任务.

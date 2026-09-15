@@ -3,11 +3,11 @@ import time
 from collections import deque
 
 from ok import TaskDisabledException
-from qfluentwidgets import FluentIcon
 
 from src.Labels import Labels
 from src.tasks.BaseNTETask import BaseNTETask
 from src.tasks.NTEOneTimeTask import NTEOneTimeTask
+from src.ui.task_icons import Icon
 
 # ─────────────────────────── 常量 ───────────────────────────
 
@@ -45,7 +45,7 @@ class RhythmTask(NTEOneTimeTask, BaseNTETask):
         self.name = "自动音游"
         self.description = "异环鼓组音游自动打击与重试"
         self.group_name = "都市闲趣"
-        self.group_icon = FluentIcon.GAME
+        self.group_icon = Icon.GAME
         self.add_rounds_config()
         self.default_config.update(
             {

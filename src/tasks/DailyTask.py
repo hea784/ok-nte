@@ -4,7 +4,6 @@ from datetime import datetime
 from typing import Callable, Iterator, List, Optional, Tuple, Type, TypeVar, cast
 
 from ok import CannotFindException, TaskDisabledException, find_color_rectangles
-from qfluentwidgets import FluentIcon
 
 from src import text_white_color
 from src.Labels import Labels
@@ -49,8 +48,6 @@ class DailyTask(NTEOneTimeTask, BaseNTETask):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.name = "日常任务"
-        self.group_name = "日常/周常"
-        self.group_icon = FluentIcon.CALENDAR
         self.support_schedule_task = True
         self.task_status = {"success": [], "failed": [], "skipped": [], "pending": []}
         self.working_task: Optional[BaseNTETask] = None

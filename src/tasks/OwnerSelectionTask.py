@@ -1,11 +1,11 @@
 import time
 
 from ok import TaskDisabledException, WaitFailedException, og
-from qfluentwidgets import FluentIcon
 
 from src.events import ConfirmationRequested, communicate
 from src.tasks.NTEOneTimeTask import NTEOneTimeTask
 from src.tasks.RecordTask import RecordTask
+from src.ui.task_icons import Icon
 
 INST = (
     "功能说明：本功能仅负责『自动退出关卡』与『重新开启关卡』的点击循环，"
@@ -72,7 +72,7 @@ class OwnerSelectionTask(NTEOneTimeTask, RecordTask):
         self.description = "自动循环进出关卡（需配合游戏内挂机流派使用）"
         self.instructions = INST if self.is_chinese() else EN_INST
         self.group_name = "都市闲趣"
-        self.group_icon = FluentIcon.GAME
+        self.group_icon = Icon.GAME
         self.add_rounds_config()
         self.default_config.update(
             {
