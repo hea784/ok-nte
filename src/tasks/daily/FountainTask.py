@@ -175,7 +175,7 @@ class FountainTask(NTEOneTimeTask, BaseNTETask):
         finally:
             self.send_key_up("w")
 
-        self.sleep(0.5)
+        self.sleep(0.1)
 
         try:
             self.send_key_down("a", after_sleep=0.2)
@@ -190,7 +190,7 @@ class FountainTask(NTEOneTimeTask, BaseNTETask):
         finally:
             self.send_key_up("a")
 
-        self.sleep(0.5)
+        self.sleep(0.1)
 
         try:
             self.send_key_down("w", after_sleep=0.2)

@@ -1348,6 +1348,12 @@ msgstr "Externo"
 msgid "外置代码目录"
 msgstr "Directorio de código externo"
 
+msgid "外置代码目录名称无效"
+msgstr "El nombre del directorio de código externo no es válido"
+
+msgid "外置代码目录“{}”已存在, 请修改目录名称后重试。"
+msgstr "El directorio de código externo \"{}\" ya existe. Cambia el nombre e inténtalo de nuevo."
+
 msgid "大小"
 msgstr "Tamaño"
 

@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import cast
 
 from PySide6.QtCore import QObject, Qt, Signal
+from PySide6.QtGui import QColor
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QGridLayout,
@@ -109,7 +110,7 @@ class BackgroundCall(QObject):
     """Run a blocking callable and return its result through Qt signals."""
 
     succeeded = Signal(object)
-    failed = Signal(str)
+    failed = Signal(object)
 
     def __init__(self, action: Callable[[], object], parent=None):
         super().__init__(parent)
@@ -122,7 +123,7 @@ class BackgroundCall(QObject):
         try:
             self.succeeded.emit(self._action())
         except Exception as error:
-            self.failed.emit(str(error) or error.__class__.__name__)
+            self.failed.emit(error)
 
 
 class PackageMetadataDialog(MessageBoxBase):
@@ -187,8 +188,15 @@ class PackageMetadataDialog(MessageBoxBase):
 
 
 class PackageImportDialog(MessageBoxBase):
-    def __init__(self, package: TeamPackage, archive_name: str, parent=None):
+    def __init__(
+        self,
+        package: TeamPackage,
+        archive_name: str,
+        parent=None,
+        directory_exists: Callable[[str], bool] | None = None,
+    ):
         super().__init__(parent)
+        self._directory_exists = directory_exists
         self.viewLayout.setSpacing(6)
         self.viewLayout.addWidget(SubtitleLabel(package.name, self))
         summary = f"{self.tr('作者')}: {package.author}\n{self.tr('版本')}: {package.version}"
@@ -223,14 +231,21 @@ class PackageImportDialog(MessageBoxBase):
 
     def _validate(self) -> None:
         try:
-            CustomCharManager.validate_external_directory(self.directory_edit.text())
-            valid_directory = True
-            error = ""
-        except ValueError as exception:
+            directory = CustomCharManager.validate_external_directory(self.directory_edit.text())
+            if self._directory_exists is not None and self._directory_exists(directory):
+                valid_directory = False
+                error = self.tr('外置代码目录“{}”已存在, 请修改目录名称后重试。').format(
+                    directory
+                )
+            else:
+                valid_directory = True
+                error = ""
+        except ValueError:
             valid_directory = False
-            error = str(exception)
+            error = self.tr("外置代码目录名称无效")
         valid = bool(self.preset_name_edit.text().strip()) and valid_directory
         self.yesButton.setEnabled(valid)
+        self.error_label.setTextColor(QColor("#FF0000"), QColor("#FF0000"))
         self.error_label.setText(error)
         self.error_label.setVisible(bool(error))
 
@@ -400,10 +415,11 @@ class WorkshopDialog(MessageBoxBase):
         self.loading_ring.hide()
         self.status_label.setText(self.tr("已加载 {} 个方案").format(len(self.entries)))
 
-    def _catalog_failed(self, error: str) -> None:
+    def _catalog_failed(self, error: object) -> None:
         self.refresh_button.setEnabled(True)
         self.loading_ring.hide()
-        self.status_label.setText(self.tr("加载失败: {}").format(error))
+        message = str(error) or error.__class__.__name__
+        self.status_label.setText(self.tr("加载失败: {}").format(message))
 
     def _rebuild_filters(self) -> None:
         current_role = self.role_combo.currentText()

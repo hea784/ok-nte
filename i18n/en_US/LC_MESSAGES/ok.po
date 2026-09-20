@@ -1348,6 +1348,12 @@ msgstr "External"
 msgid "外置代码目录"
 msgstr "External code directory"
 
+msgid "外置代码目录名称无效"
+msgstr "The external code directory name is invalid"
+
+msgid "外置代码目录“{}”已存在, 请修改目录名称后重试。"
+msgstr "The external code directory \"{}\" already exists. Choose another name and try again."
+
 msgid "大小"
 msgstr "Size"
 

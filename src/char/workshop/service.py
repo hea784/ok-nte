@@ -1,6 +1,7 @@
 """Application service for exporting and transactionally installing team packages."""
 
 from dataclasses import dataclass
+from enum import StrEnum
 from pathlib import Path
 
 from src.char.core.CharRegistry import char_registry
@@ -14,8 +15,23 @@ from src.char.workshop.archive import (
 from src.char.workshop.models import PackageSlot, TeamPackage
 
 
+class WorkshopInstallErrorCode(StrEnum):
+    INVALID_EXTERNAL_DIRECTORY = "invalid_external_directory"
+    EXTERNAL_DIRECTORY_EXISTS = "external_directory_exists"
+
+
 class WorkshopInstallError(RuntimeError):
     """Raised when a package cannot be safely installed into local character data."""
+
+    def __init__(
+        self,
+        message: str,
+        code: WorkshopInstallErrorCode | None = None,
+        **details: str,
+    ):
+        super().__init__(message)
+        self.code = code
+        self.details = details
 
 
 @dataclass(frozen=True)
@@ -100,7 +116,11 @@ class WorkshopPackageService:
         try:
             directory = self.manager.validate_external_directory(directory)
         except ValueError as error:
-            raise WorkshopInstallError(str(error)) from error
+            raise WorkshopInstallError(
+                str(error),
+                WorkshopInstallErrorCode.INVALID_EXTERNAL_DIRECTORY,
+                directory=str(directory or ""),
+            ) from error
         preset_name = str(preset_name or "").strip()
         if not preset_name:
             raise WorkshopInstallError("team preset name is required")
@@ -112,10 +132,22 @@ class WorkshopPackageService:
         installed_sources = False
         try:
             if contents.sources:
+                if self.manager.external_directory_exists(directory):
+                    raise WorkshopInstallError(
+                        "External character directory already exists",
+                        WorkshopInstallErrorCode.EXTERNAL_DIRECTORY_EXISTS,
+                        directory=directory,
+                    )
                 installed, error = self.manager.install_external_sources(
                     directory, contents.sources
                 )
                 if not installed:
+                    if self.manager.external_directory_exists(directory):
+                        raise WorkshopInstallError(
+                            "External character directory already exists",
+                            WorkshopInstallErrorCode.EXTERNAL_DIRECTORY_EXISTS,
+                            directory=directory,
+                        )
                     raise WorkshopInstallError(error)
                 installed_sources = True
 

@@ -41,7 +41,11 @@ from src.char.custom.CustomCharManager import CustomCharManager
 from src.char.workshop.archive import default_archive_name
 from src.char.workshop.models import PackageSlot, TeamPackage
 from src.char.workshop.repository import IndexSource, WorkshopRepository
-from src.char.workshop.service import WorkshopPackageService
+from src.char.workshop.service import (
+    WorkshopInstallError,
+    WorkshopInstallErrorCode,
+    WorkshopPackageService,
+)
 from src.events import communicate
 from src.tasks.DebugCharTask import DebugCharTask, TeamScanResult
 from src.ui.features.characters.safety_dialog import confirm_external_code_import
@@ -817,11 +821,22 @@ class TeamManagerTab(CustomTab):
         def failed(error):
             if worker in self._workshop_workers:
                 self._workshop_workers.remove(worker)
-            self._show_bar(self.tr("操作失败"), error, success=False)
+            self._show_bar(self.tr("操作失败"), self._workshop_error_text(error), success=False)
 
         worker.succeeded.connect(finish)
         worker.failed.connect(failed)
         worker.start()
+
+    def _workshop_error_text(self, error: object) -> str:
+        if isinstance(error, WorkshopInstallError):
+            directory = error.details.get("directory", "")
+            if error.code == WorkshopInstallErrorCode.EXTERNAL_DIRECTORY_EXISTS:
+                return self.tr('外置代码目录“{}”已存在, 请修改目录名称后重试。').format(
+                    directory
+                )
+            if error.code == WorkshopInstallErrorCode.INVALID_EXTERNAL_DIRECTORY:
+                return self.tr("外置代码目录名称无效")
+        return str(error) or error.__class__.__name__
 
     def on_open_workshop(self) -> None:
         dialog = WorkshopDialog(self.workshop_repository, self.window())
@@ -848,7 +863,12 @@ class TeamManagerTab(CustomTab):
         )
 
     def _show_import_preview(self, contents, archive_name: str) -> None:
-        dialog = PackageImportDialog(contents.package, archive_name, self.window())
+        dialog = PackageImportDialog(
+            contents.package,
+            archive_name,
+            self.window(),
+            directory_exists=self.manager.external_directory_exists,
+        )
         if not dialog.exec():
             return
         preset_name, directory = dialog.installation()

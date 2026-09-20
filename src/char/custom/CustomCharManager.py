@@ -324,6 +324,11 @@ class CustomCharManager:
             return None
         return candidate
 
+    def external_directory_exists(self, directory: str) -> bool:
+        """Return whether a validated managed external-code directory already exists."""
+        target_directory = self._external_directory_path(directory)
+        return target_directory is not None and target_directory.exists()
+
     def install_external_sources(self, directory: str, sources: dict[str, str]) -> tuple[bool, str]:
         """Create one isolated external-code directory through the shared manager."""
         target_directory = self._external_directory_path(directory)
