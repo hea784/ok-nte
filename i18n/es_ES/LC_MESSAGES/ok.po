@@ -1446,3 +1446,21 @@ msgstr "Configuración del equipo"
 
 msgid "不是该角色?"
 msgstr "¿No es este personaje?"
+
+msgid "删除方案"
+msgstr "Eliminar ajuste preestablecido"
+
+msgid "检测到该方案包含外置代码，是否同时删除对应的代码文件?"
+msgstr "Se detectó que este ajuste preestablecido contiene código externo. ¿Desea eliminar también los archivos de código correspondientes?"
+
+msgid "全部删除"
+msgstr "Eliminar todo"
+
+msgid "仅删除方案"
+msgstr "Eliminar solo el ajuste"
+
+msgid "方案已删除"
+msgstr "Ajuste preestablecido eliminado"
+
+msgid "部分外置代码删除失败: {}"
+msgstr "Error al eliminar parte del código externo: {}"

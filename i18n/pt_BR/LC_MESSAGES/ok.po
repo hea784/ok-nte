@@ -1178,3 +1178,21 @@ msgstr "Configuração da equipe"
 
 msgid "不是该角色?"
 msgstr "Não é este personagem?"
+
+msgid "删除方案"
+msgstr "Excluir predefinição"
+
+msgid "检测到该方案包含外置代码，是否同时删除对应的代码文件?"
+msgstr "Esta predefinição contém código externo. Deseja também excluir os arquivos de código correspondentes?"
+
+msgid "全部删除"
+msgstr "Excluir tudo"
+
+msgid "仅删除方案"
+msgstr "Excluir apenas predefinição"
+
+msgid "方案已删除"
+msgstr "Predefinição excluída"
+
+msgid "部分外置代码删除失败: {}"
+msgstr "Falha ao excluir parte do código externo: {}"

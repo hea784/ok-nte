@@ -489,6 +489,17 @@ class CustomCharManager:
         char_registry.rescan_external()
         return True
 
+    def delete_external_impl_and_references(self, impl_id: str) -> bool:
+        """Delete external source code and clear persisted references to it."""
+        if self.is_builtin_impl(impl_id) or not self.delete_external_impl(impl_id):
+            return False
+
+        self.delete_combo(impl_id)
+        for char_id, char_data in self.get_all_characters().items():
+            if char_data.get("impl_id", "") == impl_id:
+                self.update_character(char_id, impl_id="")
+        return True
+
     def is_custom_combo_exist(self, combo_id: str):
         """判断出招表是否存在"""
         return self._db.has_custom_combo(combo_id)

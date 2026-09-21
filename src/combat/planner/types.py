@@ -693,6 +693,7 @@ class FollowupStep:
         cls,
         target: "BaseChar",
         reason: str = "",
+        optional: bool = False,
     ) -> "FollowupStep":
         """创建“切入目标角色触发入场/环合反应”的 strict route 步骤。"""
 
@@ -701,6 +702,7 @@ class FollowupStep:
             slot=ActionSlot.ENTRY_REACTION,
             target_indices={target.index},
             requires_entry_reaction=True,
+            optional=optional,
         )
 
     def matches_char(self, char: "BaseChar") -> bool:

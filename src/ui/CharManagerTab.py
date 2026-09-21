@@ -715,10 +715,7 @@ class CharManagerTab(CustomTab):
                 cid = item.data(Qt.ItemDataRole.UserRole)
                 cname = item.text()
                 if self.manager.is_registered_impl(cid):
-                    if not self.manager.is_builtin_impl(cid) and self.manager.delete_external_impl(
-                        cid
-                    ):
-                        self.manager.delete_combo(cid)
+                    if self.manager.delete_external_impl_and_references(cid):
                         deletable_items.append((cid, cname))
                 else:
                     self.manager.delete_combo(cid)
@@ -726,11 +723,6 @@ class CharManagerTab(CustomTab):
 
             if not deletable_items:
                 return
-
-            for cid, _ in deletable_items:
-                for char_id, char_data in self.manager.get_all_characters().items():
-                    if char_data.get("impl_id", "") == cid:
-                        self.manager.update_character(char_id, impl_id="")
 
             dialog.setProperty("combos_modified", True)
             populate_combos()

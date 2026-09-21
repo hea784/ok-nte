@@ -28,6 +28,7 @@ from qfluentwidgets import (
     InfoBarIcon,
     InfoBarPosition,
     LineEdit,
+    MessageBox,
     PrimaryPushButton,
     PushButton,
     SimpleCardWidget,
@@ -1101,11 +1102,50 @@ class TeamManagerTab(CustomTab):
             self.reload_preset_options()
 
     def on_delete_preset(self) -> None:
+        preset = self._current_preset()
+        if preset is None:
+            return
+
+        external_impl_ids = list(
+            dict.fromkeys(
+                str(slot.get("impl_id", ""))
+                for slot in preset["slots"]
+                if str(slot.get("impl_id", "")).startswith("external:")
+            )
+        )
+        delete_external_code = False
+        if external_impl_ids:
+            dialog = MessageBox(
+                self.tr("删除方案"),
+                self.tr("检测到该方案包含外置代码，是否同时删除对应的代码文件?"),
+                self.window(),
+            )
+            dialog.yesButton.setText(self.tr("全部删除"))
+            dialog.cancelButton.setText(self.tr("仅删除方案"))
+            delete_external_code = bool(dialog.exec())
+
         deleted_id = self.current_preset_id
         if deleted_id and self.manager.delete_team_preset(deleted_id):
+            failed_impl_ids = []
+            if delete_external_code:
+                failed_impl_ids = [
+                    impl_id
+                    for impl_id in external_impl_ids
+                    if not self.manager.delete_external_impl_and_references(impl_id)
+                ]
             self.current_preset_id = None
+            self.reload_preset_options()
             self.reload_presets()
-            self._show_bar(self.tr("已删除"), self.tr_deleted_success)
+            if failed_impl_ids:
+                self._show_bar(
+                    self.tr("方案已删除"),
+                    self.tr("部分外置代码删除失败: {}").format(
+                        ", ".join(impl_id.removeprefix("external:") for impl_id in failed_impl_ids)
+                    ),
+                    success=False,
+                )
+            else:
+                self._show_bar(self.tr("已删除"), self.tr_deleted_success)
 
     def on_apply_preset(self) -> None:
         if not self.current_preset_id:
