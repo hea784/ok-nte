@@ -299,6 +299,13 @@ class CharManagerTab(CustomTab):
         self.combo_select.currentTextChanged.connect(self.on_combo_changed)
         self.combo_header_layout.addWidget(self.combo_select, 1)
 
+        self.combo_unbind_btn = PushButton(
+            FluentIcon.LINK, self.tr_unbind_success, self.combo_main_widget
+        )
+        self.combo_unbind_btn.setEnabled(False)
+        self.combo_unbind_btn.clicked.connect(self.on_unbind_combo)
+        self.combo_header_layout.addWidget(self.combo_unbind_btn)
+
         self.combo_manage_btn = PushButton(
             FluentIcon.SETTING, self.tr("管理"), self.combo_main_widget
         )
@@ -926,6 +933,12 @@ class CharManagerTab(CustomTab):
             self._render_right_panel()
 
     def on_combo_changed(self, combo_name, combo_id=None):
+        has_bound_combo = bool(
+            self.current_char_id
+            and self.manager.get_character_impl_id_by_id(self.current_char_id)
+        )
+        self.combo_unbind_btn.setEnabled(has_bound_combo)
+
         if combo_name == "":
             self.combo_text.setPlainText(self.tr_unbound_text)
             self.combo_text.setReadOnly(True)

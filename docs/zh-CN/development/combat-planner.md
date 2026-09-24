@@ -13,7 +13,7 @@ Planner 是队伍大脑。角色只声明一个 `CombatPlan`：
 公开导入入口固定使用：
 
 ```python
-from src.combat.planner import ActionSlot, CombatContext, FieldClaim, Planner, RoleProfile
+from src.combat.planner import ActionSlot, CombatContext, ExpectedEntry, FieldClaim, Planner, RoleProfile
 ```
 
 `src.combat.planner` 只导出正式开发 API。角色代码不要直接导入
@@ -93,6 +93,8 @@ def combat_plan(self, context):
 - 不要在创建 plan 时调用 `context.request_route()`、`reserve_actions()` 或
   `request_tags()`；这些一次性请求应在 action execute 中发布，或在 entry flow
   收到成功 result 后发布。
+- entry flow 发布的请求会在下一次 `yield` 或流程结束时收集；收到 result 后发布请求并直接
+  `return` 也会生效。
 - `actions` 是评分和协作匹配目录；`entry` 是普通入场执行流程。
 - `claims` 可以传多个独立入场理由；它们不会叠加分数，planner 只取当前匹配角色的最高优先级 claim。
 - strict route、expected entry、active request 的硬调度优先于普通 entry flow。
@@ -150,8 +152,7 @@ flow 外预查询完整 action 时，使用 `context.is_action_allowed(self, act
 - `ARC_ACTION`：弧盘动作，评分为 0。
 - `SUPPORT`：辅助/治疗/增益类动作。
 - `TEAM_BUFF`：为全队提供增益的关键动作。仅在该增益应优先于主 DPS 终结技施放时使用。
-- `COORDINATION`：发布协作路线或窗口的动作。
-- `COORDINATION_FINISHER`：协作完成后的收尾动作。
+- `HIGH_PRIORITY`：显著提高动作的切人评分。用于少数特别值得优先尝试的动作；它不会改变角色上场后的动作执行顺序。
 - `FIELD_TIME`：planner 内建站场动作，角色不应自己声明。
 - `LEGACY_COMBO`：旧出招表动作。
 - `DEFAULT_ACTION`：低价值兜底入口。
@@ -267,7 +268,8 @@ self.planner_action(
 
 ## FieldClaim
 
-`FieldClaim` 表达“我应该被切进来”，不是动作。它只抬高目标角色的普通入场评分；
+`FieldClaim` 表达“我应该被切进来”，不是动作。`low`、`normal`、`high` 和
+`critical` 抬高普通入场评分；`strict` 在下一次切人决策时直接选定该角色。
 角色切入后仍由 planner 从 `actions`、strict route/request 或 `entry` 中选择动作。
 
 ```python
@@ -283,11 +285,34 @@ def combat_plan(self, context):
     return self.plan(self.click_ultimate_action(), claims=claims)
 ```
 
+需要在限时窗口内回场时，可在 `combat_plan()` 中声明 strict claim：
+
+```python
+def combat_plan(self, context):
+    ultimate = self.click_ultimate_action()
+    claims = []
+    if self.should_return_now():
+        claims.append(
+            FieldClaim.strict(
+                reason="ultimate window ending",
+            )
+        )
+    return self.plan(ultimate, claims=claims)
+```
+
+planner 每次切人决策都会重新读取候选角色的 claim。已锁定的 strict route 优先；
+之后 strict claim 优先于环合反应、active request 和普通评分。多个角色同时声明
+strict claim 时，planner 用它们的普通评分及最近行动时间决定目标。strict claim
+只在当前角色的动作结束后生效，不会中断动作；切人时跳过 `SwitchInGuard` 和
+`wait_switch_cd()` 等待。strict claim 只要求切入, 不设置 `expected_entry`。
+切入后角色按自己的普通 `entry` 流程执行动作。
+
 使用建议：
 
 - 只是 Q/E 可用，不需要 FieldClaim；action 本身会参与评分。
-- 需要“之后抢回场”时用 FieldClaim。
-- 抢回场后需要优先做某动作时，加 `expected_entry`。
+- 需要“之后抢回场”时用普通 FieldClaim；必须在下一次切人决策中回场时用 `FieldClaim.strict()`。
+- `FieldClaim.critical()` 仍是普通评分档位，不会强制切人。
+- 普通 claim 抢回场后需要优先做某动作时, 加 `expected_entry`。
 - 多个 FieldClaim 适合表达多个独立机制入口；planner 不累加 claim 分，只选择最高等级的匹配 claim。
 
 ## combat_policies

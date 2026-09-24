@@ -317,7 +317,7 @@ class DSDFarmTask(NTEOneTimeTask, BaseCombatTask):
         self.ensure_main()
         self.open_map()
         if not box:
-            box = self.main_viewport
+            box = self.pos.screen.main_viewport.to_box()
 
         teleports = self.find_feature(Labels.bonfire_teleport, box=box, threshold=threshold)
         if not teleports:

@@ -30,8 +30,7 @@ class Zankou(BaseChar):
 
         def entry():
             if not self.find_ult_purple():
-                combo_result = yield skill_combo
-                if combo_result and self.ultimate_available():
+                if (yield skill_combo) and self.ultimate_available():
                     self.task.wait_until(
                         self.find_ult_purple,
                         post_action=self.click_with_interval,
@@ -83,6 +82,7 @@ class Zankou(BaseChar):
             if click_skill := self.click_skill():
                 if feature_name == Labels.zankou_skill_purple:
                     self.sleep(2)
+                    purple_skill = True
         return click_skill, purple_skill
 
     def find_ult_purple(self):

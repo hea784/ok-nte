@@ -49,11 +49,10 @@ class Planner:
         ARC_ACTION = "arc_action"
         SUPPORT = "support"
         TEAM_BUFF = "team_buff"
-        COORDINATION = "coordination"
+        HIGH_PRIORITY = "high_priority"
         SKILL_ACTION = "skill_action"
         FIELD_TIME = "field_time"
         LEGACY_COMBO = "legacy_combo"
-        COORDINATION_FINISHER = "coordination_finisher"
 
     class ActionSlot(StrEnum):
         """游戏动作槽位。
@@ -86,12 +85,14 @@ class Planner:
 
         `FieldClaim` 使用此枚举表达“这次入场诉求有多强”。具体机制原因放在
         `FieldClaim.reason` 中，避免等级名称绑定某个角色机制。
+        STRICT 是硬切人诉求, 在已锁定的 strict route 之后检查。
         """
 
         LOW = "low"
         NORMAL = "normal"
         HIGH = "high"
         CRITICAL = "critical"
+        STRICT = "strict"
 
     class RequestStatus(StrEnum):
         """Planner request 的生命周期状态。
@@ -122,11 +123,10 @@ ACTION_TAG_SCORES = {
     ActionTag.ARC_ACTION: 0,
     ActionTag.SUPPORT: 45,
     ActionTag.TEAM_BUFF: 260,
-    ActionTag.COORDINATION: 80,
+    ActionTag.HIGH_PRIORITY: 160,
     ActionTag.SKILL_ACTION: 75,
     ActionTag.FIELD_TIME: 40,
     ActionTag.LEGACY_COMBO: 45,
-    ActionTag.COORDINATION_FINISHER: 160,
 }
 
 
@@ -354,8 +354,8 @@ class RoleProfile:
 class FieldClaim:
     """角色向 planner 声明“我应该被切进来”的理由。
 
-    `FieldClaim` 不代表动作，也不替代 `ActionIntent`。它只抬高目标角色
-    的普通入场评分；角色切入后仍由 planner 从 `ActionIntent` 中选择要执行的动作。
+    LOW 到 CRITICAL 提高普通入场评分。STRICT 在已锁定的 strict route 之后,
+    于下一次切人决策中直接选择该角色, 切入后走普通 entry 流程。
     """
 
     _source: int = -1
@@ -406,6 +406,16 @@ class FieldClaim:
         """声明最高强度入场诉求。"""
 
         return cls._from_source(source, FieldClaimLevel.CRITICAL, reason, expected_entry)
+
+    @classmethod
+    def strict(
+        cls,
+        source: "BaseChar | str | None" = None,
+        reason: str = "",
+    ) -> "FieldClaim":
+        """要求在下一次切人决策时切入该角色, 切入后执行普通 entry。"""
+
+        return cls._from_source(source, FieldClaimLevel.STRICT, reason)
 
     @classmethod
     def _from_source(
@@ -792,6 +802,7 @@ class SwitchDecision:
 
     `CombatPlanner.decide_switch()` 返回此类型，调用方根据 `target` 执行切人，
     并可用 `expected_entry` 记录切入后优先尝试的动作。
+    `strict` 表示 strict claim 的决策, 切人时跳过普通入场等待。
     """
 
     target: "BaseChar"
@@ -800,13 +811,14 @@ class SwitchDecision:
     has_intro: bool = False
     expected_entry: "ExpectedEntry | None" = None
     score_breakdown: str = ""
+    strict: bool = False
 
 
 @dataclass(slots=True)
 class ExpectedEntry:
     """切入目标角色后应优先尝试的动作期望。
 
-    普通切人评分不会设置 expected entry；strict route 这类硬调度才会设置。
+    claim 或 strict route 可以设置入场动作期望。
     """
 
     slot: ActionSlot | None = None

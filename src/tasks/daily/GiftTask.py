@@ -157,7 +157,7 @@ class GiftTask(NTEOneTimeTask, BaseNTETask):
 
         def action():
             self.openESCpanel()
-            self.operate_click(0.810, 0.708)
+            self.operate_click(*self.pos.panels.esc.gift)
             self.sleep(0.5)
             return self.wait_panel(Labels.bond_panel)
 

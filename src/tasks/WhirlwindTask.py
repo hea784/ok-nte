@@ -118,7 +118,7 @@ class WhirlwindTask(NTEOneTimeTask, BaseCombatTask):
         return self.find_one(
             Labels.dialog_history,
             threshold=0.8,
-            box=self.pos.screen.dialog_icon_box.to_box(),
+            box=self.pos.screen.dialog_icon.to_box(),
         )
 
     def start_combat(self):

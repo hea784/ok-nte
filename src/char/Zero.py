@@ -1,5 +1,5 @@
 from src.char.BaseChar import BaseChar
-from src.combat.planner import CombatContext, Planner, RoleProfile
+from src.combat.planner import CombatContext, FieldClaim, Planner, RoleProfile
 
 
 class Zero(BaseChar):
@@ -17,11 +17,16 @@ class Zero(BaseChar):
         )
 
     def combat_plan(self, context):
+        claims = []
+        if self.skill_available():
+            claims.append(FieldClaim.normal(reason="Zero skill instant cycle"))
+
         return self.plan(
             self.click_ultimate_action(),
             self.click_skill_action(
-                can_execute=self.should_use_skill,
+                can_execute=self.should_use_skill, add_tags=Planner.ActionTag.HIGH_PRIORITY
             ),
+            claims=claims,
         )
 
     def should_use_skill(self, context: CombatContext = None):
@@ -33,14 +38,3 @@ class Zero(BaseChar):
                 and context.strict_route_wants_action(self, slot=Planner.ActionSlot.SKILL)
             )
         )
-
-    def click_skill(self, *args, **kwargs):
-        ret = super().click_skill(*args, **kwargs)
-        if ret:
-            if not self.task.wait_until(
-                self.is_cycle_full,
-                time_out=1.25,
-                raise_if_not_found=False,
-            ):
-                self.logger.info("cycle not full after Zero skill")
-        return ret

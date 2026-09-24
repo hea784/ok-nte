@@ -251,6 +251,12 @@
             "file_name": "images/1.png",
             "width": 2560,
             "height": 1440
+        },
+        {
+            "id": 45,
+            "file_name": "images/4.png",
+            "width": 2560,
+            "height": 1440
         }
     ],
     "annotations": [
@@ -1256,6 +1262,19 @@
             "iscrowd": 0
         },
         {
+            "id": 78,
+            "image_id": 45,
+            "category_id": 74,
+            "bbox": [
+                2373,
+                1262,
+                86,
+                67
+            ],
+            "area": 5762,
+            "iscrowd": 0
+        },
+        {
             "id": 79,
             "image_id": 38,
             "category_id": 64,
@@ -1750,6 +1769,11 @@
         {
             "id": 73,
             "name": "boss_treasure",
+            "supercategory": ""
+        },
+        {
+            "id": 74,
+            "name": "blackbird_ult_2",
             "supercategory": ""
         },
         {

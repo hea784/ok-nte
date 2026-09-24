@@ -13,7 +13,7 @@ The planner is the team's brain. A character declares one `CombatPlan`:
 The public import entry point is fixed:
 
 ```python
-from src.combat.planner import ActionSlot, CombatContext, FieldClaim, Planner, RoleProfile
+from src.combat.planner import ActionSlot, CombatContext, ExpectedEntry, FieldClaim, Planner, RoleProfile
 ```
 
 `src.combat.planner` exports only the official development API. Character code must not import internal modules such as `planner/core.py`, `planner/requests.py`, or `planner/state.py` directly.
@@ -87,6 +87,7 @@ Rules:
 
 - Only declare actions and entry requests when creating a plan; do not send input.
 - Do not call `context.request_route()`, `reserve_actions()`, or `request_tags()` when creating a plan. Publish these one-time requests in action execution, or after receiving a successful result in the entry flow.
+- Requests published by an entry flow are collected when it next yields or finishes. A request published after receiving a result still takes effect if the flow returns immediately.
 - `actions` is the catalog used for scoring and coordination matching; `entry` is the ordinary entry execution flow.
 - Multiple independent `claims` may be passed. They do not stack scores; the planner uses only the highest-priority matching claim for the current character.
 - Strict routes, expected entries, and active requests take scheduling priority over ordinary entry flow.
@@ -133,8 +134,7 @@ Common tags:
 - `ARC_ACTION`: Arc action, scored as 0.
 - `SUPPORT`: Support, healing, or buff action.
 - `TEAM_BUFF`: A key team-wide buff. Use only when the buff should be cast before the main DPS ultimate.
-- `COORDINATION`: An action that publishes a coordination route or window.
-- `COORDINATION_FINISHER`: A finishing action after coordination is complete.
+- `HIGH_PRIORITY`: Significantly increases an action's switch score. Use for a small number of actions that are especially valuable to attempt; it does not change action order after a character enters.
 - `FIELD_TIME`: A planner-built field-time action; characters should not declare it themselves.
 - `LEGACY_COMBO`: Legacy combo action.
 - `DEFAULT_ACTION`: Low-value fallback entry.
@@ -242,7 +242,7 @@ Use this to create a custom action. Long actions should be completed inside `exe
 
 ## FieldClaim
 
-`FieldClaim` expresses "I should be switched in"; it is not an action. It only raises the target character's ordinary entry score. After the character enters, the planner still chooses an action from `actions`, a strict route/request, or `entry`.
+`FieldClaim` expresses "I should be switched in"; it is not an action. `low`, `normal`, `high`, and `critical` raise the ordinary entry score. `strict` selects that character at the next switch decision. After the character enters, the planner still chooses an action from `actions`, a strict route/request, or `entry`.
 
 ```python
 def combat_plan(self, context):
@@ -257,11 +257,29 @@ def combat_plan(self, context):
     return self.plan(self.click_ultimate_action(), claims=claims)
 ```
 
+Declare a strict claim in `combat_plan()` when the character must return within a time window:
+
+```python
+def combat_plan(self, context):
+    ultimate = self.click_ultimate_action()
+    claims = []
+    if self.should_return_now():
+        claims.append(
+            FieldClaim.strict(
+                reason="ultimate window ending",
+            )
+        )
+    return self.plan(ultimate, claims=claims)
+```
+
+The planner reads candidate claims again at each switch decision. A locked strict route takes precedence; a strict claim then takes precedence over entry reactions, active requests, and ordinary scoring. If several characters declare strict claims, the planner selects among them by ordinary score and last action time. A strict claim takes effect after the current character finishes its action; it does not interrupt an action. The switch skips `SwitchInGuard` and `wait_switch_cd()` delays. A strict claim only requests the switch; after arrival, the character follows its ordinary `entry` flow.
+
 Usage guidance:
 
 - If only Q/E is available, no `FieldClaim` is needed; the action itself participates in scoring.
-- Use `FieldClaim` when the character needs to "take the field back" later.
-- Add `expected_entry` when a specific action should be prioritized after taking the field back.
+- Use an ordinary `FieldClaim` to take the field back later; use `FieldClaim.strict()` when it must return at the next switch decision.
+- `FieldClaim.critical()` remains an ordinary scoring level and does not force a switch.
+- Add `expected_entry` to an ordinary claim when a specific action should be prioritized after taking the field back.
 - Multiple `FieldClaim` objects can express independent mechanic entry points; the planner does not add claim scores and selects the highest matching level.
 
 ## `combat_policies`

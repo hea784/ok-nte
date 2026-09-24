@@ -8,8 +8,7 @@ from src.tasks.BaseNTETask import BaseNTETask
 logger = Logger.get_logger(__name__)
 
 
-class SkipDialogTask(TriggerTask, BaseNTETask): # type: ignore
-
+class SkipDialogTask(TriggerTask, BaseNTETask):  # type: ignore
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.default_config = {"_enabled": False}
@@ -46,8 +45,9 @@ class SkipDialogTask(TriggerTask, BaseNTETask): # type: ignore
 
     def check_options(self):
         if boxes := self.find_feature(
-            Labels.dialog_history, box=self.box_of_screen(0.6887, 0.5160, 0.7121, 0.7764),
-            threshold=0.6
+            Labels.dialog_history,
+            box=self.box_of_screen(0.6887, 0.5160, 0.7121, 0.7764),
+            threshold=0.6,
         ):
             boxes.sort(key=lambda b: b.y)
             top_box = boxes[0]
@@ -62,7 +62,7 @@ class SkipDialogTask(TriggerTask, BaseNTETask): # type: ignore
         return self.find_one(
             Labels.dialog_history,
             threshold=0.8,
-            box=self.pos.screen.dialog_icon_box.to_box(),
+            box=self.pos.screen.dialog_icon.to_box(),
         )
 
     def check_dialog_click(self):

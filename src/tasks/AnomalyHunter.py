@@ -275,7 +275,7 @@ class AnomalyHunter(NTEOneTimeTask, BaseCombatTask):
                 if result := self.find_one(
                     feature_name=feature_name,
                     template=template,
-                    box=self.main_viewport,
+                    box=self.pos.screen.main_viewport.to_box(),
                     threshold=self.BOSS_TREASURE_THRESHOLD,
                     frame_processor=lambda frame: cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY),
                 ):
@@ -300,7 +300,7 @@ class AnomalyHunter(NTEOneTimeTask, BaseCombatTask):
 
     def is_claim_btn_ready(self):
         return self.find_confirm(
-            box=self.main_viewport,
+            box=self.pos.screen.main_viewport.to_box(),
             threshold=0.7,
         )
 

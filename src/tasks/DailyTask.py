@@ -273,7 +273,7 @@ class DailyTask(NTEOneTimeTask, BaseNTETask):
 
         def action():
             self.openESCpanel()
-            self.operate_click(0.8707, 0.8736)
+            self.operate_click(*self.pos.panels.esc.mail)
             self.sleep(0.5)
             return self.wait_panel(Labels.mail_panel)
 
@@ -352,7 +352,7 @@ class DailyTask(NTEOneTimeTask, BaseNTETask):
     def _open_activity(self):
         def action():
             self.openF1panel()
-            self.operate_click(0.0551, 0.3833)
+            self.operate_click(*self.pos.panels.f1.activity)
             self.sleep(0.5)
             return self.wait_panel(Labels.f1_activity_panel)
 
@@ -441,7 +441,7 @@ class DailyTask(NTEOneTimeTask, BaseNTETask):
 
         def action():
             self.openF2panel()
-            self.operate_click(0.0570, 0.3451)
+            self.operate_click(*self.pos.panels.f2.mission)
             self.sleep(0.5)
             return self.wait_panel(Labels.f2_mission_panel)
 
@@ -463,7 +463,7 @@ class DailyTask(NTEOneTimeTask, BaseNTETask):
 
         def action():
             self.openF5panel()
-            self.operate_click(*self.pos.f5.coffee.entry)
+            self.operate_click(*self.pos.panels.f5.coffee)
             self.sleep(0.5)
             return self.wait_panel(Labels.f5_coffee_panel)
 

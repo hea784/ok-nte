@@ -96,11 +96,7 @@ class Hotori(BaseChar):
 
         ultimate = self.planner_action(
             name="hotori_ultimate_with_records",
-            tags={
-                Planner.ActionTag.ULTIMATE_ACTION,
-                Planner.ActionTag.SUPPORT,
-                Planner.ActionTag.COORDINATION_FINISHER,
-            },
+            tags={Planner.ActionTag.ULTIMATE_ACTION, Planner.ActionTag.HIGH_PRIORITY},
             execute=self._execute_hotori_ultimate,
             can_execute=lambda _: self.ready_for_ultimate(),
             reason="team skill records ready",
@@ -108,7 +104,7 @@ class Hotori(BaseChar):
         )
         setup = self.planner_action(
             name="hotori_team_record_setup",
-            tags={Planner.ActionTag.COORDINATION, Planner.ActionTag.SUPPORT},
+            tags={Planner.ActionTag.SKILL_ACTION, Planner.ActionTag.HIGH_PRIORITY},
             execute=self._execute_hotori_setup,
             reason="open team skill record window",
             can_execute=lambda _: self._can_start_record_setup(),
@@ -116,12 +112,11 @@ class Hotori(BaseChar):
         )
 
         def entry():
-            ultimate_result = yield ultimate
-            if not ultimate_result:
+            if not (yield ultimate):
                 yield setup
 
         return self.plan(ultimate, setup, claims=claims, entry=entry)
-    
+
     def _can_start_record_setup(self):
         return self.count_team_skill_records() < 1 and self._should_record()
 
@@ -277,7 +272,7 @@ class Hotori(BaseChar):
                     context.request_switch(
                         team.zero,
                         reason="switch to Zero after Hotori ultimate",
-                        until=lambda: self.record_window_start > 0
+                        until=lambda: self.record_window_start > 0,
                     )
         else:
             self.continues_normal_attack(0.2)

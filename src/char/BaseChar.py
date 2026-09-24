@@ -1077,6 +1077,19 @@ class BaseChar:
             for cls in char_classes
         )
 
+    def get_teammates_by_role(self, role: Planner.Role) -> list["BaseChar"]:
+        """按队伍定位查找所有队友, 返回匹配角色组成的列表。
+
+        当前角色不会出现在结果中; 队伍中没有匹配角色时返回空列表。
+        """
+        return [
+            char
+            for char in self.task.chars
+            if char is not None
+            and char.index != self.index
+            and char.describe_role().role == role
+        ]
+
     def find_element_reaction_target(self, char=None):
         """查找可与指定角色触发环合反应的队友。
 

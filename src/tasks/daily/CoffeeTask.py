@@ -185,7 +185,7 @@ class CoffeeTask(NTEOneTimeTask, BaseNTETask):
 
         def action():
             self.openF5panel()
-            self.operate_click(*self.pos.f5.coffee.entry)
+            self.operate_click(*self.pos.panels.f5.coffee)
             self.sleep(0.5)
             return self.wait_panel(Labels.f5_coffee_panel)
 
