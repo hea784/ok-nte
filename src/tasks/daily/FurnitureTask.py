@@ -66,7 +66,7 @@ class FurnitureTask(NTEOneTimeTask, BaseCombatTask):
     def open_house_panel(self):
         def action():
             self.openF5panel()
-            self.operate_click(0.255, 0.468)
+            self.operate_click(*self.pos.f5.house.entry)
             self.sleep(0.5)
             return self.wait_panel(Labels.f5_house_panel)
 

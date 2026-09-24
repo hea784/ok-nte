@@ -9,6 +9,27 @@ from ok import Box, color_range_to_bound
 from src.events import communicate
 
 
+def trim_right_background(image, threshold=24):
+    """Trim trailing background columns while keeping the image's height and left edge."""
+    if image is None or image.size == 0:
+        return image
+
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY) if image.ndim == 3 else image
+    height, width = gray.shape[:2]
+    background_width = max(1, width // 10)
+    background = np.median(gray[:, -background_width:], axis=1)
+    changed_pixels = np.abs(gray.astype(np.int16) - background[:, None]) > threshold
+    active_columns = np.flatnonzero(
+        np.count_nonzero(changed_pixels, axis=0) >= max(1, height // 25)
+    )
+    if not active_columns.size:
+        return image
+
+    right_margin = max(2, width // 50)
+    right = min(width, active_columns[-1] + right_margin + 1)
+    return image[:, :right]
+
+
 def binarize_bgr_by_brightness(image, threshold=180, to_bgr: bool = True):
     """
     根据亮度阈值对 BGR 图像进行二值化，并返回 BGR 格式的结果。

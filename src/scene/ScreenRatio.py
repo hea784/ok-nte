@@ -1,0 +1,54 @@
+from typing import TYPE_CHECKING, Iterator
+
+if TYPE_CHECKING:
+    from ok import Box
+
+    from src.tasks.BaseNTETask import BaseNTETask
+
+
+class ScreenRatio:
+    """A normalized screen point (x, y) or rectangle (left, top, right, bottom)."""
+
+    def __init__(self, *coordinates: float):
+        if len(coordinates) not in (2, 4):
+            raise ValueError(
+                "ScreenRatio requires either 2 point coordinates or 4 rect coordinates"
+            )
+        self.coordinates = tuple(coordinates)
+        self.name: str | None = None
+
+    def __set_name__(self, owner: type, field_name: str):
+        self.name = f"{owner.__name__}.{field_name}"
+
+    def __get__(self, instance, owner):
+        if instance is None:
+            return self
+        return BoundScreenRatio(self, instance._parent)
+
+    def __iter__(self) -> Iterator[float]:
+        return iter(self.coordinates)
+
+    @property
+    def is_rect(self) -> bool:
+        return len(self.coordinates) == 4
+
+    def _to_box(self, parent: "BaseNTETask") -> "Box":
+        if not self.is_rect:
+            raise ValueError("Only a rect ScreenRatio can be converted to a Box")
+        return parent.box_of_screen(
+            *self.coordinates,
+            name=self.name or "ScreenRatio",
+            hcenter=True,
+        )
+
+
+class BoundScreenRatio:
+    def __init__(self, ratio: ScreenRatio, parent: "BaseNTETask"):
+        self.ratio = ratio
+        self.parent = parent
+
+    def __iter__(self) -> Iterator[float]:
+        return iter(self.ratio)
+
+    def to_box(self) -> "Box":
+        return self.ratio._to_box(self.parent)

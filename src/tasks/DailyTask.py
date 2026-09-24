@@ -463,7 +463,7 @@ class DailyTask(NTEOneTimeTask, BaseNTETask):
 
         def action():
             self.openF5panel()
-            self.operate_click(0.415, 0.753)
+            self.operate_click(*self.pos.f5.coffee.entry)
             self.sleep(0.5)
             return self.wait_panel(Labels.f5_coffee_panel)
 

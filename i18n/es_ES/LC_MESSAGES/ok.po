@@ -99,8 +99,8 @@ msgstr "Añadir característica"
 msgid "匹配文字"
 msgstr "Coincidir texto"
 
-msgid "受《异环》UI的特殊性影响, 部分场景下存在识别稳定性波动"
-msgstr "Debido a la singularidad de la interfaz de Neverness-to-Everness, la estabilidad del reconocimiento puede fluctuar en algunos escenarios."
+msgid "适用于大世界、轨外之境、999夜等各类场景与副本"
+msgstr "Adecuado para varios escenarios y mazmorras como mundo abierto, Beyond the Rails, 999 Nights, etc."
 
 msgid "可用指令"
 msgstr "Comandos disponibles"
@@ -265,8 +265,8 @@ msgstr "Tamaño del equipo inferior a 2"
 msgid "队伍管理"
 msgstr "Gestión Equipo"
 
-msgid "关闭时仅在中键选中敌人且画面识别到 'Lv' 文字时开启战斗"
-msgstr "Cuando está desactivado, el combate solo comienza si se selecciona un enemigo con el botón central y se detecta 'Lv' en pantalla"
+msgid "关闭时仅在中键选中敌人且画面识别到关键特征时开启战斗"
+msgstr "Al desactivarlo, el combate solo comenzará si se hace clic central en un enemigo y se detectan características clave en la pantalla"
 
 msgid ""
 "开启后优先通过 ESC 键关闭成功界面，避免后台抢占鼠标。\n"
@@ -1464,3 +1464,9 @@ msgstr "Ajuste preestablecido eliminado"
 
 msgid "部分外置代码删除失败: {}"
 msgstr "Error al eliminar parte del código externo: {}"
+
+msgid "启用开战优先级"
+msgstr "Habilitar prioridad de inicio de combate"
+
+msgid "关闭时不按角色执行开战首切"
+msgstr "Al desactivarlo, no se realiza el cambio inicial de personaje al iniciar el combate"

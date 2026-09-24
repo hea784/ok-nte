@@ -60,7 +60,9 @@ class SkipDialogTask(TriggerTask, BaseNTETask): # type: ignore
 
     def find_dialog_history(self):
         return self.find_one(
-            Labels.dialog_history, threshold=0.8, box=self.default_box.dialog_icon_box
+            Labels.dialog_history,
+            threshold=0.8,
+            box=self.pos.screen.dialog_icon_box.to_box(),
         )
 
     def check_dialog_click(self):

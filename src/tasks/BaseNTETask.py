@@ -19,7 +19,7 @@ from ok import (
 from src import text_black_color
 from src.Labels import Labels
 from src.scene.NTEScene import NTEScene
-from src.scene.ScreenPosition import ScreenPosition
+from src.scene.PositionMap import PositionMap
 from src.tasks.mixin.CharUIMixin import CharUIMixin
 from src.tasks.mixin.MovementMixin import MovementMixin
 from src.tasks.mixin.OgMixin import OgMixin
@@ -59,7 +59,7 @@ class BaseNTETask(
         self.key_config = self.get_global_config("Game Hotkey Config")
         self.monthly_card_config = self.get_global_config("Monthly Card Config")
         self.sound_config = self.get_global_config("Sound Trigger Config")
-        self.default_box = ScreenPosition(self)
+        self.pos = PositionMap(self)
         self._init_char_ui_state()
         self.next_monthly_card_start = 0
         self._last_interval_action_time = {}

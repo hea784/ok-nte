@@ -9,6 +9,7 @@ from src.gifts.layout import GIFT_LAYOUT
 from src.Labels import Labels
 from src.tasks.BaseNTETask import BaseNTETask
 from src.tasks.NTEOneTimeTask import NTEOneTimeTask
+from src.utils import image_utils as iu
 
 
 class GiftTask(NTEOneTimeTask, BaseNTETask):
@@ -274,7 +275,7 @@ class GiftTask(NTEOneTimeTask, BaseNTETask):
             if frame is None:
                 continue
             frame = self.resize_captured_frame(frame)
-            template = current_name_box.crop_frame(frame)
+            template = iu.trim_right_background(current_name_box.crop_frame(frame))
             if self.find_one(
                 f"gift_name_{profile_id}",
                 template=template,

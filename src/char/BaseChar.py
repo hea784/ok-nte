@@ -1066,9 +1066,22 @@ class BaseChar:
         return time.monotonic()
 
     def get_teammate_by_class(self, *char_classes):
+        """按角色类型查找队友, 并按参数顺序返回匹配结果。
+
+        每个类型对应一个结果, 未找到时为 None。当前角色不会作为自己的队友返回。
+        """
         teammates = [c for c in self.task.chars if c is not None and c.index != self.index]
 
         return tuple(
             next((c for c in teammates if isinstance(c, cls)), None)
             for cls in char_classes
         )
+
+    def find_element_reaction_target(self, char=None):
+        """查找可与指定角色触发环合反应的队友。
+
+        未传入角色时以当前角色为起点。没有可触发反应的队友时返回 None。
+        """
+        if char is None:
+            char = self
+        return self.task.find_element_reaction_target(char)

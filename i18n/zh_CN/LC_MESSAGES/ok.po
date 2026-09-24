@@ -99,7 +99,7 @@ msgstr ""
 msgid "匹配文字"
 msgstr ""
 
-msgid "受《异环》UI的特殊性影响, 部分场景下存在识别稳定性波动"
+msgid "适用于大世界、轨外之境、999夜等各类场景与副本"
 msgstr ""
 
 msgid "可用指令"
@@ -263,7 +263,7 @@ msgstr ""
 msgid "队伍管理"
 msgstr ""
 
-msgid "关闭时仅在中键选中敌人且画面识别到 'Lv' 文字时开启战斗"
+msgid "关闭时仅在中键选中敌人且画面识别到关键特征时开启战斗"
 msgstr ""
 
 msgid ""
@@ -1449,4 +1449,10 @@ msgid "方案已删除"
 msgstr ""
 
 msgid "部分外置代码删除失败: {}"
+msgstr ""
+
+msgid "启用开战优先级"
+msgstr ""
+
+msgid "关闭时不按角色执行开战首切"
 msgstr ""

@@ -325,7 +325,8 @@ class DSDFarmTask(NTEOneTimeTask, BaseCombatTask):
 
         self.log_info(f"found map teleports {teleports}")
 
-        teleports.sort(key=lambda tp: tp.center_distance(self.default_box.center))
+        center_box = self.pos.screen.center.to_box()
+        teleports.sort(key=lambda tp: tp.center_distance(center_box))
 
         if len(teleports) >= order:
             teleport = teleports[order - 1]
