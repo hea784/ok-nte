@@ -1105,11 +1105,6 @@ msgstr "Registrarse"
 msgid "捞币"
 msgstr "Sacar monedas"
 
-msgid ""
-"导入数据会完整覆盖当前用户资料.\n"
-"导出数据会导出完整用户资料."
-msgstr "Importar datos sobrescribirá por completo los perfiles de usuario actuales.\nExportar datos exportará los perfiles de usuario completos."
-
 msgid "资料管理"
 msgstr "Gestión de datos"
 
@@ -1248,9 +1243,6 @@ msgstr "<p>Configura y guarda alineaciones y combos de equipo de 4 personajes, c
 msgid "OpenVINO 单次推理超时，已自动关闭目标检测；重启程序后会重新尝试启用。"
 msgstr "Se agotó el tiempo de inferencia única de OpenVINO, la detección de objetivos se ha desactivado automáticamente. Se intentará volver a activar al reiniciar el programa."
 
-msgid "管理"
-msgstr "Gestionar"
-
 msgid "批量删除"
 msgstr "Eliminación masiva"
 
@@ -1292,9 +1284,6 @@ msgstr "Error al Aplicar Código Externo"
 
 msgid "已应用外置代码: {}"
 msgstr "Código externo aplicado: {}"
-
-msgid "手动添加或修改 Python 代码后, 需点击 [{refresh}] 以生效. 关于编写角色出招表的指南, 请参考 <a href='{doc_url}'>文档</a>."
-msgstr "Después de añadir o modificar el código de Python manualmente, haga clic en [{refresh}] para aplicar los cambios. Para consultar la guía sobre cómo escribir combos de personajes, consulte la <a href='{doc_url}'>documentación</a>."
 
 msgid "角色"
 msgstr "Personaje"
@@ -1481,3 +1470,24 @@ msgstr "Al desactivarlo, no se realiza el cambio inicial de personaje al iniciar
 
 msgid "鼠标占用警告"
 msgstr "Advertencia sobre el control del ratón"
+
+msgid "数据备份"
+msgstr "Copia de seguridad"
+
+msgid "用户数据"
+msgstr "Datos de usuario"
+
+msgid "ZIP 格式备份; 导入将覆盖当前数据"
+msgstr "Copia de seguridad ZIP; la importación sobrescribirá los datos actuales"
+
+msgid "手动修改 Python 代码后, 需点击 [{refresh}] 生效"
+msgstr "Después de modificar el código de Python manualmente, haga clic en [{refresh}] para aplicar los cambios."
+
+msgid "编写指南"
+msgstr "Guía de redacción"
+
+msgid "噗卡乐园 - 命中幸运星"
+msgstr "Puka Land - Acertar a la estrella de la suerte"
+
+msgid "在可进行NPC交互的位置启动任务"
+msgstr "Inicie la tarea en una posición donde pueda interactuar con el PNJ"

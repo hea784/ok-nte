@@ -1105,11 +1105,6 @@ msgstr "簽到"
 msgid "捞币"
 msgstr "撈取硬幣"
 
-msgid ""
-"导入数据会完整覆盖当前用户资料.\n"
-"导出数据会导出完整用户资料."
-msgstr "匯入資料會完整覆蓋當前使用者資料。\n匯出資料會匯出完整使用者資料。"
-
 msgid "资料管理"
 msgstr "資料管理"
 
@@ -1248,9 +1243,6 @@ msgstr "<p>用於配置並儲存常用的 4 人隊伍陣容與出招表, 修改�
 msgid "OpenVINO 单次推理超时，已自动关闭目标检测；重启程序后会重新尝试启用。"
 msgstr "OpenVINO 單次推論超時，已自動關閉目標檢測；重啟程式後會重新嘗試啟用。"
 
-msgid "管理"
-msgstr "管理"
-
 msgid "批量删除"
 msgstr "批量刪除"
 
@@ -1292,9 +1284,6 @@ msgstr "外置代碼套用失敗"
 
 msgid "已应用外置代码: {}"
 msgstr "已套用外置代碼: {}"
-
-msgid "手动添加或修改 Python 代码后, 需点击 [{refresh}] 以生效. 关于编写角色出招表的指南, 请参考 <a href='{doc_url}'>文档</a>."
-msgstr "手動新增或修改 Python 代碼後, 需點擊 [{refresh}] 以生效. 關於撰寫角色出招表的指南, 請參考 <a href='{doc_url}'>文件</a>."
 
 msgid "角色"
 msgstr "角色"
@@ -1481,3 +1470,24 @@ msgstr "關閉時不按角色執行開戰首切"
 
 msgid "鼠标占用警告"
 msgstr "滑鼠操作警告"
+
+msgid "数据备份"
+msgstr "資料備份"
+
+msgid "用户数据"
+msgstr "使用者資料"
+
+msgid "ZIP 格式备份; 导入将覆盖当前数据"
+msgstr "ZIP 格式備份; 匯入將覆蓋當前資料"
+
+msgid "手动修改 Python 代码后, 需点击 [{refresh}] 生效"
+msgstr "手動修改 Python 代碼後, 需點擊 [{refresh}] 生效"
+
+msgid "编写指南"
+msgstr "撰寫指南"
+
+msgid "噗卡乐园 - 命中幸运星"
+msgstr "噗卡樂園 - 命中幸運星"
+
+msgid "在可进行NPC交互的位置启动任务"
+msgstr "在可進行NPC互動的位置啟動任務"
