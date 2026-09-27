@@ -6,11 +6,19 @@ import win32con
 import win32gui
 import win32process
 from ok import BaseTask, Logger, og
+from ok.core.config_schema import resolve_config_type
 
 logger = Logger.get_logger(__name__)
 
 
 class OgMixin(BaseTask):
+    def validate_config(self, key, value):  # type: ignore
+        type_spec = self.config_type.get(key)
+        if resolve_config_type(type_spec, self.default_config.get(key)) == "drop_down":
+            options = type_spec.get("options")
+            if isinstance(options, (list, tuple)) and value not in options:
+                return f"Invalid value for {key}: {value!r}. Expected one of {options!r}."
+
     def sync_config(self, config=None):
         """同步保存配置, 并刷新对应的配置 UI。"""
         target_config = config if config is not None else self.config

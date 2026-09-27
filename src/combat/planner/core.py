@@ -275,12 +275,26 @@ class CombatPlanner:
 
         self.state.record_switch(target_char)
 
-    def expect_entry_action(
-        self, target_char: "BaseChar", expected_entry: ExpectedEntry | None
-    ) -> None:
-        """登记目标角色下次切入后应优先尝试的动作。"""
+    def prepare_switch(self, decision: SwitchDecision) -> None:
+        """准备执行切人决策，并清理目标角色残留的入场动作期望。"""
 
-        self.state.set_pending_entry_expectation(target_char, expected_entry)
+        self.state.set_pending_entry_expectation(decision.target, None)
+
+    def complete_switch(
+        self,
+        decision: SwitchDecision,
+        previous_char: "BaseChar | None" = None,
+        entry_reaction: bool = False,
+    ) -> None:
+        """记录已确认的切人，并应用最终决策的入场动作期望。"""
+
+        target_char = decision.target
+        if previous_char is not None and previous_char != target_char:
+            self.state.set_pending_entry_expectation(previous_char, None)
+        self.state.set_pending_entry_expectation(target_char, decision.expected_entry)
+        if entry_reaction and previous_char is not None:
+            self.record_entry_reaction(previous_char, target_char)
+        self.record_switch(target_char)
 
     def perform_current_char(self, current_char: "BaseChar") -> ActionResult | None:
         """规划并执行当前在场角色的动作。
@@ -1124,6 +1138,7 @@ class CombatPlanner:
                     priority=999999,
                     has_intro=has_intro,
                     expected_entry=None,
+                    skip_switch_waits=True,
                 )
             if step.requires_entry_reaction:
                 if not has_intro:
@@ -1134,6 +1149,7 @@ class CombatPlanner:
                         priority=999998,
                         has_intro=has_intro,
                         expected_entry=None,
+                        skip_switch_waits=True,
                     )
                 return SwitchDecision(
                     target=target,
@@ -1141,19 +1157,19 @@ class CombatPlanner:
                     priority=999999,
                     has_intro=has_intro,
                     expected_entry=None,
+                    skip_switch_waits=True,
                 )
             action = self._strict_route_action(target, self._actions_for(target, context), context)
-            expected = (
-                ExpectedEntry.from_action(action)
-                if action is not None
-                else ExpectedEntry(slot=step.slot)
-            )
+            expected = ExpectedEntry.from_action(action) if action is not None else None
+            if expected is None and not step.optional:
+                expected = ExpectedEntry(slot=step.slot)
             return SwitchDecision(
                 target=target,
                 reason=f"strict route: {request.reason} / {step.reason}",
                 priority=999999,
                 has_intro=has_intro,
                 expected_entry=expected,
+                skip_switch_waits=True,
             )
 
         return SwitchDecision(
@@ -1162,6 +1178,7 @@ class CombatPlanner:
             priority=999998,
             has_intro=has_intro,
             expected_entry=None,
+            skip_switch_waits=True,
         )
 
     def _strict_route_target(self, context: CombatContext, step: FollowupStep) -> "BaseChar | None":
@@ -1259,6 +1276,7 @@ class CombatPlanner:
             expected_entry=None,
             score_breakdown=breakdown.format(),
             strict=True,
+            skip_switch_waits=True,
         )
 
     def _base_action_score(

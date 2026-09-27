@@ -82,7 +82,7 @@ class _DailyTaskSchema:
     config_type: dict
 
 
-class _DailyTaskConfig(dict):
+class _DailyTaskConfig(Config):
     """A task config view persisted in the daily routine task-config store."""
 
     def __init__(self, routine_task, task_id, task, default_config):
@@ -90,41 +90,11 @@ class _DailyTaskConfig(dict):
         self.task_id = task_id
         self.task = task
         self.default = deepcopy(default_config)
-        values = deepcopy(self.default)
-        stored_values = routine_task.routine_task_configs.get(task_id)
-        if isinstance(stored_values, dict):
-            for key, value in stored_values.items():
-                if key in values and isinstance(value, type(values[key])):
-                    values[key] = deepcopy(value)
-        super().__init__(values)
-        if isinstance(stored_values, dict) and list(stored_values) != list(self):
+        self.validator = getattr(task, "validate", None)
+        dict.__init__(self)
+        stored_values = deepcopy(routine_task.routine_task_configs.get(task_id, {}))
+        if self.verify_config(stored_values, self.default):
             self.save_file()
-
-    def get_default(self, key):
-        return self.default.get(key)
-
-    def has_user_config(self):
-        return any(not key.startswith("_") for key in self)
-
-    def __setitem__(self, key, value):
-        if self.get(key) == value:
-            return
-        super().__setitem__(key, value)
-        self.save_file()
-
-    def update(self, *args, **kwargs):
-        values = dict(*args, **kwargs)
-        if all(self.get(key) == value for key, value in values.items()):
-            return
-        super().update(values)
-        self.save_file()
-
-    def reset_to_default(self):
-        if dict(self) == self.default:
-            return
-        super().clear()
-        super().update(deepcopy(self.default))
-        self.save_file()
 
     def save_file(self):
         self.routine_task.routine_task_configs[self.task_id] = deepcopy(dict(self))

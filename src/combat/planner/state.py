@@ -233,9 +233,11 @@ class CombatState:
     def set_pending_entry_expectation(
         self, char: "BaseChar", expected_entry: ExpectedEntry | None
     ) -> None:
-        """登记某角色下次切入后应优先尝试的动作。"""
+        """登记某角色下次切入后的动作期望; None 清除旧期望。"""
 
-        if expected_entry is not None:
+        if expected_entry is None:
+            self.pending_entry_expectations.pop(char.index, None)
+        else:
             self.pending_entry_expectations[char.index] = expected_entry
 
     def pop_pending_entry_expectation(self, char: "BaseChar") -> ExpectedEntry | None:

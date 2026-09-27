@@ -10,13 +10,30 @@ The planner is the team's brain. A character declares one `CombatPlan`:
 - `claims`: `FieldClaim` entry requests that express "I should be switched in now".
 - `entry`: the Python generator action flow for an ordinary entry. When omitted, actions run in declaration order.
 
-The public import entry point is fixed:
+Import public types from `src.combat.planner`. This is a sample of commonly used types; add or
+remove names as needed:
 
 ```python
-from src.combat.planner import ActionSlot, CombatContext, ExpectedEntry, FieldClaim, Planner, RoleProfile
+from src.combat.planner import (
+    ActionIntent,
+    ActionReservation,
+    ActionResult,
+    ActionSlot,
+    ActionTag,
+    CombatContext,
+    ExpectedEntry,
+    FieldClaim,
+    FollowupStep,
+    Planner,
+    RequestHandle,
+    RoleProfile,
+    SwitchInGuard,
+)
 ```
 
 `src.combat.planner` exports only the official development API. Character code must not import internal modules such as `planner/core.py`, `planner/requests.py`, or `planner/state.py` directly.
+This guide focuses on the character-author API. `BaseCombatTask` manages the switch execution
+lifecycle; character code does not need to call `CombatPlanner` executor methods directly.
 
 ## Quick Entry
 
@@ -56,7 +73,7 @@ def combat_plan(self, context: CombatContext):
     return self.plan(skill, ultimate, entry=entry)
 ```
 
-`yield action` gives the action to the planner. The planner checks reservations and `can_execute`, executes the action, records the result, advances the request, and sends the `ActionResult` back to the generator. `bool(ActionResult)` equals `result.success`, so you can write:
+`yield action` executes the action and sends an `ActionResult` back to the generator. Its truth value is True only when the action succeeded, so you can write:
 
 ```python
 a = yield action_a
@@ -86,12 +103,12 @@ def combat_plan(self, context):
 Rules:
 
 - Only declare actions and entry requests when creating a plan; do not send input.
-- Do not call `context.request_route()`, `reserve_actions()`, or `request_tags()` when creating a plan. Publish these one-time requests in action execution, or after receiving a successful result in the entry flow.
+- Do not publish one-time coordination requests while creating a plan. Publish `request_route()`, `request_switch()`, `request_role()`, `request_tags()`, and temporary `reserve_actions()` during action execution or after a successful result in the entry flow. Put team-wide long-lived policies in `combat_policies()`.
 - Requests published by an entry flow are collected when it next yields or finishes. A request published after receiving a result still takes effect if the flow returns immediately.
 - `actions` is the catalog used for scoring and coordination matching; `entry` is the ordinary entry execution flow.
 - Multiple independent `claims` may be passed. They do not stack scores; the planner uses only the highest-priority matching claim for the current character.
 - Strict routes, expected entries, and active requests take scheduling priority over ordinary entry flow.
-- An ordinary entry flow executes at most `MAX_ACTIONS_PER_ENTRY` actions.
+- An ordinary entry flow is subject to the planner's per-entry action limit.
 - The same action is executed at most once during one entry.
 
 ## ActionIntent
@@ -108,7 +125,7 @@ Fields:
 - `can_execute: Callable[[CombatContext], bool] | None`: a hard restriction at planner level.
 - `priority_ready: Callable[[CombatContext], bool] | None`: used only for switch scoring.
 
-`action.repeat_for_entry()` returns an action copy that can be yielded again in the same entry. It preserves execution, slot, tags, and `can_execute` restrictions, and automatically creates an independent entry deduplication result for each call. It is suitable for a limited flow such as `Q -> E -> try E once more`; the copy should normally be yielded only in the entry flow and should not be added to `CombatPlan.actions`.
+`action.repeat_for_entry()` lets the action be yielded again in the same entry while preserving its execution, slot, tags, and `can_execute` restrictions. It is suitable for a limited flow such as `Q -> E -> try E once more`; the returned copy should normally be yielded only in the entry flow and should not be added to `CombatPlan.actions`.
 
 Every `yield` counts toward the action limit for one entry. Do not yield it inside a long-running loop; such loops should call `context.is_action_allowed(self, action)` before invoking an existing action helper. This keeps the loop under character-code control while still honoring planner `can_execute` and reservation rules.
 
@@ -121,7 +138,21 @@ When an action has a `slot`, the planner automatically checks reservations throu
 - Return `ActionResult`: use `ActionResult.success`.
 - Truthy values such as `1` or `"ok"` are not treated as success.
 
-Ordinary characters do not need to construct `ActionResult` manually. Create one only when a custom result name, tags, slot, or reason is required.
+Ordinary characters do not need to construct `ActionResult` manually. Create one only when a custom result name, tags, slot, or reason is required:
+
+```python
+def execute(context):
+    return ActionResult(
+        success=True,
+        name="custom support action",
+        tags={ActionTag.SUPPORT},
+        slot=ActionSlot.CUSTOM,
+        reason="healing completed",
+    )
+```
+
+`ActionResult.tags` and `slot` also participate in coordination matching; ordinary actions should
+let a helper create the result automatically.
 
 ## ActionTag
 
@@ -132,6 +163,7 @@ Common tags:
 - `ULTIMATE_ACTION`: Q.
 - `SKILL_ACTION`: E.
 - `ARC_ACTION`: Arc action, scored as 0.
+- `DAMAGE`: Generic damage action.
 - `SUPPORT`: Support, healing, or buff action.
 - `TEAM_BUFF`: A key team-wide buff. Use only when the buff should be cast before the main DPS ultimate.
 - `HIGH_PRIORITY`: Significantly increases an action's switch score. Use for a small number of actions that are especially valuable to attempt; it does not change action order after a character enters.
@@ -160,10 +192,48 @@ Prefer writing coordination and reservations as:
 ```python
 FollowupStep.for_action(zero, ActionSlot.SKILL)
 ActionReservation.for_action(nanally, ActionSlot.SKILL)
+ActionReservation.for_slots(nanally, {ActionSlot.SKILL, ActionSlot.ULTIMATE})
 context.is_slot_available(self, ActionSlot.SKILL)
 ```
 
+## RoleProfile
+
+`describe_role()` returns a `RoleProfile` describing the character's team role and ordinary
+field-time preference. `role` and `field_preference` are separate: `request_role()` matches the
+former, while the latter affects ordinary switch scoring. Neither is a hard scheduling command.
+
+| Field | Values / purpose |
+|---|---|
+| `role` | `Planner.Role.MAIN_DPS`, `SUB_DPS`, or `SUPPORT`; describes the team role. Defaults to `SUB_DPS`. |
+| `field_preference` | `Planner.FieldPreference.MAIN_DPS`, `SUB_DPS`, `SUPPORT`, or `SETUP_ONLY`; expresses ordinary field-time preference. Defaults to `SUB_DPS`. |
+| `max_field_time` | When greater than 0, allows the planner's built-in field-time fallback for up to this duration; set to 0 to disable it. Defaults to 1.5 seconds. |
+| `combat_start_priority` | Used only for the opening switch. Values greater than 0 make a character eligible, and higher values rank first. It does not affect ordinary combat switch scoring. Defaults to 0. |
+
+`MAIN_DPS` favors staying on field, `SUB_DPS` favors shorter field time, and `SUPPORT` and
+`SETUP_ONLY` suit characters that rotate out after support or setup actions. Coordination requests
+and field claims still affect the final choice.
+
 ## BaseChar Helpers
+
+### `switch_in_guard`
+
+The target character can override `switch_in_guard()` to delay an ordinary switch until its own
+entry condition is ready:
+
+```python
+def switch_in_guard(self, context, from_char, has_intro):
+    return SwitchInGuard.delay_until_ready(
+        condition=self.entry_state_ready,
+        timeout=1.5,
+        reason="waiting for entry state",
+    )
+```
+
+The switch proceeds when `condition` returns True. It also proceeds after the timeout, so this is a
+bounded delay rather than a veto. `poll_interval` controls how often the condition is checked, and
+`while_waiting` can provide a callback during the wait. The default guard allows an immediate
+switch. Strict routes and strict field claims skip this wait and the ordinary switch cooldown; do
+not rely on the guard to protect an entry that must use strict scheduling.
 
 ### Combat Session and First Engagement
 
@@ -192,6 +262,8 @@ self.click_ultimate_action(
     add_tags=None,
     reason="ultimate action available",
     can_execute=None,
+    send_click=True,
+    wait_if_no_cd=0,
 )
 ```
 
@@ -201,6 +273,7 @@ self.click_ultimate_action(
 - Defaults to `name=f"{character_name}_ultimate"`.
 - `can_execute` includes `self.ultimate_available()` by default; an extra condition is combined with it.
 - `priority_ready` automatically uses `self.ultimate_available()`.
+- When `send_click` is True, ordinary clicks are sent during the ultimate animation. `wait_if_no_cd` is the maximum time to wait for cooldown readiness.
 - `execute` calls `self.click_ultimate()`.
 
 ### `click_skill_action`
@@ -213,6 +286,10 @@ self.click_skill_action(
     reason="skill action available",
     down_time=0.01,
     can_execute=None,
+    post_sleep=0,
+    has_animation=False,
+    send_click=True,
+    time_out=0,
 )
 ```
 
@@ -222,7 +299,27 @@ self.click_skill_action(
 - Defaults to `name=f"{character_name}_skill"`.
 - `can_execute` includes `self.skill_available()` by default; an extra condition is combined with it.
 - `priority_ready` automatically uses `self.skill_available()`.
-- `execute` calls `self.click_skill(down_time=down_time)`.
+- `down_time` controls key-press duration; `post_sleep` adds a wait after a successful skill; `has_animation` marks a skill with an animation.
+- `send_click` controls ordinary clicks during the skill. `time_out` limits the wait for skill activation; 0 uses the built-in default.
+- `execute` calls `self.click_skill()`.
+
+### `click_arc_action`
+
+```python
+self.click_arc_action(
+    name=None,
+    tags=None,
+    add_tags=None,
+    reason="arc action available",
+    can_execute=None,
+    priority_ready=None,
+)
+```
+
+This helper sets `slot=ActionSlot.ARC` and defaults to `ActionTag.ARC_ACTION`. Its default
+`priority_ready` is False, so an arc action does not by itself attract a switch; it can still run
+through the ordinary entry flow after the character is on field. Pass `priority_ready` when it
+should contribute to switch scoring.
 
 ### `planner_action`
 
@@ -243,6 +340,11 @@ Use this to create a custom action. Long actions should be completed inside `exe
 ## FieldClaim
 
 `FieldClaim` expresses "I should be switched in"; it is not an action. `low`, `normal`, `high`, and `critical` raise the ordinary entry score. `strict` selects that character at the next switch decision. After the character enters, the planner still chooses an action from `actions`, a strict route/request, or `entry`.
+
+An ordinary claim can use `ExpectedEntry(slot=...)` to prioritize a slot after returning to the field.
+For advanced exact matching, set `action_name` or create the expectation with
+`ExpectedEntry.from_action(action)`. A strict claim requests the switch only and does not accept an
+`expected_entry`.
 
 ```python
 def combat_plan(self, context):
@@ -272,7 +374,7 @@ def combat_plan(self, context):
     return self.plan(ultimate, claims=claims)
 ```
 
-The planner reads candidate claims again at each switch decision. A locked strict route takes precedence; a strict claim then takes precedence over entry reactions, active requests, and ordinary scoring. If several characters declare strict claims, the planner selects among them by ordinary score and last action time. A strict claim takes effect after the current character finishes its action; it does not interrupt an action. The switch skips `SwitchInGuard` and `wait_switch_cd()` delays. A strict claim only requests the switch; after arrival, the character follows its ordinary `entry` flow.
+The planner reads candidate claims again at each switch decision. A locked strict route takes precedence; a strict claim then takes precedence over entry reactions, active requests, and ordinary scoring. If several characters declare strict claims, the planner selects among them by ordinary score and last action time. A strict claim takes effect after the current character finishes its action; it does not interrupt an action. It requests only the switch and does not set an `expected_entry`; after arrival, the character follows its ordinary `entry` flow.
 
 Usage guidance:
 
@@ -327,6 +429,18 @@ context.request_route([
 ])
 ```
 
+`FollowupStep.for_action(target, slot, ...)` creates an action step for a character. With
+`optional=True`, the planner skips the step if no matching allowed, ready action is available when
+the target arrives; the default required step keeps waiting. Use `required_tags` or `action_names`
+to add match conditions. Prefer a slot for ordinary coordination; action names are an advanced
+exact-match option. A tag condition matches when the action has at least one requested tag.
+
+To require an entry or ring reaction when the target switches in, use:
+
+```python
+FollowupStep.for_entry_reaction(target, reason="trigger entry reaction")
+```
+
 A finishes its normal entry flow before the route advances to B's ultimate.
 If A is already on field, it still runs its turn. No first action or entry reaction is
 required, and action permissions and reservations still apply. A turn uses the normal
@@ -346,13 +460,43 @@ ordinary independent switch requests.
 - `context.request_switch(...)`: Request that the next ordinary dispatch switches to a character.
 - `context.request_role(...)`: Request that the next ordinary dispatch switches to a character with a team role. When several characters match, ordinary switch scoring chooses one. It does not specify an action or interrupt the current entry flow.
 - `context.reserve_actions(...)`: Reserve teammate actions.
-- `context.request_tags(...)`: Request a number of actions with particular tags.
+- `context.request_tags(...)`: Request one successful matching action from each of a number of teammates. Any one requested tag matches, and each character counts at most once. Use `count` to choose the number of teammates; by default, the requester cannot satisfy its own request.
+  Set `avoid_source=False` to let the requester satisfy its own request.
 
 `request_role(Planner.Role.SUPPORT)` asks for any support-role character; `request_tags({Planner.ActionTag.SUPPORT})` asks for any support-type action. The former suits "bring in any support character", while the latter suits "let any teammate perform one healing/buff action".
+`request_route()` and `request_tags()` can set `return_to_source=True` to raise the requester's
+switch priority after completion.
 
 ```python
 context.request_role(Planner.Role.SUPPORT, reason="need a support role")
 ```
+
+These requests usually return a `RequestHandle`. Use it to check completion or expiration, or to
+tie one request's lifetime to another. For example, release a reservation after a route completes:
+
+```python
+route = context.request_route(steps, until=self.window_expired)
+if route is not None:
+    route.on_fulfilled(self.on_route_complete)
+    route.on_expired(self.on_route_expired)
+    context.reserve_actions(reservations, until=route.when.fulfilled)
+```
+
+`handle.when.fulfilled`, `expired`, `closed`, and `any` are conditions that can be passed to another
+request's `until=`; `is_pending`, `is_fulfilled`, `is_expired`, and `is_closed` query the current state.
+`handle.status` is `Planner.RequestStatus.PENDING`, `FULFILLED`, or `EXPIRED`; `closed` is a separate
+state. Use `on_finish()` for the first completion or expiration signal, or `on_fulfilled()` and
+`on_expired()` to handle the outcomes separately. The `until` argument defaults to None for
+`request_route()`, `request_switch()`, `request_role()`, and `request_tags()`, meaning they do not
+expire from a window condition. `reserve_actions()` requires
+`until`: pass a callable or `Planner.NEVER_EXPIRES` to keep it active until the planner resets.
+Completing a route's steps and expiration of its window are separate signals.
+An `until=Planner.NEVER_EXPIRES` reservation does not end automatically and cannot use `on_finish`.
+
+`CombatContext` also provides `has_active_request()`, `has_strict_route()`, and
+`strict_route_wants_action(char, slot=..., action_name=..., tags=...)` for advanced character logic
+that branches on current coordination. Pure reservations and pure switch requests do not count as
+active action requests.
 
 ## Behavior Summary
 

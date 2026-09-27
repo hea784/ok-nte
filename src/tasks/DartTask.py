@@ -29,7 +29,6 @@ class DartTask(NTEOneTimeTask, BaseNTETask):
         self.interact_with_npc()
         while self.begin_round():  # 返回 False 表示达到循环次数
             self.play()
-            self.add_success()  # 记录本轮成功
 
         self.finish_rounds()
 
@@ -61,9 +60,21 @@ class DartTask(NTEOneTimeTask, BaseNTETask):
             self.click()
             self.sleep(0.15)
         self.sleep(0.5)
+        self.add_success()
+        if self.check_ticket():
+            self.stop_rounds(reason="星票已满")
         if self.has_remaining_rounds():
             if self.wait_click_confirm(range=self.RETRY, time_out=4, raise_if_not_found=False):
                 self.sleep(3.5)
         else:
             self.wait_click_confirm(range=self.QUIT, time_out=4, raise_if_not_found=False)
             self.log_info("已完成全部循环，点击撤离")
+
+    def check_ticket(self):
+        from src.utils import game_filters as gf
+
+        ticket = self.ocr(
+            0.813, 0.040, 0.875, 0.082, frame_processor=gf.isolate_black_text, name="cash"
+        )
+        if self.parse_ocr_number(ticket) > 52600:
+            return True

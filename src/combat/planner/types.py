@@ -800,9 +800,11 @@ class ActionReservation:
 class SwitchDecision:
     """planner 的切人决策结果。
 
-    `CombatPlanner.decide_switch()` 返回此类型，调用方根据 `target` 执行切人，
-    并可用 `expected_entry` 记录切入后优先尝试的动作。
-    `strict` 表示 strict claim 的决策, 切人时跳过普通入场等待。
+    `CombatPlanner.decide_switch()` 返回此类型，执行端根据 `target` 尝试切人，
+    并在确认成功后将最终决策交给 `CombatPlanner.complete_switch()`。planner 会
+    根据 `expected_entry` 登记切入后优先尝试的动作。
+    `strict` 表示 strict claim 的决策。`skip_switch_waits` 表示本次切人跳过
+    `SwitchInGuard` 和切人冷却等待, 由 planner 在决策时确定。
     """
 
     target: "BaseChar"
@@ -812,6 +814,7 @@ class SwitchDecision:
     expected_entry: "ExpectedEntry | None" = None
     score_breakdown: str = ""
     strict: bool = False
+    skip_switch_waits: bool = False
 
 
 @dataclass(slots=True)

@@ -10,14 +10,30 @@ Planner 是队伍大脑。角色只声明一个 `CombatPlan`：
 - `claims`：`FieldClaim` 入场诉求，用于表达“我现在应该被切进来”。
 - `entry`：普通入场后的 Python generator 动作流。未提供时默认按 `actions` 顺序执行。
 
-公开导入入口固定使用：
+角色代码从 `src.combat.planner` 导入公开类型。以下是常用类型示例，按需增删：
 
 ```python
-from src.combat.planner import ActionSlot, CombatContext, ExpectedEntry, FieldClaim, Planner, RoleProfile
+from src.combat.planner import (
+    ActionIntent,
+    ActionReservation,
+    ActionResult,
+    ActionSlot,
+    ActionTag,
+    CombatContext,
+    ExpectedEntry,
+    FieldClaim,
+    FollowupStep,
+    Planner,
+    RequestHandle,
+    RoleProfile,
+    SwitchInGuard,
+)
 ```
 
 `src.combat.planner` 只导出正式开发 API。角色代码不要直接导入
 `planner/core.py`、`planner/requests.py`、`planner/state.py` 等内部模块。
+本文聚焦角色作者 API；切人执行生命周期由 `BaseCombatTask` 管理，角色代码不需要直接
+操作 `CombatPlanner` 的执行端方法。
 
 ## 快速入口
 
@@ -58,9 +74,8 @@ def combat_plan(self, context: CombatContext):
     return self.plan(skill, ultimate, entry=entry)
 ```
 
-`yield action` 会把 action 交给 planner 执行。planner 完成 reservation/can_execute
-检查、执行、记录 result、推进 request 后，把 `ActionResult` 送回 generator。
-`bool(ActionResult)` 等于 `result.success`，所以可以直接写：
+`yield action` 会执行该 action，并把 `ActionResult` 送回 generator。只有动作成功时
+`bool(ActionResult)` 才为 True，所以可以直接写：
 
 ```python
 a = yield action_a
@@ -90,15 +105,15 @@ def combat_plan(self, context):
 规则：
 
 - 创建 plan 时只声明动作和入场诉求，不要发送输入。
-- 不要在创建 plan 时调用 `context.request_route()`、`reserve_actions()` 或
-  `request_tags()`；这些一次性请求应在 action execute 中发布，或在 entry flow
-  收到成功 result 后发布。
+- 不要在创建 plan 时发布一次性协作请求；`request_route()`、`request_switch()`、
+  `request_role()`、`request_tags()` 和临时 `reserve_actions()` 应在 action 执行期间发布，
+  或在 entry flow 收到成功 result 后发布。队伍级长期策略放在 `combat_policies()`。
 - entry flow 发布的请求会在下一次 `yield` 或流程结束时收集；收到 result 后发布请求并直接
   `return` 也会生效。
 - `actions` 是评分和协作匹配目录；`entry` 是普通入场执行流程。
 - `claims` 可以传多个独立入场理由；它们不会叠加分数，planner 只取当前匹配角色的最高优先级 claim。
 - strict route、expected entry、active request 的硬调度优先于普通 entry flow。
-- 普通 entry flow 最多执行 `MAX_ACTIONS_PER_ENTRY` 个动作。
+- 普通 entry flow 受 planner 的单次入场动作数上限约束。
 - 同一个 action 在同一次入场中只会真实执行一次。
 
 ## ActionIntent
@@ -116,10 +131,9 @@ def combat_plan(self, context):
 - `can_execute: Callable[[CombatContext], bool] | None`：planner 层硬限制。
 - `priority_ready: Callable[[CombatContext], bool] | None`：只用于切人评分。
 
-`action.repeat_for_entry()` 返回一个可在同一次 entry 中再次 `yield` 的动作副本。
-它保留原 action 的执行、slot、标签和 `can_execute` 限制，并为每次调用自动生成独立
-的 entry 去重结果。因此它适合 `Q -> E -> 再尝试一次 E` 这类有限 entry flow；副本通常
-只在 entry flow 中 yield，不应加入 `CombatPlan.actions`。
+`action.repeat_for_entry()` 允许同一次 entry 再次 `yield` 该动作，同时保留原 action 的
+执行内容、slot、标签和 `can_execute` 限制。它适合 `Q -> E -> 再尝试一次 E` 这类有限
+entry flow；返回的副本通常只在 entry flow 中 yield，不应加入 `CombatPlan.actions`。
 
 每次 `yield` 都会计入单次 entry 的动作上限。不要在需要持续运行的长时间循环中 yield
 它；此类循环应在调用已有动作 helper 前，先通过
@@ -139,7 +153,20 @@ flow 外预查询完整 action 时，使用 `context.is_action_allowed(self, act
 - 返回 `1`、`"ok"` 这类 truthy 值不会被当成成功。
 
 普通角色不需要手写 `ActionResult`。只有需要自定义 result name/tags/slot/reason
-时才手写。
+时才手写：
+
+```python
+def execute(context):
+    return ActionResult(
+        success=True,
+        name="custom support action",
+        tags={ActionTag.SUPPORT},
+        slot=ActionSlot.CUSTOM,
+        reason="healing completed",
+    )
+```
+
+`ActionResult` 的 `tags` 和 `slot` 也用于匹配协作请求；普通动作应优先让 helper 自动生成结果。
 
 ## ActionTag
 
@@ -150,6 +177,7 @@ flow 外预查询完整 action 时，使用 `context.is_action_allowed(self, act
 - `ULTIMATE_ACTION`：Q。
 - `SKILL_ACTION`：E。
 - `ARC_ACTION`：弧盘动作，评分为 0。
+- `DAMAGE`：通用伤害动作。
 - `SUPPORT`：辅助/治疗/增益类动作。
 - `TEAM_BUFF`：为全队提供增益的关键动作。仅在该增益应优先于主 DPS 终结技施放时使用。
 - `HIGH_PRIORITY`：显著提高动作的切人评分。用于少数特别值得优先尝试的动作；它不会改变角色上场后的动作执行顺序。
@@ -180,10 +208,45 @@ action 代表该角色参赛。tag 不控制普通入场流程；普通入场由
 ```python
 FollowupStep.for_action(zero, ActionSlot.SKILL)
 ActionReservation.for_action(nanally, ActionSlot.SKILL)
+ActionReservation.for_slots(nanally, {ActionSlot.SKILL, ActionSlot.ULTIMATE})
 context.is_slot_available(self, ActionSlot.SKILL)
 ```
 
+## RoleProfile
+
+`describe_role()` 返回 `RoleProfile`，描述队伍定位和普通切人时的站场偏好。`role` 与
+`field_preference` 是两个独立维度：前者供 `request_role()` 匹配，后者参与普通切人评分；
+它们都不是强制调度指令。
+
+| 字段 | 可选值 / 用途 |
+|---|---|
+| `role` | `Planner.Role.MAIN_DPS`、`SUB_DPS`、`SUPPORT`；描述队伍定位。默认 `SUB_DPS`。 |
+| `field_preference` | `Planner.FieldPreference.MAIN_DPS`、`SUB_DPS`、`SUPPORT`、`SETUP_ONLY`；表达普通情况下的站场倾向。默认 `SUB_DPS`。 |
+| `max_field_time` | 大于 0 时允许 planner 使用内建站场兜底动作，并以此作为最长站场时长；设为 0 可关闭该兜底。默认 1.5 秒。 |
+| `combat_start_priority` | 仅用于开战首切；大于 0 才成为首切候选，数值越高越优先。不会影响普通战斗中的切人评分。默认 0。 |
+
+`MAIN_DPS` 倾向持续站场，`SUB_DPS` 倾向短时站场，`SUPPORT` 与 `SETUP_ONLY` 更适合
+完成辅助或准备动作后轮换。协作请求和入场诉求会影响最终选择。
+
 ## BaseChar Helper
+
+### switch_in_guard
+
+目标角色可覆盖 `switch_in_guard()`，延迟普通切人，直到自身满足入场条件：
+
+```python
+def switch_in_guard(self, context, from_char, has_intro):
+    return SwitchInGuard.delay_until_ready(
+        condition=self.entry_state_ready,
+        timeout=1.5,
+        reason="waiting for entry state",
+    )
+```
+
+`condition` 返回 True 时继续切人；超时后也会继续切人，因此这是有上限的延迟，不是切人否决。
+`poll_interval` 控制检查间隔，`while_waiting` 可提供等待期间的动作回调。默认 guard 立即
+允许切入。strict route 和 strict field claim 会跳过这个等待及普通切人冷却；需要 guard
+保护的入场不应依赖 strict 调度。
 
 ### 开战会话与首次登场
 
@@ -218,6 +281,8 @@ self.click_ultimate_action(
     add_tags=None,
     reason="ultimate action available",
     can_execute=None,
+    send_click=True,
+    wait_if_no_cd=0,
 )
 ```
 
@@ -227,6 +292,7 @@ self.click_ultimate_action(
 - 默认 `name=f"{角色名}_ultimate"`。
 - `can_execute` 默认包含 `self.ultimate_available()`；传入的额外条件会与之合并。
 - `priority_ready` 自动使用 `self.ultimate_available()`。
+- `send_click` 为 True 时会在终结技动画期间发送普通点击；`wait_if_no_cd` 是冷却未完成时最多等待的秒数。
 - `execute` 调用 `self.click_ultimate()`。
 
 ### click_skill_action
@@ -239,6 +305,10 @@ self.click_skill_action(
     reason="skill action available",
     down_time=0.01,
     can_execute=None,
+    post_sleep=0,
+    has_animation=False,
+    send_click=True,
+    time_out=0,
 )
 ```
 
@@ -248,7 +318,26 @@ self.click_skill_action(
 - 默认 `name=f"{角色名}_skill"`。
 - `can_execute` 默认包含 `self.skill_available()`；传入的额外条件会与之合并。
 - `priority_ready` 自动使用 `self.skill_available()`。
-- `execute` 调用 `self.click_skill(down_time=down_time)`。
+- `down_time` 控制按键持续时间；`post_sleep` 控制成功释放后的额外等待；`has_animation` 指示技能是否带动画。
+- `send_click` 控制技能释放期间是否发送普通点击；`time_out` 控制等待技能释放的超时，0 使用内置默认值。
+- `execute` 调用 `self.click_skill()`。
+
+### click_arc_action
+
+```python
+self.click_arc_action(
+    name=None,
+    tags=None,
+    add_tags=None,
+    reason="arc action available",
+    can_execute=None,
+    priority_ready=None,
+)
+```
+
+该 helper 自动设置 `slot=ActionSlot.ARC`，默认使用 `ActionTag.ARC_ACTION`。默认
+`priority_ready` 为 False，因此弧盘动作不会单独促使角色切入；角色已在场时仍可按普通
+entry 流程尝试。需要时可传 `priority_ready` 改变其评分就绪条件。
 
 ### planner_action
 
@@ -271,6 +360,10 @@ self.planner_action(
 `FieldClaim` 表达“我应该被切进来”，不是动作。`low`、`normal`、`high` 和
 `critical` 抬高普通入场评分；`strict` 在下一次切人决策时直接选定该角色。
 角色切入后仍由 planner 从 `actions`、strict route/request 或 `entry` 中选择动作。
+
+普通 claim 可通过 `ExpectedEntry(slot=...)` 指定回场后优先尝试的槽位；需要高级精确匹配时
+可设置 `action_name`，或用 `ExpectedEntry.from_action(action)` 从动作声明生成。strict claim
+只要求切入，不接受 `expected_entry`。
 
 ```python
 def combat_plan(self, context):
@@ -303,8 +396,7 @@ def combat_plan(self, context):
 planner 每次切人决策都会重新读取候选角色的 claim。已锁定的 strict route 优先；
 之后 strict claim 优先于环合反应、active request 和普通评分。多个角色同时声明
 strict claim 时，planner 用它们的普通评分及最近行动时间决定目标。strict claim
-只在当前角色的动作结束后生效，不会中断动作；切人时跳过 `SwitchInGuard` 和
-`wait_switch_cd()` 等待。strict claim 只要求切入, 不设置 `expected_entry`。
+只在当前角色的动作结束后生效，不会中断动作；它只要求切入，不设置 `expected_entry`。
 切入后角色按自己的普通 `entry` 流程执行动作。
 
 使用建议：
@@ -361,6 +453,17 @@ context.request_route([
 ])
 ```
 
+`FollowupStep.for_action(target, slot, ...)` 创建指定角色的动作步骤。`optional=True` 时，
+目标到场后若没有匹配且可执行的动作，planner 会跳过该步骤；默认的必需步骤会继续等待。
+可用 `required_tags` 或 `action_names` 添加匹配条件；普通协作优先使用 slot，动作名适合
+需要精确匹配的高级场景。标签条件要求动作至少命中一个指定 tag。
+
+若 route 要求目标切入时触发入场/环合反应，可使用：
+
+```python
+FollowupStep.for_entry_reaction(target, reason="trigger entry reaction")
+```
+
 这里 A 按自己的正常 entry flow 执行完本轮后, 才推进到 B 的终结技。
 A 已在场时也会执行本轮, 不直接跳过。它不指定首动, 不要求入场反应,
 也不绕过动作许可或 reservation。本轮结束沿用正常流程的结束条件和动作数上限;
@@ -378,15 +481,43 @@ A 已在场时也会执行本轮, 不直接跳过。它不指定首动, 不要�
 - `context.request_role(...)`：请求下一次普通调度切给某个队伍定位的角色；多个
   匹配角色时按普通切人评分选择。它不指定动作，也不打断当前 entry flow。
 - `context.reserve_actions(...)`：保留队友动作。
-- `context.request_tags(...)`：请求一定数量的 tag 动作。
+- `context.request_tags(...)`：请求不同队友各完成一次带指定 tag 的成功动作；任一指定 tag 匹配即可，每个角色最多计一次。可用 `count` 指定人数，默认不让请求发起者自己满足请求。
+  设置 `avoid_source=False` 可允许发起者自己满足请求。
 
 `request_role(Planner.Role.SUPPORT)` 请求的是角色的静态队伍定位；
 `request_tags({Planner.ActionTag.SUPPORT})` 请求的是任意支援类动作。前者适合
 “让任一辅助角色进场”，后者适合“让任一队友完成一次治疗/增益动作”。
+`request_route()` 和 `request_tags()` 可用 `return_to_source=True` 在请求完成后提高发起者
+重新入场的优先级。
 
 ```python
 context.request_role(Planner.Role.SUPPORT, reason="need a support role")
 ```
+
+这些请求通常返回 `RequestHandle`。可用它查询是否完成或过期，也可用生命周期条件组合
+请求。例如，让 reservation 在 route 完成后释放：
+
+```python
+route = context.request_route(steps, until=self.window_expired)
+if route is not None:
+    route.on_fulfilled(self.on_route_complete)
+    route.on_expired(self.on_route_expired)
+    context.reserve_actions(reservations, until=route.when.fulfilled)
+```
+
+`handle.when.fulfilled`、`expired`、`closed` 和 `any` 都是可传给另一个请求 `until=` 的条件；
+`is_pending`、`is_fulfilled`、`is_expired`、`is_closed` 可直接查询状态。`handle.status` 为
+`Planner.RequestStatus.PENDING`、`FULFILLED` 或 `EXPIRED`；`closed` 是独立状态。使用
+`on_finish()` 可响应第一个完成或过期信号；需要区分结果时使用 `on_fulfilled()` 和
+`on_expired()`。`request_route()`、`request_switch()`、`request_role()` 和 `request_tags()` 的
+`until` 默认为 None，即不会因窗口条件自动过期；
+`reserve_actions()` 必须指定 `until`，可传 callable，或传 `Planner.NEVER_EXPIRES` 让它持续到
+planner reset。route 步骤完成和 route 窗口过期是不同信号。
+`until=Planner.NEVER_EXPIRES` 的 reservation 不会自动结束，也不能配置 `on_finish`。
+
+`CombatContext` 还提供 `has_active_request()`、`has_strict_route()` 和
+`strict_route_wants_action(char, slot=..., action_name=..., tags=...)`，供确实需要根据当前协作
+状态分支的高级角色逻辑查询。纯 reservation 和纯切人请求不算 active action request。
 
 ## 行为摘要
 
