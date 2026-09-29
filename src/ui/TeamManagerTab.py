@@ -114,6 +114,7 @@ class NewCharDialog(MessageBoxBase):
         for char_id, char_data in self.manager.get_all_characters().items():
             self.char_combo.addItem(char_data["char_name"], userData=char_id)
         self.char_combo.currentTextChanged.connect(self._on_char_select)
+        self.yesButton.setEnabled(False)
         self.viewLayout.addWidget(self.char_combo)
 
         self.combo_list = SearchableComboBox()
@@ -126,7 +127,8 @@ class NewCharDialog(MessageBoxBase):
         self.widget.setMinimumWidth(320)
 
     def _on_char_select(self, text):
-        if not text:
+        self.yesButton.setEnabled(bool(text.strip()))
+        if not text.strip():
             return
         idx = self.char_combo.findText(text)
         char_id = self.char_combo.itemData(idx) if idx >= 0 else ""
@@ -142,6 +144,11 @@ class NewCharDialog(MessageBoxBase):
                 )
         elif char_info:
             self.combo_list.setCurrentIndex(0)
+
+    def validate(self) -> bool:
+        has_char_name = bool(self.char_combo.currentText().strip())
+        self.yesButton.setEnabled(has_char_name)
+        return has_char_name
 
     def get_data(self):
         char_name = self.char_combo.currentText().strip()

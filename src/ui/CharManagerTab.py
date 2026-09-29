@@ -61,6 +61,7 @@ from src.ui.features.characters.safety_dialog import confirm_external_code_impor
 from src.ui.foundation.dialogs import MessageBoxBase
 from src.ui.foundation.i18n import is_chinese
 from src.ui.foundation.images import cv_to_pixmap
+from src.ui.foundation.text import highlight_bracketed_text
 from src.ui.foundation.widgets.cards import BorderCardWidget
 from src.ui.foundation.widgets.search import (
     SearchableComboBox,
@@ -75,6 +76,8 @@ class CharManagerTab(CustomTab):
         super().__init__()
         self.owner = owner
         self._executor = None
+        self.manager = CustomCharManager()
+
         self.tr_combo_title = self.tr("出招表")
         self.tr_save_success = self.tr("保存成功")
         self.tr_combo_msg = self.tr("{combo}: {} 绑定成功").replace("{combo}", self.tr_combo_title)
@@ -133,16 +136,34 @@ class CharManagerTab(CustomTab):
         )
         self.tr_delete = self.tr("删除")
         self.tr_combo_tips = self.tr(
-            '除了选择内建存在的<b style="color: #0078d7;">{combo}</b>外,'
-            '您也可以自己输入名称来建立自己的<b style="color: #0078d7;">{combo}</b>.'
-        ).replace("{combo}", self.tr_combo_title)
+            "除了选择内建存在的 [{combo}] 外,您也可以自己输入名称来建立自己的 [{combo}]。"
+        ).format(combo=self.tr_combo_title)
+        self.tr_combo_tips += "<br><br>" + self.tr(
+            "<b>外置代码用法:</b><br>"
+            "在 [{data_manager}] 中点击 [{show_builtin}], "
+            "选中内置角色后点击 [{copy_external}] 创建可编辑副本。<br>"
+            "回到此页, 选择 {external_code} 脚本, "
+            "修改 Python 代码后点击 [{apply}] 保存并绑定到当前角色。<br>"
+            "也可在 [{data_manager}] 中点击 [{open_folder}] 手动编辑 .py 文件, "
+            "保存后点击 [{refresh}] 重新加载。"
+            "每个文件须且仅须定义一个 BaseChar 子类。<br>"
+            "外置代码会以本软件相同权限运行, 请仅使用可信来源。"
+        ).format(
+            data_manager=self.tr("资料管理"),
+            show_builtin=self.tr_show_builtin,
+            copy_external=self.tr_copy_to_external,
+            external_code=self.manager.get_external_prefix(),
+            apply=self.tr("应用更改"),
+            open_folder=self.tr_open_external_chars_folder,
+            refresh=self.tr("刷新列表"),
+        )
+        self.tr_combo_tips = highlight_bracketed_text(self.tr_combo_tips, "#0078d7")
         self.tr_unbound_text = self.tr(
             "当前未绑定任何{combo}.\n遇到此角色将默认使用基础通用脚本(BaseChar)."
         ).replace("{combo}", self.tr_combo_title)
         self.tr_no_match_cmd = self.tr("没有找到匹配的指令。")
 
         self.icon = FluentIcon.PEOPLE
-        self.manager = CustomCharManager()
         self.task: DebugCharTask | None = None
         self._combo_test_pending = False
         self._doc_cache_by_locale = {}
