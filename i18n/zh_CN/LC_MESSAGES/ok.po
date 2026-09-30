@@ -1482,3 +1482,12 @@ msgstr ""
 
 msgid "在可进行NPC交互的位置启动任务"
 msgstr ""
+
+msgid "从工坊填入"
+msgstr ""
+
+msgid "选择方案与版本, 填入名称、描述、作者和版本."
+msgstr ""
+
+msgid "填入信息"
+msgstr ""

@@ -924,7 +924,7 @@ class TeamManagerTab(CustomTab):
                 self.tr("无法导出"), self.tr("当前方案没有可导出的出招表."), success=False
             )
             return
-        dialog = PackageMetadataDialog(defaults, self.window())
+        dialog = PackageMetadataDialog(defaults, self.window(), repository=self.workshop_repository)
         if not dialog.exec():
             return
         package = TeamPackage(

@@ -21,6 +21,7 @@ from qfluentwidgets import (
     CaptionLabel,
     ComboBox,
     FluentIcon,
+    HyperlinkButton,
     IndeterminateProgressRing,
     LineEdit,
     PrimaryPushButton,
@@ -127,10 +128,25 @@ class BackgroundCall(QObject):
 
 
 class PackageMetadataDialog(MessageBoxBase):
-    def __init__(self, defaults: TeamPackage, parent=None):
+    def __init__(
+        self,
+        defaults: TeamPackage,
+        parent=None,
+        *,
+        repository: WorkshopRepository | None = None,
+    ):
         super().__init__(parent)
+        self.repository = repository
         self.viewLayout.setSpacing(6)
-        self.viewLayout.addWidget(SubtitleLabel(self.tr("导出队伍"), self))
+        title_row = QHBoxLayout()
+        title_row.addWidget(SubtitleLabel(self.tr("导出队伍"), self))
+        title_row.addStretch(1)
+        self.fill_button = HyperlinkButton(self)
+        self.fill_button.setText(self.tr("从工坊填入"))
+        self.fill_button.setVisible(repository is not None)
+        self.fill_button.clicked.connect(self._fill_from_workshop)
+        title_row.addWidget(self.fill_button)
+        self.viewLayout.addLayout(title_row)
 
         self.viewLayout.addWidget(BodyLabel(self.tr("名称"), self))
         self.name_edit = LineEdit(self)
@@ -163,6 +179,20 @@ class PackageMetadataDialog(MessageBoxBase):
         self.version_edit.textChanged.connect(self._validate)
         self.widget.setMinimumWidth(540)
         self._validate()
+
+    def _fill_from_workshop(self) -> None:
+        if self.repository is None:
+            return
+        dialog = WorkshopDialog(self.repository, self.window(), metadata_only=True)
+        if not dialog.exec():
+            return
+        package = dialog.selected_package()
+        if package is None:
+            return
+        self.name_edit.setText(package.name)
+        self.description_edit.setPlainText(package.description)
+        self.author_edit.setText(package.author)
+        self.version_edit.setText(package.version)
 
     def _validate(self) -> None:
         try:
@@ -234,9 +264,7 @@ class PackageImportDialog(MessageBoxBase):
             directory = CustomCharManager.validate_external_directory(self.directory_edit.text())
             if self._directory_exists is not None and self._directory_exists(directory):
                 valid_directory = False
-                error = self.tr('外置代码目录“{}”已存在, 请修改目录名称后重试。').format(
-                    directory
-                )
+                error = self.tr("外置代码目录“{}”已存在, 请修改目录名称后重试。").format(directory)
             else:
                 valid_directory = True
                 error = ""
@@ -261,9 +289,10 @@ class WorkshopDialog(MessageBoxBase):
 
     import_requested = Signal(object, object)
 
-    def __init__(self, repository: WorkshopRepository, parent=None):
+    def __init__(self, repository: WorkshopRepository, parent=None, *, metadata_only: bool = False):
         super().__init__(parent)
         self.repository = repository
+        self.metadata_only = metadata_only
         self.is_chinese = is_chinese()
         self.entries: list[CatalogEntry] = []
         self.versions: dict[tuple[str, str], tuple[CatalogEntry, ...]] = {}
@@ -273,18 +302,15 @@ class WorkshopDialog(MessageBoxBase):
 
         title_row = QHBoxLayout()
         title_row.setSpacing(10)
-        title_label = SubtitleLabel(self.tr("工坊"), self)
-        title_row.addWidget(title_label)
+        self.title_label = SubtitleLabel(self)
+        title_row.addWidget(self.title_label)
 
         self.loading_ring = IndeterminateProgressRing(self)
         self.loading_ring.setFixedSize(16, 16)
         self.status_label = CaptionLabel("", self)
         title_row.addWidget(self.loading_ring)
         title_row.addWidget(self.status_label)
-        self.safety_label = CaptionLabel(
-            self.tr("社区方案含外置代码; 导入后会以本软件权限运行, 请仅导入可信来源."), self
-        )
-        self.safety_label.setToolTip(EXTERNAL_CODE_SAFETY_NOTICE)
+        self.safety_label = CaptionLabel(self)
         title_row.addStretch(1)
         self.viewLayout.addLayout(title_row)
         self.viewLayout.addWidget(self.safety_label)
@@ -385,8 +411,7 @@ class WorkshopDialog(MessageBoxBase):
 
         self.widget.setGraphicsEffect(None)
         self.widget.setMinimumSize(1100, 600)
-        self.yesButton.hide()
-        self.cancelButton.setText(self.tr("关闭"))
+        self._configure_mode()
 
         self.search_edit.textChanged.connect(self._apply_filter)
         self.role_combo.currentTextChanged.connect(self._apply_filter)
@@ -396,6 +421,23 @@ class WorkshopDialog(MessageBoxBase):
         self.refresh_button.clicked.connect(lambda: self.reload_catalog(force_refresh=True))
         self.import_button.clicked.connect(self._request_import)
         self.reload_catalog()
+
+    def _configure_mode(self) -> None:
+        if self.metadata_only:
+            self.title_label.setText(self.tr("从工坊填入"))
+            self.safety_label.setText(self.tr("选择方案与版本, 填入名称、描述、作者和版本."))
+            self.import_button.hide()
+            self.yesButton.setText(self.tr("填入信息"))
+            self.yesButton.setEnabled(False)
+            self.cancelButton.setText(self.tr("Cancel"))
+        else:
+            self.title_label.setText(self.tr("工坊"))
+            self.safety_label.setText(
+                self.tr("社区方案含外置代码; 导入后会以本软件权限运行, 请仅导入可信来源.")
+            )
+            self.safety_label.setToolTip(EXTERNAL_CODE_SAFETY_NOTICE)
+            self.yesButton.hide()
+            self.cancelButton.setText(self.tr("关闭"))
 
     def reload_catalog(self, force_refresh: bool = False) -> None:
         self.refresh_button.setEnabled(False)
@@ -506,6 +548,8 @@ class WorkshopDialog(MessageBoxBase):
     def _show_version(self, *_args) -> None:
         entry = cast(CatalogEntry | None, self.version_combo.currentData())
         self.import_button.setEnabled(entry is not None and self.current_source is not None)
+        if self.metadata_only:
+            self.yesButton.setEnabled(entry is not None)
         if entry is None:
             self.detail_title.setText(self.tr("选择一个方案"))
             self.detail_meta.setText("")
@@ -537,7 +581,18 @@ class WorkshopDialog(MessageBoxBase):
             else:
                 self.slot_cards[index].clear()
 
+    def selected_package(self) -> TeamPackage | None:
+        entry = cast(CatalogEntry | None, self.version_combo.currentData())
+        return entry.package if entry is not None else None
+
+    def validate(self) -> bool:
+        if self.metadata_only:
+            return self.selected_package() is not None
+        return super().validate()
+
     def _request_import(self) -> None:
+        if self.metadata_only:
+            return
         entry = self.version_combo.currentData()
         if entry is not None and self.current_source is not None:
             self.import_requested.emit(entry, self.current_source)

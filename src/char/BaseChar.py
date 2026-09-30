@@ -1,5 +1,5 @@
 import time
-from enum import StrEnum
+from enum import IntFlag, StrEnum, auto
 from typing import TYPE_CHECKING
 
 from ok import Logger
@@ -39,6 +39,14 @@ class Element(StrEnum):
 
 class BaseChar:
     """角色基类，定义了游戏角色的通用属性和行为。"""
+
+    class SleepChecks(IntFlag):
+        """Checks that can run while a character sleeps."""
+
+        NONE = 0
+        COMBAT = auto()
+        SOUND = auto()
+        ALL = COMBAT | SOUND
 
     ElementType = Element
     INTRO_MOTION_FREEZE_DURATION = 1.5
@@ -529,12 +537,15 @@ class BaseChar:
 
         self.task.switch_other_char(self)
 
-    def sleep(self, sec, sleep_check=True):
-        if not sleep_check:
-            with self.task.skip_sleep_checks() as skip:
-                skip.all = True
-                self.task.sleep(sec)
-        else:
+    def sleep(self, sec, checks: SleepChecks = SleepChecks.ALL):
+        """Sleep for the requested duration while running the selected checks."""
+        if checks == self.SleepChecks.ALL:
+            self.task.sleep(sec)
+            return
+
+        with self.task.skip_sleep_checks() as skip:
+            skip.check_combat = not bool(checks & self.SleepChecks.COMBAT)
+            skip.sound_combat_context = not bool(checks & self.SleepChecks.SOUND)
             self.task.sleep(sec)
 
     def alert_skill_failed(self):
@@ -580,12 +591,12 @@ class BaseChar:
                 action_time = time.time()
                 sent = send_action()
                 if send_click:
-                    self.sleep(0.001, sleep_check=False)
+                    self.sleep(0.001, checks=self.SleepChecks.NONE)
                     self.click(action_name=f"{action_type}_click", interval=0.3)
                 if sent is not False:
                     result["clicked"] = True
                     result["action_time"] = action_time
-            self.sleep(0.01, sleep_check=False)
+            self.sleep(0.01, checks=self.SleepChecks.NONE)
 
     def _check_available_action_result(
         self,
@@ -822,7 +833,7 @@ class BaseChar:
                     on_wait()
                 if timeout_start > 0 and time.time() - timeout_start > timeout:
                     self.task.raise_not_in_combat("animation too long")
-                self.sleep(0.005, sleep_check=False)
+                self.sleep(0.005, checks=self.SleepChecks.NONE)
         finally:
             self.task.in_animation = False
         return animated

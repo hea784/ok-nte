@@ -1,6 +1,5 @@
 from src.char.BaseChar import BaseChar
 from src.combat.planner import (
-    ActionIntent,
     CombatContext,
     FieldClaim,
     FollowupStep,
@@ -67,7 +66,7 @@ class Blackbird(BaseChar):
 
             if (yield ultimate.repeat_for_entry()):
                 self.in_ult = True
-                self.perform_in_ult(context, skill)
+                self.perform_in_ult(context)
                 dps_list = self.get_teammates_by_role(Planner.Role.MAIN_DPS)
                 steps = []
                 for char in dps_list:
@@ -95,7 +94,7 @@ class Blackbird(BaseChar):
         elapsed = self.time_elapsed_accounting_for_freeze(self.last_ultimate_time)
         return elapsed >= self.ULT_DURATION - self.ULT_RETURN_LEAD_TIME
 
-    def perform_in_ult(self, context: CombatContext, skill: ActionIntent):
+    def perform_in_ult(self, context: CombatContext):
         self.logger.info("start perform_in_ult")
         start = self.now()
         skill_count = 0
@@ -104,7 +103,7 @@ class Blackbird(BaseChar):
                 break
             if (
                 skill_count < self.ENH_SKILL_COUNT
-                and context.is_action_allowed(self, skill)
+                and context.is_slot_available(self, Planner.ActionSlot.SKILL)
                 and self.click_skill()
             ):
                 skill_count += 1

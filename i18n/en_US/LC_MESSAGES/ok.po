@@ -1505,3 +1505,12 @@ msgstr "Puka Land - Hit the Lucky Star"
 
 msgid "在可进行NPC交互的位置启动任务"
 msgstr "Start the task at a location where NPC interaction is available"
+
+msgid "从工坊填入"
+msgstr "Fill from Workshop"
+
+msgid "选择方案与版本, 填入名称、描述、作者和版本."
+msgstr "Select preset and version, fill in name, description, author, and version."
+
+msgid "填入信息"
+msgstr "Fill Information"
