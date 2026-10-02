@@ -231,15 +231,35 @@ def _create_ok_config(config):
 
 
 class _OverlayConfigMixin:
+    def _blur_enabled(self):
+        executor = getattr(og, 'executor', None)
+        return (callable(self.config.get('blur_area'))
+                and bool(getattr(executor, 'basic_options', {}).get('Enable Blur', False)))
+
+    def _overlay_needed(self):
+        return self.ok_config.get('use_overlay', False) or self._blur_enabled()
+
     def overlay_state(self):
         return {'boxes': bool(self.ok_config.get('use_overlay', False))}
 
     def initialize_overlay(self):
         """Apply persisted overlay state independently of the active UI."""
-        if self.ok_config.get('use_overlay', False):
+        if self._overlay_needed():
             overlay = self.get_overlay_view()
             if overlay is not None:
-                overlay.set_boxes_enabled(True)
+                overlay.set_boxes_enabled(self.ok_config.get('use_overlay', False))
+
+    def _on_blur_patches(self, patches):
+        # A live setting change can enable blur without a new window geometry event.
+        # The new overlay does not receive the signal currently being dispatched.
+        if self._blur_enabled() and self.overlay_window is None:
+            overlay = self.get_overlay_view()
+            if overlay is not None:
+                overlay.update_blur_patches(patches)
+
+    def _on_clear_blur_patches(self):
+        if not self._overlay_needed() and self.overlay_window is not None:
+            self._close_overlay(wait=False)
 
     def _close_overlay(self, wait=True):
         overlay = self.overlay_window
@@ -269,7 +289,7 @@ class _OverlayConfigMixin:
         overlay = self.overlay_window
         if name == 'boxes' and value:
             overlay = self.get_overlay_view()
-        elif name == 'boxes' and not value and overlay is not None:
+        elif name == 'boxes' and not value and overlay is not None and not self._blur_enabled():
             self._close_overlay()
             return self.overlay_state()
         if overlay is not None:
@@ -301,6 +321,8 @@ class App(_OverlayConfigMixin):
             task_executor.load_tr()
         self.ok_config = _create_ok_config(config)
         communicate.quit.connect(self.quit)
+        communicate.blur_overlay.connect(self._on_blur_patches)
+        communicate.clear_blur_overlay.connect(self._on_clear_blur_patches)
 
         self.about = self.config.get('about')
         self.title = self.config.get('gui_title')
@@ -341,6 +363,9 @@ class App(_OverlayConfigMixin):
         logger.debug('init app end')
 
     def quit(self):
+        from ok.core.events import communicate
+        communicate.blur_overlay.disconnect(self._on_blur_patches)
+        communicate.clear_blur_overlay.disconnect(self._on_clear_blur_patches)
         self.exit_event.set()
         self._close_overlay(wait=False)
         self._close_device_manager()
@@ -361,7 +386,9 @@ class App(_OverlayConfigMixin):
         if ok_tr := QCoreApplication.translate("app", key):
             if ok_tr != key:
                 return ok_tr
-        if self.to_translate is not None:
+        # 纯数字配置值（如 self.tr("100")）不是需要翻译的文案，收集前过滤掉，
+        # 避免污染 .po 翻译目录（生成一堆无意义的纯数字 msgid）。
+        if self.to_translate is not None and not (isinstance(key, str) and key.strip().isdigit()):
             self.to_translate.add(key)
         if self.po_translation is None:
             locale_name = self.locale.name()
@@ -410,10 +437,8 @@ class App(_OverlayConfigMixin):
         self.show_message_window(title, content)
 
     def update_overlay(self, visible, x, y, window_width, window_height, width, height, scaling):
-        if not self.ok_config.get('use_overlay', False):
-            # Treat the setting as an absolute lifecycle gate. In particular,
-            # a configured blur callback must not resurrect a disabled native
-            # window (and its input/expiry workers).
+        if not self._overlay_needed():
+            # Keep the native window only while debug boxes or UID blur need it.
             if self.overlay_window is not None:
                 self._close_overlay(wait=False)
             return
@@ -425,7 +450,7 @@ class App(_OverlayConfigMixin):
 
     def get_overlay_view(self):
         """Return the overlay widget exposed to tasks, custom tabs, and my_app."""
-        if not self.ok_config.get('use_overlay', False):
+        if not self._overlay_needed():
             return None
         if self.overlay_window is None:
             from ok.core.events import communicate
@@ -513,6 +538,8 @@ class HeadlessApp(_OverlayConfigMixin):
         self.to_translate = None
         communicate.quit.connect(self.quit)
         communicate.adb_devices.connect(self.sync_overlay_source)
+        communicate.blur_overlay.connect(self._on_blur_patches)
+        communicate.clear_blur_overlay.connect(self._on_clear_blur_patches)
 
         self.locale = LocaleName(config.get("locale", "en_US"))
         from ok.core.start_controller import StartController
@@ -560,6 +587,8 @@ class HeadlessApp(_OverlayConfigMixin):
         from ok.core.events import communicate
         communicate.adb_devices.disconnect(self.sync_overlay_source)
         communicate.notification.disconnect(self.show_notification)
+        communicate.blur_overlay.disconnect(self._on_blur_patches)
+        communicate.clear_blur_overlay.disconnect(self._on_clear_blur_patches)
         if self.notification_manager is not None:
             self.notification_manager.stop()
         if self.exit_event:
@@ -579,7 +608,7 @@ class HeadlessApp(_OverlayConfigMixin):
             self.notification_manager.submit(translated_title, translated_message, images)
 
     def get_overlay_view(self):
-        if not self.ok_config.get('use_overlay', False):
+        if not self._overlay_needed():
             return None
         if self.overlay_window is None:
             from ok.core.events import communicate
@@ -746,8 +775,10 @@ class OK:
                 )
             use_gui = (ui_config is not None and ui_config["type"] == "qt"
                        and not self.args.get('headless', False))
-            if not use_gui and self.args.get('task', 0) > 0:
-                self.run_task(self.args.get('task'), exit_after=self.args.get('exit', False))
+            task_arg = self.args.get('task', 0)
+            has_task = bool(task_arg) if isinstance(task_arg, str) else task_arg > 0
+            if not use_gui and has_task:
+                self.run_task(task_arg, exit_after=self.args.get('exit', False))
                 return
             if use_gui:
                 if not self.init_error:
@@ -789,11 +820,18 @@ class OK:
         from ok.core.events import communicate
         from ok.util.GlobalConfig import basic_options
 
-        task_number = self.args.get('task', 0)
+        task_arg = self.args.get('task', 0)
         app = self.headless_app if self.should_init_task_manager_headless() else self.app
         app.initialize_overlay()
         communicate.start_success.emit()
-        if task_number > 0:
+        if task_arg:
+            if isinstance(task_arg, str):
+                # -t 传任务名/类名：解析为当前 onetime_tasks 中的任务实例再启动
+                start_task = self.get_onetime_task(task_arg)
+                logger.info(f'start runtime with task name {task_arg}')
+                app.start_controller.start(start_task, exit_after=self.args.get('exit', False))
+                return True
+            task_number = task_arg
             logger.info(f'start runtime with task param {task_number - 1} {self.args.get("exit", False)}')
             app.start_controller.start(task_number - 1, exit_after=self.args.get('exit', False))
         elif self.global_config.get_config(basic_options).get('Auto Start Game When App Starts'):
@@ -867,9 +905,38 @@ class OK:
 
     def find_task_by_name(self, tasks, task):
         normalized_task = task.lower()
+
+        # 1) 若传入的是"模块路径.类名"形式（含点，如 src.tasks.onetime.DailyTask），
+        #    优先按完整标识精确匹配（唯一、不随名称变化）。
+        if "." in task:
+            full_matches = [
+                candidate for candidate in tasks
+                if f"{candidate.__class__.__module__}.{candidate.__class__.__name__}".lower() == normalized_task
+            ]
+            if len(full_matches) == 1:
+                return full_matches[0]
+            if len(full_matches) > 1:
+                names = ', '.join(candidate.__class__.__name__ for candidate in full_matches)
+                raise ValueError(f'Multiple tasks matched "{task}": {names}')
+
+            # 2) 模块路径+类名精确匹配失败（项目重构/模块移动/目录重命名等）：
+            #    回退到按类名匹配当前任务；若命中，说明是同一任务类、只是模块路径变了。
+            class_name = task.rsplit(".", 1)[-1]
+            class_matches = [
+                candidate for candidate in tasks
+                if candidate.__class__.__name__.lower() == class_name.lower()
+            ]
+            if len(class_matches) == 1:
+                return class_matches[0]
+            if len(class_matches) > 1:
+                names = ', '.join(candidate.__class__.__name__ for candidate in class_matches)
+                raise ValueError(f'Multiple tasks matched "{task}": {names}')
+
+        # 3) 非模块路径形式（或模块路径与类名都未命中）：按 name / 类名精确匹配
         exact_matches = [
             candidate for candidate in tasks
-            if candidate.name.lower() == normalized_task or candidate.__class__.__name__.lower() == normalized_task
+            if candidate.name.lower() == normalized_task
+            or candidate.__class__.__name__.lower() == normalized_task
         ]
         if len(exact_matches) == 1:
             return exact_matches[0]
