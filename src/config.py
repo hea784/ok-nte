@@ -12,7 +12,7 @@ from src.process_feature import process_feature
 if "PATH" not in os.environ:
     os.environ["PATH"] = ""
 
-version = "v1.4.9"
+version = "v1.4.10"
 # 不需要修改version, Github Action打包会自动修改
 
 key_config_option = ConfigOption(
@@ -98,6 +98,7 @@ config = {
             "auto_simplify": True,
             "params": {
                 "use_openvino": True,
+                "use_npu": False,
             },
         },
     },
