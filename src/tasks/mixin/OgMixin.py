@@ -1,5 +1,6 @@
 import ctypes
 import inspect
+from typing import Any
 
 import win32api
 import win32con
@@ -12,12 +13,20 @@ logger = Logger.get_logger(__name__)
 
 
 class OgMixin(BaseTask):
-    def validate_config(self, key, value):  # type: ignore
+    # Any accommodates upstream BaseTask's inferred None return type in multiple inheritance.
+    def validate_config(self, key, value) -> Any:
         type_spec = self.config_type.get(key)
         if resolve_config_type(type_spec, self.default_config.get(key)) == "drop_down":
             options = type_spec.get("options")
             if isinstance(options, (list, tuple)) and value not in options:
                 return f"Invalid value for {key}: {value!r}. Expected one of {options!r}."
+        if isinstance(type_spec, dict) and isinstance(value, (int, float)):
+            minimum = type_spec.get("min")
+            maximum = type_spec.get("max")
+            if minimum is not None and value < minimum:
+                return f"Invalid value for {key}: {value!r}. Expected >= {minimum}."
+            if maximum is not None and value > maximum:
+                return f"Invalid value for {key}: {value!r}. Expected <= {maximum}."
 
     def sync_config(self, config=None):
         """同步保存配置, 并刷新对应的配置 UI。"""

@@ -5,13 +5,12 @@ from ok import TaskDisabledException
 from src.combat.BaseCombatTask import BaseCombatTask
 from src.Labels import Labels
 from src.tasks.BaseNTETask import BaseNTETask
-from src.tasks.NTEOneTimeTask import NTEOneTimeTask
+from src.tasks.BaseStaminaTask import BaseStaminaTask
 
 
-class AnomalyHunter(NTEOneTimeTask, BaseCombatTask):
+class AnomalyHunter(BaseStaminaTask, BaseCombatTask):
     # --- 配置项键名 ---
     CONF_HUNTER_TARGET = "追猎目标"
-    CONF_STAMINA_TARGET = "目标消耗体力"
 
     # --- 追猎目标选项 ---
     TARGET_SOUND_KING = "音霸魔王"
@@ -46,8 +45,6 @@ class AnomalyHunter(NTEOneTimeTask, BaseCombatTask):
 
     TASK_COST = 60
     MAX_CONSECUTIVE_FAILURES = 3
-    HUNTER_TAB_X = 0.912
-    HUNTER_TAB_Y = 0.152
     HUNTER_TRAVEL_X = 0.867
     HUNTER_TRAVEL_Y_START = 0.262
     HUNTER_NEXT_PAGE_TRAVEL_Y_START = 0.468
@@ -58,18 +55,13 @@ class AnomalyHunter(NTEOneTimeTask, BaseCombatTask):
         super().__init__(*args, **kwargs)
         self.name = "异象追猎"
         self.description = "自动进行异象追猎任务"
-        self._outer_config = None
         self.setup_config(self)
 
     @classmethod
     def setup_config(cls, instance: "BaseNTETask", daily=False):
         """初始化异象追猎配置。"""
         if daily:
-            instance.default_config.update(
-                {
-                    cls.CONF_STAMINA_TARGET: 180,
-                }
-            )
+            cls.setup_daily_stamina_config(instance)
         instance.default_config.update(
             {
                 cls.CONF_HUNTER_TARGET: cls.TARGET_SOUND_KING,
@@ -96,15 +88,23 @@ class AnomalyHunter(NTEOneTimeTask, BaseCombatTask):
         except Exception as e:
             self.log_error("AnomalyHunter Error", e)
 
-    def do_run(self) -> bool:
-        config = self.config
-        stamina_target = config.get(self.CONF_STAMINA_TARGET)
-        target = self.normalize_target(config.get(self.CONF_HUNTER_TARGET, self.TARGET_SOUND_KING))
+    def do_run(self) -> bool | None:
+        target = self.normalize_target(
+            self.config.get(self.CONF_HUNTER_TARGET, self.TARGET_SOUND_KING)
+        )
         target_idx = self.get_target_idx(target)
         self.info_set("追猎目标", target)
         self.log_info(f"开始异象追猎任务: {target}, 目标索引: {target_idx}")
 
+        self.ensure_main()
+        stamina_target = self.resolve_stamina_target()
+        if stamina_target == 0:
+            return None
+
         self.open_hunter_page()
+
+        self.sleep(0.5)
+
         stamina = self.get_stamina()
 
         if stamina < self.TASK_COST:
@@ -116,7 +116,7 @@ class AnomalyHunter(NTEOneTimeTask, BaseCombatTask):
             target_units = (stamina_target + self.TASK_COST - 1) // self.TASK_COST
             stamina_units = min(stamina_units, target_units)
             self.info_set("体力消耗目标", stamina_target)
-        reward_count = config.get(self.CONF_CLAIM_REWARD_COUNT, 0)
+        reward_count = self.config.get(self.CONF_CLAIM_REWARD_COUNT, 0)
         if reward_count > 0:
             stamina_units = min(stamina_units, reward_count)
 
@@ -177,7 +177,7 @@ class AnomalyHunter(NTEOneTimeTask, BaseCombatTask):
         self.log_info("打开F1面板并切换至异象追猎页签")
         self.open_f1_domain_page()
         self.sleep(0.5)
-        self.operate_click(self.HUNTER_TAB_X, self.HUNTER_TAB_Y)
+        self.operate_click(*self.pos.panels.f1.domain.hunter)
         self.sleep(0.5)
 
     def normalize_target(self, target: str) -> str:
