@@ -1,5 +1,4 @@
 import re
-import time
 
 from src.char.BaseChar import BaseChar
 from src.combat.planner import Planner, RoleProfile
@@ -13,27 +12,26 @@ class Chiz(BaseChar):
         super().__init__(*args, **kwargs)
 
     def describe_role(self):
-        return RoleProfile(
-            role=Planner.Role.MAIN_DPS,
-            field_preference=Planner.FieldPreference.MAIN_DPS,
-        )
+        return RoleProfile(role=Planner.Role.MAIN_DPS)
 
     def combat_plan(self, context):
-        ultimate = self.click_ultimate_action()
-        skill = self.click_skill_action()
+        plan = self.plan()
+        ultimate = self.click_ultimate_action(plan)
+        skill = self.click_skill_action(plan)
 
         def entry():
             if (yield ultimate):
                 self.perform_in_ult()
             yield skill
 
-        return self.plan(ultimate, skill, entry=entry)
+        plan.entry = entry
+        return plan
 
     def perform_in_ult(self):
         box = self.task.box_of_screen(0.487, 0.775, 0.514, 0.798, name="percentage")
         self.task.wait_ocr(box=box, match=re.compile(r"-?\d+%", re.IGNORECASE))
-        deadline = time.time() + 8
-        while time.time() < deadline:
+        timer = self.clock.timer(timeout=8)
+        while not timer.expired():
             red_pct = self.task.calculate_color_percentage(red_pct_color, box)
             yellow_pct = self.task.calculate_color_percentage(yellow_pct_color, box)
             if yellow_pct > red_pct:

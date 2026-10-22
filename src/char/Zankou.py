@@ -11,14 +11,12 @@ class Zankou(BaseChar):
         super().__init__(*args, **kwargs)
 
     def describe_role(self):
-        return RoleProfile(
-            role=Planner.Role.MAIN_DPS,
-            field_preference=Planner.FieldPreference.MAIN_DPS,
-        )
+        return RoleProfile(role=Planner.Role.MAIN_DPS)
 
     def combat_plan(self, context):
-        ultimate = self.click_ultimate_action()
+        plan = self.plan()
         skill_combo = self.planner_action(
+            plan=plan,
             tags=Planner.ActionTag.DEFAULT_ACTION,
             slot=Planner.ActionSlot.SKILL,
             execute=lambda _: self.perform_skill_combo(),
@@ -27,6 +25,8 @@ class Zankou(BaseChar):
             can_execute=lambda _: self.skill_available(),
             priority_ready=lambda _: self.skill_available(),
         )
+
+        ultimate = self.click_ultimate_action(plan)
 
         def entry():
             if not self.find_ult_purple():
@@ -45,12 +45,13 @@ class Zankou(BaseChar):
                 self.sync_check_combat()
                 yield ultimate.repeat_for_entry()
 
-        return self.plan(skill_combo, ultimate, entry=entry)
+        plan.entry = entry
+        return plan
 
     def perform_skill_combo(self):
-        deadline = self.now() + 10
+        timer = self.clock.timer(timeout=10)
         clicked_skill = False
-        while self.now() < deadline:
+        while not timer.expired():
             click_skill, purple_skill = self.click_zankou_skill()
             if not clicked_skill:
                 clicked_skill = click_skill

@@ -7,8 +7,8 @@
 # This file has been modified for integration into the ok-nte project.
 # ============================================================================
 import threading
-import time
 import warnings
+from concurrent.futures import CancelledError
 from typing import Optional, cast
 
 import librosa
@@ -18,6 +18,7 @@ from scipy.signal import butter, correlate, filtfilt
 
 from src.sound_trigger.capture import MODE_PROCESS, AudioCaptureSource, create_capture_source
 from src.sound_trigger.capture.base import CAPTURE_SAMPLE_RATE
+from src.utils import clock
 from src.utils.log_gate import LogGate
 
 warnings.filterwarnings("ignore", message="data discontinuity in recording")
@@ -45,6 +46,7 @@ class SoundListener:
         expansion_ratio: float = 1.0,
         is_allow_successive_trigger: bool = False,
         process_name: str = default_process_name,
+        initialization_stop_event: Optional[threading.Event] = None,
     ):
         self.sample_path = sample_path
         self.counter_attack_sample_path = counter_attack_sample_path
@@ -53,13 +55,14 @@ class SoundListener:
         self.expansion_ratio = expansion_ratio
         self.is_allow_successive_trigger = is_allow_successive_trigger
         self.process_name = process_name
+        self._initialization_stop_event = initialization_stop_event
 
         self.is_computation_required = None
         self._running = False
         self._state_lock = threading.Lock()
         self._stop_event: Optional[threading.Event] = None
         self._listener_thread: Optional[threading.Thread] = None
-        self._last_trigger_time = 0.0
+        self._last_trigger_time = clock.UNSET
         self._trigger_interval = 0.25
 
         self._sample_waveform = None
@@ -76,6 +79,7 @@ class SoundListener:
 
     def _load_samples(self):
         try:
+            self._check_initialization_stopped()
             self._b, self._a = cast(
                 tuple[np.ndarray, np.ndarray],
                 butter(
@@ -95,8 +99,14 @@ class SoundListener:
                     self._load_and_cache(self.counter_attack_sample_path)
                 )
 
+            self._check_initialization_stopped()
             logger.info(f"Sound samples loaded: {self.used_sr}Hz")
+        except CancelledError:
+            raise
         except Exception as e:
+            # A dependency may finish importing only after shutdown has begun.
+            # Treat that as cancellation instead of a broken sample file.
+            self._check_initialization_stopped()
             message = (
                 "Failed to load sound samples: "
                 f"dodge={self.sample_path}, counter={self.counter_attack_sample_path}: {e}"
@@ -104,9 +114,14 @@ class SoundListener:
             logger.error(message)
             raise RuntimeError(message) from e
 
+    def _check_initialization_stopped(self):
+        if self._initialization_stop_event is not None and self._initialization_stop_event.is_set():
+            raise CancelledError("Sound initialization stopped")
+
     def _load_and_cache(self, path: str):
         import os
 
+        self._check_initialization_stopped()
         cache_path = f"{path}_{self.used_sr}_{self.degree}_{self.cut_off}.npy"
 
         if os.path.exists(cache_path) and os.path.exists(path):
@@ -116,7 +131,9 @@ class SoundListener:
             raise FileNotFoundError(path)
 
         waveform, _ = librosa.load(path, sr=self.used_sr)
+        self._check_initialization_stopped()
         waveform = self._filtering(waveform)
+        self._check_initialization_stopped()
         np.save(cache_path, waveform)
         return waveform
 
@@ -335,7 +352,7 @@ class SoundListener:
             )
 
     def _check_triggers(self, dodge_score, counter_score):
-        now = time.time()
+        now = clock.now()
         if (
             not self.is_allow_successive_trigger
             and now - self._last_trigger_time < self._trigger_interval

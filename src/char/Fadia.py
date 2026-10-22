@@ -1,4 +1,3 @@
-
 from src.char.BaseChar import BaseChar
 from src.combat.planner import Planner, RoleProfile
 
@@ -11,17 +10,16 @@ class Fadia(BaseChar):
         super().__init__(*args, **kwargs)
 
     def describe_role(self):
-        return RoleProfile(
-            role=Planner.Role.SUB_DPS,
-            field_preference=Planner.FieldPreference.SUB_DPS,
-        )
+        return RoleProfile(role=Planner.Role.SUB_DPS)
 
     def combat_plan(self, context):
-        ultimate = self.click_ultimate_action()
-        skill = self.click_skill_action()
+        plan = self.plan()
+        ultimate = self.click_ultimate_action(plan)
+        skill = self.click_skill_action(plan)
 
         def entry():
             if not (yield ultimate):
                 yield skill
 
-        return self.plan(ultimate, skill, entry=entry)
+        plan.entry = entry
+        return plan

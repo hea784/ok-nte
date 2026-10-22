@@ -12,19 +12,16 @@ class Lacrimosa(BaseChar):
     def describe_role(self):
         return RoleProfile(
             role=Planner.Role.MAIN_DPS,
-            field_preference=Planner.FieldPreference.MAIN_DPS,
             max_field_time=1.5,
         )
 
     def combat_plan(self, context):
-        claims = []
+        plan = self.plan()
         if self.time_elapsed_accounting_for_freeze(self.last_switch_time) > 2.5:
-            claims.append(FieldClaim.normal("Lacrimosa wants short field time"))
-        return self.plan(
-            self.click_ultimate_action(),
-            self.click_skill_action(),
-            claims=claims,
-        )
-    
+            plan.add(FieldClaim.normal("Lacrimosa wants short field time"))
+        self.click_ultimate_action(plan)
+        self.click_skill_action(plan)
+        return plan
+
     def on_combat_end(self, chars):
         self.switch_other_char()

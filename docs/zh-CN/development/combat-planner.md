@@ -43,7 +43,6 @@ from src.combat.planner import (
 def describe_role(self):
     return RoleProfile(
         role=Planner.Role.SUB_DPS,
-        field_preference=Planner.FieldPreference.SUB_DPS,
         max_field_time=1.5,
     )
 
@@ -59,8 +58,9 @@ def combat_plan(self, context: CombatContext):
 
 ```python
 def combat_plan(self, context: CombatContext):
-    skill = self.click_skill_action(reason="skill available")
-    ultimate = self.click_ultimate_action(reason="ultimate available")
+    plan = self.plan()
+    skill = self.click_skill_action(plan, reason="skill available")
+    ultimate = self.click_ultimate_action(plan, reason="ultimate available")
 
     def entry():
         skill_result = yield skill
@@ -71,7 +71,8 @@ def combat_plan(self, context: CombatContext):
         if ultimate_result:
             yield skill.repeat_for_entry()
 
-    return self.plan(skill, ultimate, entry=entry)
+    plan.entry = entry
+    return plan
 ```
 
 `yield action` 会执行该 action，并把 `ActionResult` 送回 generator。只有动作成功时
@@ -90,17 +91,32 @@ if a and not b:
 
 ## CombatPlan
 
-角色通过 `self.plan(*actions, claims=None, entry=None)` 创建 `CombatPlan`：
+用 `self.plan()` 创建空计划, 再传给角色的 Q/E helper。helper 会登记动作, 并返回保留
+原始执行方法参数名与类型的可调用声明。Planner 只接收普通 `ActionIntent`, 释放参数
+及其绑定逻辑均留在 `BaseChar`。
 
 ```python
 def combat_plan(self, context):
-    setup = self.planner_action(...)
-    claims = []
+    plan = self.plan()
+    skill = self.click_skill_action(plan)
+    ultimate = self.click_ultimate_action(plan)
     if self.should_claim_field():
-        claims.append(FieldClaim.high(reason="burst window"))
+        plan.add(FieldClaim.high(reason="burst window"))
 
-    return self.plan(setup, claims=claims)
+    def entry():
+        if (yield skill(down_time=0.3)):
+            yield ultimate(send_click=False)
+
+    plan.entry = entry
+    return plan
 ```
+
+`plan.add(...)` 返回原对象, `None` 会被忽略。动作按登记顺序加入目录, 未设置 `entry`
+时也按此顺序尝试。仅在构建计划时登记动作和 claim; `skill(...)` 只绑定本次执行,
+不会发送输入或登记新动作。
+原有 `self.plan(*actions, claims=None, entry=None)` 写法继续支持: 不传 plan 的 helper
+仍返回可加入该目录的可调用声明。使用已有参数时直接 `yield action`,
+只有需要指定本次释放参数时才写 `yield action(...)`, 不需要空的 `()`。
 
 规则：
 
@@ -116,10 +132,77 @@ def combat_plan(self, context):
 - 普通 entry flow 受 planner 的单次入场动作数上限约束。
 - 同一个 action 在同一次入场中只会真实执行一次。
 
+### 释放参数
+
+释放参数写在返回动作的调用处, 不写在 `click_skill_action(...)` 或
+`click_ultimate_action(...)` 上。参数提示来自 `click_skill`/`click_ultimate`, 由
+`BaseChar` 中一个通用包装保留。原方法增加参数时不必修改 planner 类型或再维护一份
+Q/E 参数签名。
+
+```python
+if (yield skill(down_time=0.3, post_sleep=0)):
+    yield ultimate(send_click=False)
+yield skill(down_time=0.01).repeat_for_entry()
+```
+
+这些调用只创建普通动作副本, 将参数捕获在本次 `execute` 闭包中。动作身份、标签、slot、
+评分就绪条件、冷却检查和权限保持不变。改变参数不会允许同次入场再次执行,
+需要额外释放时对绑定后的动作显式调用 `repeat_for_entry()`。
+未提供的原方法参数沿用其默认值, E 仍保留原 helper 的 `down_time=0.01` 默认配置。
+参数名错误会在绑定时拒绝, 不会发送输入。创建计划和绑定动作均不执行释放函数。
+
+Q/E helper 固定绑定原生的 `click_skill`/`click_ultimate`, 不接受 `execute` 替换。
+自定义执行函数只通过 `planner_action(...)` 声明。需要根据状态调整释放参数时,
+直接在动作调用处计算并传入。
+
+如果普通执行和严格路线都应使用同一套指定参数, 先绑定再登记：
+
+```python
+skill = self.click_skill_action()  # 只创建, 不自动登记。
+skill = plan.add(skill(down_time=self.skill_down_time, post_sleep=0.2))
+# entry 内:
+yield skill
+yield skill(down_time=0.1, post_sleep=0.2).repeat_for_entry()
+```
+
+绑定参数后的动作仍保留可调用类型和原方法的参数提示, 可以继续使用同一个变量。
+再次传参时会按原方法和 helper 的默认值重新绑定, 不会合并上一份动作的参数配置。
+
+目录调度使用已绑定的参数值。参数在绑定时捕获, 不会在执行时重新计算。entry 可通过
+`skill(...)` 绑定另一次调用; 如果严格路线已经执行同一动作, entry 会收到先前结果,
+不会再次释放。`plan.add()` 仍只追加: 配置单个目录动作时, 不要先登记默认版本,
+再追加同身份的参数版本。
+
+### 自定义动作
+
+同一套包装也保留自定义执行函数首个 `CombatContext` 之后的参数签名：
+
+```python
+def perform_burst(self, context: CombatContext, *, duration: float = 0.5) -> bool:
+    self.continues_normal_attack(duration)
+    return True
+
+# combat_plan 内:
+burst = self.planner_action(
+    plan=plan,
+    tags=Planner.ActionTag.DAMAGE,
+    execute=self.perform_burst,
+)
+# entry 内:
+yield burst(duration=0.8)
+```
+
+自定义动作具有相同的参数提示、绑定、权限、结果和重复执行规则。目录默认执行只传入
+`context`, 所以执行函数的额外参数应有默认值。需要动态默认行为时在执行函数内读取
+最新状态; 函数类型的自定义参数作为普通值传入, planner 不解析它们。
+
 ## ActionIntent
 
 `ActionIntent` 表达“角色进场后可以尝试做什么”。不要把一次普攻、等待、连点等
 内部细节拆成很多 action；这些应写在一个 action 的 `execute` 内。
+
+BaseChar 的 helper 返回兼容 `ActionIntent` 的可调用动作声明。调用后得到绑定参数的
+普通 `ActionIntent`, planner API 不再维护 Q/E 专用参数类。
 
 字段：
 
@@ -221,12 +304,25 @@ context.is_slot_available(self, ActionSlot.SKILL)
 | 字段 | 可选值 / 用途 |
 |---|---|
 | `role` | `Planner.Role.MAIN_DPS`、`SUB_DPS`、`SUPPORT`；描述队伍定位。默认 `SUB_DPS`。 |
-| `field_preference` | `Planner.FieldPreference.MAIN_DPS`、`SUB_DPS`、`SUPPORT`、`SETUP_ONLY`；表达普通情况下的站场倾向。默认 `SUB_DPS`。 |
+| `field_preference` | `Planner.FieldPreference.MAIN_DPS`、`SUB_DPS`、`SUPPORT`、`SETUP_ONLY`；表达普通情况下的站场倾向。未指定时在构造阶段根据 `role` 推导同名偏好；显式配置优先。 |
 | `max_field_time` | 大于 0 时允许 planner 使用内建站场兜底动作，并以此作为最长站场时长；设为 0 可关闭该兜底。默认 1.5 秒。 |
 | `combat_start_priority` | 仅用于开战首切；大于 0 才成为首切候选，数值越高越优先。不会影响普通战斗中的切人评分。默认 0。 |
 
 `MAIN_DPS` 倾向持续站场，`SUB_DPS` 倾向短时站场，`SUPPORT` 与 `SETUP_ONLY` 更适合
 完成辅助或准备动作后轮换。协作请求和入场诉求会影响最终选择。
+
+普通角色只需声明定位, `MAIN_DPS`、`SUB_DPS`、`SUPPORT` 会分别补全同名站场偏好。
+特殊偏好仍可单独指定：
+
+```python
+RoleProfile(role=Planner.Role.MAIN_DPS)
+RoleProfile(
+    role=Planner.Role.SUB_DPS,
+    field_preference=Planner.FieldPreference.SETUP_ONLY,
+)
+```
+
+默认值只在构造时补全, 后续修改 `role` 不会自动改变 `field_preference`。
 
 ## BaseChar Helper
 
@@ -275,52 +371,42 @@ if self.consume_first_engage():
 ### click_ultimate_action
 
 ```python
-self.click_ultimate_action(
+ultimate = self.click_ultimate_action(
+    plan,
     name=None,
     tags=None,
     add_tags=None,
     reason="ultimate action available",
     can_execute=None,
-    send_click=True,
-    wait_if_no_cd=0,
 )
+# entry 内:
+yield ultimate(send_click=False, wait_if_no_cd=0.5)
 ```
 
-- 自动设置 `slot=ActionSlot.ULTIMATE`。
-- 默认 `tags={ActionTag.ULTIMATE_ACTION}`。
-- `tags` 会完全指定基础标签；`add_tags` 可传单个 tag 或 tag 集合，并会追加到它，或在未传 `tags` 时追加到默认标签。
-- 默认 `name=f"{角色名}_ultimate"`。
-- `can_execute` 默认包含 `self.ultimate_available()`；传入的额外条件会与之合并。
-- `priority_ready` 自动使用 `self.ultimate_available()`。
-- `send_click` 为 True 时会在终结技动画期间发送普通点击；`wait_if_no_cd` 是冷却未完成时最多等待的秒数。
-- `execute` 调用 `self.click_ultimate()`。
+- 登记 `slot=ActionSlot.ULTIMATE`, 默认标签 `ULTIMATE_ACTION`, 默认名称 `"{角色名}_ultimate"`。
+- `tags` 替换基础标签; `add_tags` 接收单个或多个标签, 追加到最终标签中。
+- 执行条件包含 `ultimate_available()` 及额外 `can_execute`; 评分就绪条件使用 `ultimate_available()`。
+- 执行固定绑定 `click_ultimate`, 在 `ultimate(...)` 上传入释放参数; 目录调度也需要该参数时, 先绑定再登记。
+- 不传 `plan` 时, 可继续通过原有 `self.plan(...)` 写法返回动作目录。
 
 ### click_skill_action
 
 ```python
-self.click_skill_action(
+skill = self.click_skill_action(
+    plan,
     name=None,
     tags=None,
     add_tags=None,
     reason="skill action available",
-    down_time=0.01,
     can_execute=None,
-    post_sleep=0,
-    has_animation=False,
-    send_click=True,
-    time_out=0,
 )
+# entry 内:
+yield skill(down_time=0.3, post_sleep=0.2)
 ```
 
-- 自动设置 `slot=ActionSlot.SKILL`。
-- 默认 `tags={ActionTag.SKILL_ACTION}`。
-- `tags` 会完全指定基础标签；`add_tags` 可传单个 tag 或 tag 集合，并会追加到它，或在未传 `tags` 时追加到默认标签。
-- 默认 `name=f"{角色名}_skill"`。
-- `can_execute` 默认包含 `self.skill_available()`；传入的额外条件会与之合并。
-- `priority_ready` 自动使用 `self.skill_available()`。
-- `down_time` 控制按键持续时间；`post_sleep` 控制成功释放后的额外等待；`has_animation` 指示技能是否带动画。
-- `send_click` 控制技能释放期间是否发送普通点击；`time_out` 控制等待技能释放的超时，0 使用内置默认值。
-- `execute` 调用 `self.click_skill()`。
+- 登记 `slot=ActionSlot.SKILL`, 默认标签 `SKILL_ACTION`, 默认名称 `"{角色名}_skill"`。
+- 标签配置与 Q 相同; 执行条件包含 `skill_available()` 及额外 `can_execute`, 评分就绪条件使用 `skill_available()`。
+- 执行固定绑定 `click_skill`, 在 `skill(...)` 上传入释放参数; E 继续保留原 helper 的默认 `down_time=0.01`。
 
 ### click_arc_action
 
@@ -528,3 +614,13 @@ planner reset。route 步骤完成和 route 窗口过期是不同信号。
 - `can_execute=False` 是硬阻止；被阻止的 entry action 会得到失败 result，不会真实执行。
 - strict route、expected entry、active request 优先于普通 entry flow。
 - `ActionResult.tags` 不控制 entry flow。
+
+
+## 运行期计时
+
+角色从 `BaseChar` 继承 `self.clock`, 无需额外 import 即可调用 `self.clock.now()`。
+返回值 `TimePoint` 是 `float` 子类, 支持与数字比较、普通算术和格式化。
+角色状态、冷却、冻结记录和 planner 使用同一单调时钟来源; 持续时间以秒为单位。
+`self.now()` 保留为外部角色代码的兼容入口。冻结 helper 和 planner 计时参数也接受
+普通数值型单调时间。新代码优先使用 `clock.UNSET` 或 `None` 表示未发生的事件,
+冻结 helper 同时兼容旧数字哨兵。详见[运行期时钟约定](../../runtime_clock.md)。

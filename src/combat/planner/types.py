@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field, replace
 from enum import StrEnum
 from itertools import count
-from typing import TYPE_CHECKING, Callable, Generator, Iterable
+from typing import TYPE_CHECKING, Callable, Generator, Iterable, Self, cast
 
 if TYPE_CHECKING:
     from src.char.BaseChar import BaseChar
@@ -338,6 +338,7 @@ class RoleProfile:
 
     由角色的 `describe_role()` 返回。`role` 描述队伍定位, 可由
     `CombatContext.request_role()` 匹配; `field_preference` 决定普通切人评分。
+    未指定 `field_preference` 时根据 `role` 补全, 显式配置始终优先。
     `max_field_time` 会被 planner 用来生成内建的 `planner_field_time` 站场动作。
 
     `combat_start_priority` 只用于开战首切。大于 0 的角色会成为首切候选；
@@ -345,9 +346,18 @@ class RoleProfile:
     """
 
     role: Role = Role.SUB_DPS
-    field_preference: FieldPreference = FieldPreference.SUB_DPS
+    # None is an initialization sentinel, resolved before the profile is returned.
+    field_preference: FieldPreference = cast(FieldPreference, None)
     max_field_time: float = 1.5
     combat_start_priority: int = 0
+
+    def __post_init__(self) -> None:
+        if self.field_preference is None:
+            self.field_preference = {
+                Role.MAIN_DPS: FieldPreference.MAIN_DPS,
+                Role.SUB_DPS: FieldPreference.SUB_DPS,
+                Role.SUPPORT: FieldPreference.SUPPORT,
+            }[self.role]
 
 
 @dataclass(slots=True)
@@ -557,7 +567,7 @@ class ActionIntent:
             return f"{identity}|entry_repeat:{self._entry_repeat_id}"
         return identity
 
-    def repeat_for_entry(self) -> "ActionIntent":
+    def repeat_for_entry(self) -> Self:
         """返回可在同一次 entry 中再次 yield 的动作副本。
 
         副本保留原 action 的执行器, 槽位, 标签和权限限制, 仅增加 entry 内部的
@@ -626,13 +636,28 @@ class CombatPlan:
     planner 会按 `actions` 声明顺序执行。
     """
 
-    actions: Iterable[ActionIntent]
+    actions: Iterable[ActionIntent] = field(default_factory=tuple)
     claims: Iterable[FieldClaim] = field(default_factory=tuple)
     entry: EntryFactory | None = None
 
     def __post_init__(self) -> None:
         self.actions = list(self.actions)
         self.claims = list(self.claims)
+
+    def add[T: ActionIntent | FieldClaim | None](self, item: T) -> T:
+        """加入动作或入场诉求并返回原对象; None 会被忽略。
+
+        在创建 plan 时调用, 不要在 entry 执行期间修改动作目录。
+        动作按 add 顺序加入目录, 不会立即执行。
+        """
+
+        if isinstance(item, ActionIntent):
+            cast(list[ActionIntent], self.actions).append(item)
+        elif isinstance(item, FieldClaim):
+            cast(list[FieldClaim], self.claims).append(item)
+        elif item is not None:
+            raise TypeError("CombatPlan.add() expects an ActionIntent, FieldClaim, or None")
+        return item
 
 
 def _display_result_name(result: ActionResult) -> str:

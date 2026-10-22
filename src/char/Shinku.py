@@ -1,5 +1,3 @@
-import time
-
 from src.char.BaseChar import BaseChar
 from src.combat.planner import CombatContext, Planner, RoleProfile
 
@@ -14,24 +12,25 @@ class Shinku(BaseChar):
     def describe_role(self):
         return RoleProfile(
             role=Planner.Role.MAIN_DPS,
-            field_preference=Planner.FieldPreference.MAIN_DPS,
             max_field_time=1.5,
         )
 
     def combat_plan(self, context):
-        skill = self.click_skill_action()
-        ultimate = self.click_ultimate_action()
+        plan = self.plan()
+        skill = self.click_skill_action(plan)
+        ultimate = self.click_ultimate_action(plan)
 
         def entry():
             yield skill
             if (yield ultimate):
                 self.perform_in_ult(context)
 
-        return self.plan(skill, ultimate, entry=entry)
+        plan.entry = entry
+        return plan
 
     def perform_in_ult(self, context: CombatContext = None):
-        start = time.time()
-        while (elapsed := time.time() - start) < 12:
+        start = self.clock.now()
+        while (elapsed := self.clock.now() - start) < 12:
             if elapsed > 9 and self.ultimate_available():
                 if self.click_ultimate():
                     return True
@@ -40,6 +39,6 @@ class Shinku(BaseChar):
             self.normal_attack()
             self.sleep(0.1)
         return False
-    
+
     def on_combat_end(self, chars):
         self.switch_other_char()

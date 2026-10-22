@@ -1,14 +1,12 @@
-import time
-
 from src.char.BaseChar import BaseChar
 from src.combat.planner import (
     ActionSlot,
     ActionTag,
     CombatContext,
-    FieldPreference,
     Role,
     RoleProfile,
 )
+from src.utils.clock import TimePoint
 
 
 class Baicang(BaseChar):
@@ -61,7 +59,7 @@ class Baicang(BaseChar):
         # Arc cooldown is handled inside this character instead of the shared
         # BaseChar default, so keep a private timestamp for the ~20s cadence.
         self.planner_handles_arc = True
-        self._baicang_last_arc_time = float("-inf")
+        self._baicang_last_arc_time = self.clock.UNSET
 
     def combat_policies(self, context: CombatContext) -> None:
         return None
@@ -69,14 +67,15 @@ class Baicang(BaseChar):
     def describe_role(self):
         return RoleProfile(
             role=Role.MAIN_DPS,
-            field_preference=FieldPreference.MAIN_DPS,
             max_field_time=self.MAX_FIELD_TIME,
         )
 
     def combat_plan(self, context: CombatContext):
-        skill = self.click_skill_action()
-        ultimate = self.click_ultimate_action()
+        plan = self.plan()
+        skill = self.click_skill_action(plan)
+        ultimate = self.click_ultimate_action(plan)
         fallback_dodge = self.planner_action(
+            plan=plan,
             tags={ActionTag.DEFAULT_ACTION, ActionTag.DAMAGE},
             execute=lambda ctx: self._execute_fallback_dodge(),
             priority_ready=lambda ctx: False,
@@ -92,7 +91,8 @@ class Baicang(BaseChar):
             else:
                 yield fallback_dodge
 
-        return self.plan(skill, ultimate, fallback_dodge, entry=entry)
+        plan.entry = entry
+        return plan
 
     def _perform_burst(self, context: CombatContext = None):
         """Q 成功后的爆发输出循环: 第二套手法重击连招。
@@ -104,14 +104,13 @@ class Baicang(BaseChar):
         - R 每 ARC_CHECK_INTERVAL 释放; E 冷却好后按 streak 释放
         """
         self.logger.info("burst start")
-        start = self._now()
-        deadline = start + self.ULT_FIELD_DURATION
+        timer = self.clock.timer(timeout=self.ULT_FIELD_DURATION)
 
         track_second_skill = self.SECOND_SKILL_MODE != "disabled"
         ready_streak = 0
-        last_check = start
+        last_check = self._now()
 
-        while self._now() < deadline:
+        while not timer.expired():
             if not self.is_current_char:
                 self.logger.info("burst end (not current char)")
                 return
@@ -123,7 +122,7 @@ class Baicang(BaseChar):
             self.check_combat()
             # _heavy_combo may return early on char switch/death; re-check state
             # so we don't send R or a second E once the burst is no longer valid.
-            if not self.is_current_char or self.is_dead or self._now() >= deadline:
+            if not self.is_current_char or self.is_dead or timer.expired():
                 break
 
             if self._now() - self._baicang_last_arc_time >= self.ARC_CHECK_INTERVAL:
@@ -225,20 +224,20 @@ class Baicang(BaseChar):
 
     def _checkpointed_dodge(self, duration) -> bool:
         """Legacy method name: normal attacks with frequent sound-check checkpoints."""
-        deadline = self._now() + max(duration, 0)
+        timer = self.clock.timer(timeout=max(duration, 0))
         direction_key = self.DEFAULT_DIRECTION_KEY
         try:
             if direction_key is not None:
                 self.task.send_key_down(direction_key)
                 self.sleep(0.01)
-            while self._now() < deadline:
+            while not timer.expired():
                 if not self.is_current_char or self.is_dead:
                     return False
                 # Periodic R during field time, sharing the same cooldown as burst.
                 if self._now() - self._baicang_last_arc_time >= self.ARC_CHECK_INTERVAL:
                     self._baicang_last_arc_time = self._now()
                     self.send_arc_key()
-                remaining = deadline - self._now()
+                remaining = timer.remaining()
                 self._normal_attack_slice(min(self.ATTACK_SLICE_DURATION, remaining))
                 self.sleep(0.01)
                 self.check_combat()
@@ -250,12 +249,12 @@ class Baicang(BaseChar):
     def _normal_attack_slice(self, duration):
         if duration <= 0:
             return
-        deadline = self._now() + duration
-        while self._now() < deadline:
+        timer = self.clock.timer(timeout=duration)
+        while not timer.expired():
             if not self.is_current_char or self.is_dead:
                 return
             self.normal_attack()
-            remaining = deadline - self._now()
+            remaining = timer.remaining()
             if remaining > 0:
                 self.sleep(min(self.NORMAL_ATTACK_INTERVAL, remaining))
 
@@ -270,9 +269,9 @@ class Baicang(BaseChar):
                 return
             self.click(interval=interval, key="right")
 
-    def _now(self):
+    def _now(self) -> TimePoint:
         """可 patch 的时钟, 供测试覆盖。"""
-        return time.monotonic()
+        return self.clock.now()
 
     def on_combat_end(self, chars):
         """战斗结束后清理。"""

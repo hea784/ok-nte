@@ -1,5 +1,5 @@
 from src.char.BaseChar import BaseChar
-from src.combat.planner import CombatContext, FieldClaim, Planner, RoleProfile
+from src.combat.planner import Planner, RoleProfile
 
 
 class Zero(BaseChar):
@@ -12,29 +12,20 @@ class Zero(BaseChar):
     def describe_role(self):
         return RoleProfile(
             role=Planner.Role.SUB_DPS,
-            field_preference=Planner.FieldPreference.SUB_DPS,
             max_field_time=1.0,
         )
 
     def combat_plan(self, context):
-        claims = []
-        if self.skill_available():
-            claims.append(FieldClaim.normal(reason="Zero skill instant cycle"))
-
-        return self.plan(
-            self.click_ultimate_action(),
-            self.click_skill_action(
-                can_execute=self.should_use_skill, add_tags=Planner.ActionTag.HIGH_PRIORITY
-            ),
-            claims=claims,
+        plan = self.plan()
+        self.click_ultimate_action(plan)
+        self.click_skill_action(
+            plan,
+            add_tags=Planner.ActionTag.HIGH_PRIORITY,
+            can_execute=self.should_instant_cycle,
         )
+        return plan
 
-    def should_use_skill(self, context: CombatContext = None):
-        return (
-            not self.has_element_reaction_teammate()
-            or not self.is_cycle_full()
-            or (
-                context is not None
-                and context.strict_route_wants_action(self, slot=Planner.ActionSlot.SKILL)
-            )
-        )
+    def click_skill(self, down_time = 0.05, post_sleep = 0, send_click = True, time_out = 0):
+        ret = super().click_skill(down_time, post_sleep, send_click, time_out)
+        self.task.wait_until(self.is_cycle_full, time_out=1)
+        return ret
