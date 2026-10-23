@@ -12,7 +12,7 @@ from src.process_feature import process_feature
 if "PATH" not in os.environ:
     os.environ["PATH"] = ""
 
-version = "v1.4.17"
+version = "v1.4.18"
 # 不需要修改version, Github Action打包会自动修改
 
 key_config_option = ConfigOption(
@@ -73,6 +73,7 @@ def blur_area(width, height):
 
 config = {
     "custom_tasks": True,  # enable creating and editing custom tasks
+    "plugin": True,
     "gui": {
         "type": "qt",
     },

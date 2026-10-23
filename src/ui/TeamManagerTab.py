@@ -21,13 +21,11 @@ from qfluentwidgets import (
     CommandBar,
     FluentIcon,
     Flyout,
+    HeaderCardWidget,
     HyperlinkButton,
     IconWidget,
     ImageLabel,
-    InfoBar,
     InfoBarIcon,
-    InfoBarPosition,
-    LineEdit,
     MessageBox,
     PrimaryPushButton,
     PushButton,
@@ -55,9 +53,13 @@ from src.ui.features.characters.workshop_dialog import (
     PackageImportDialog,
     PackageMetadataDialog,
     WorkshopDialog,
+    workshop_error_text,
 )
 from src.ui.foundation.dialogs import MessageBoxBase
 from src.ui.foundation.images import cv_to_pixmap
+from src.ui.foundation.info_bar import show_bar
+from src.ui.foundation.name_input_dialog import NameInputDialog
+from src.ui.foundation.text import highlight_bracketed_text
 from src.ui.foundation.widgets.cards import BorderCardWidget
 from src.ui.foundation.widgets.search import (
     SearchableComboBox,
@@ -169,26 +171,25 @@ class NewCharDialog(MessageBoxBase):
         return char_name, char_id, combo_id, combo_name
 
 
-class AddCharacterDialog(MessageBoxBase):
+class AddCharacterDialog(NameInputDialog):
     """Create a new character without exposing the existing-character picker."""
 
     def __init__(self, manager: CustomCharManager, parent=None):
-        super().__init__(parent)
-        self.manager = manager
-        self.tr_name_duplicate = og.app.tr("角色名称无效或已存在")
-        self.viewLayout.setSpacing(10)
-        self.viewLayout.addWidget(
-            SubtitleLabel(og.app.tr("新增角色"), self), alignment=Qt.AlignmentFlag.AlignCenter
+        duplicate_error = og.app.tr("角色名称无效或已存在")
+        super().__init__(
+            title="新增角色",
+            placeholder="角色名称",
+            title_alignment=Qt.AlignmentFlag.AlignCenter,
+            name_validator=lambda name: all(
+                char_data["char_name"] != name
+                for char_data in manager.get_all_characters().values()
+            ),
+            error_message=duplicate_error,
+            parent=parent,
         )
-
-        self.char_name_edit = LineEdit(self)
-        self.char_name_edit.setPlaceholderText(og.app.tr("角色名称"))
-        self.char_name_edit.textChanged.connect(self._validate_name)
-        self.viewLayout.addWidget(self.char_name_edit)
-
-        self.name_error_label = CaptionLabel(self.tr_name_duplicate, self)
-        self.name_error_label.hide()
-        self.viewLayout.addWidget(self.name_error_label)
+        self.manager = manager
+        self.tr_name_duplicate = duplicate_error
+        self.char_name_edit = self.name_edit
 
         self.combo_list = SearchableComboBox(self)
         self.combo_list.setPlaceholderText(og.app.tr("输入或选择出招表"))
@@ -197,31 +198,8 @@ class AddCharacterDialog(MessageBoxBase):
             self.combo_list.addItem(combo_name, userData=combo_id)
         self.viewLayout.addWidget(self.combo_list)
 
-        self.widget.setMinimumWidth(320)
-        self._validate_name("")
-        self.char_name_edit.setFocus()
-
-    def _is_name_available(self, name: str) -> bool:
-        name = name.strip()
-        if not name:
-            return False
-        return all(
-            char_data["char_name"] != name
-            for char_data in self.manager.get_all_characters().values()
-        )
-
-    def _validate_name(self, name: str) -> None:
-        is_empty = not name.strip()
-        is_available = self._is_name_available(name)
-        self.yesButton.setEnabled(is_available)
-        self.name_error_label.setVisible(not is_empty and not is_available)
-
-    def validate(self) -> bool:
-        self._validate_name(self.char_name_edit.text())
-        return self.yesButton.isEnabled()
-
     def get_data(self):
-        char_name = self.char_name_edit.text().strip()
+        char_name = self.get_name()
         combo_name = self.combo_list.currentText().strip()
         combo_id = ""
         index = self.combo_list.currentIndex()
@@ -452,6 +430,32 @@ class SlotCard(BorderCardWidget):
                 self.btn_relink.hide()
 
 
+class PresetNameLabel(BodyLabel):
+    """Single-line preset name that can shrink without widening the page."""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self._full_text = ""
+        self.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
+        self.setTextFormat(Qt.TextFormat.PlainText)
+
+    def set_name(self, name: str) -> None:
+        self._full_text = name
+        self.setToolTip(name)
+        self._update_text()
+
+    def _update_text(self) -> None:
+        self.setText(
+            self.fontMetrics().elidedText(
+                self._full_text, Qt.TextElideMode.ElideRight, self.contentsRect().width()
+            )
+        )
+
+    def resizeEvent(self, event) -> None:
+        super().resizeEvent(event)
+        self._update_text()
+
+
 class PresetSlotRow(QWidget):
     """Clean form for one preset slot with slot badge and searchable selectors."""
 
@@ -572,23 +576,26 @@ class TeamManagerTab(CustomTab):
         # ruff: disable[E501]
         self.tr_scan_tips = self.tr(
             '<p><b style="color: #d83b01;">注意：</b>此面板 <b style="color: #d83b01;">不会</b> 在进入战斗或更换阵容时实时自动刷新或同步显示。<br>'
-            '这是个用于向数据库关联或添加 <b style="color: #0078d7;">角色特征</b> 的工具面板。<br>'
-            '点击 <b style="color: #0078d7;">{scan_team}</b> 后点击 <b style="color: #0078d7;">关联或添加</b> 特征, 自动战斗时就会识别对应的角色。<br>'
-            '如果不想管理 <b style="color: #0078d7;">角色特征</b>, 可以直接使用 <b style="color: #0078d7;">{fixed_team}</b> 功能。</p>',
+            '这是个用于向数据库关联或添加 [角色特征] 的工具面板。<br>'
+            '点击 [{scan_team}] 后点击 [关联或添加] 特征, 自动战斗时就会识别对应的角色。<br>'
+            '如果不想管理 [角色特征], 可以直接使用 [{fixed_team}] 功能。</p>',
         ).format(
             fixed_team=self.tr("队伍方案"),
             scan_team=self.tr("扫描队伍"),
         )
+        self.tr_scan_tips = highlight_bracketed_text(self.tr_scan_tips, "#0078d7")
         self.tr_preset_tips = self.tr(
             "<p>用于配置并保存常用的 4 人队伍阵容与出招表, 修改后立即生效。<br>"
-            '点击 <b style="color: #0078d7;">{apply_preset}</b> 可一键更新应用方案中各角色的出招表 (未选择出招表则保持原配置不变)。<br>'
-            '开启 <b style="color: #0078d7;">{fixed_preset}</b> 后自动战斗将直接采用此阵容, 无需等待特征识别 (未录入特征的角色亦可直接战斗)。<br>'
-            '点击 <b style="color: #0078d7;">{fill_scan}</b> 可将上方特征扫描识别出的队伍角色快速填入当前方案。</p>',
+            "方案中的 1~4 号位仅用于 [{fixed_preset}] 功能; 已绑定特征的角色放在哪个号位都可以, 不影响识别。<br>"
+            '点击 [{apply_preset}] 可一键更新应用方案中各角色的出招表 (未选择出招表则保持原配置不变)。<br>'
+            '开启 [{fixed_preset}] 后自动战斗将直接采用此阵容, 无需等待特征识别 (未录入特征的角色亦可直接战斗)。<br>'
+            '点击 [{fill_scan}] 可将上方特征扫描识别出的队伍角色快速填入当前方案。</p>',
         ).format(
             apply_preset=self.tr("应用方案"),
             fixed_preset=self.tr("固定"),
             fill_scan=self.tr("填入扫描"),
         )
+        self.tr_preset_tips = highlight_bracketed_text(self.tr_preset_tips, "#0078d7")
         # ruff: enable[E501]
 
         self.vbox = self.vBoxLayout
@@ -677,7 +684,7 @@ class TeamManagerTab(CustomTab):
         list_layout.addWidget(self.preset_list, 1)
         content.addWidget(self.preset_list_card, 1)
 
-        # Right panel: Command bar, name card and 2x2 slots card
+        # Right panel: command bar and preset editor card
         right_layout = QVBoxLayout()
         right_layout.setSpacing(12)
 
@@ -734,27 +741,24 @@ class TeamManagerTab(CustomTab):
         self.command_stack_layout.setCurrentIndex(0)
         right_layout.addWidget(self.preset_command_card)
 
-        self.preset_top_card = SimpleCardWidget(self.view)
-        top_layout = QHBoxLayout(self.preset_top_card)
-        top_layout.setContentsMargins(16, 12, 16, 12)
-        top_layout.setSpacing(10)
+        self.preset_editor_card = HeaderCardWidget(self.view)
+        self.preset_editor_card.setTitle(self.tr("方案"))
+        self.preset_editor_card.headerLayout.setSpacing(10)
 
-        top_layout.addWidget(StrongBodyLabel(self.tr("名称"), self.preset_top_card))
-        self.preset_name_edit = LineEdit(self.preset_top_card)
-        self.preset_name_edit.setPlaceholderText(self.tr("名称"))
-        self.preset_name_edit.setMinimumWidth(220)
-        self.preset_name_edit.setMaximumWidth(360)
-        self.preset_name_edit.editingFinished.connect(self.on_preset_name_changed)
-        top_layout.addStretch(1)
-        top_layout.addWidget(self.preset_name_edit)
-        right_layout.addWidget(self.preset_top_card)
+        self.preset_name_label = PresetNameLabel(self.preset_editor_card.headerView)
+        self.preset_editor_card.headerLayout.addWidget(self.preset_name_label, 1)
+        self.rename_preset_btn = HyperlinkButton(self.preset_editor_card.headerView)
+        self.rename_preset_btn.setText(self.tr("重命名"))
+        self.rename_preset_btn.setAccessibleName(self.tr("重命名"))
+        self.rename_preset_btn.clicked.connect(self.on_rename_preset)
+        self.preset_editor_card.headerLayout.addWidget(self.rename_preset_btn)
 
-        self.preset_slots_card = SimpleCardWidget(self.view)
-        self.preset_slots_card.setMinimumHeight(300)
-        self.preset_slots_card.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-        slots_layout = QVBoxLayout(self.preset_slots_card)
-        slots_layout.setContentsMargins(28, 24, 28, 24)
-        slots_layout.setSpacing(20)
+        self.preset_editor_card.setMinimumHeight(360)
+        self.preset_editor_card.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed
+        )
+        self.preset_editor_card.viewLayout.setContentsMargins(28, 24, 28, 24)
+        self.preset_editor_card.viewLayout.setSpacing(20)
 
         grid_layout = QGridLayout()
         grid_layout.setHorizontalSpacing(32)
@@ -762,13 +766,13 @@ class TeamManagerTab(CustomTab):
 
         self.preset_rows: list[PresetSlotRow] = []
         for index in range(4):
-            row = PresetSlotRow(index, self.manager, self.preset_slots_card)
+            row = PresetSlotRow(index, self.manager, self.preset_editor_card.view)
             row.changed.connect(self.on_preset_slot_changed)
             self.preset_rows.append(row)
             grid_layout.addWidget(row, index // 2, index % 2)
 
-        slots_layout.addLayout(grid_layout)
-        right_layout.addWidget(self.preset_slots_card)
+        self.preset_editor_card.viewLayout.addLayout(grid_layout)
+        right_layout.addWidget(self.preset_editor_card)
         right_layout.addStretch(1)
 
         content.addLayout(right_layout, 3)
@@ -829,7 +833,9 @@ class TeamManagerTab(CustomTab):
         def failed(error):
             if worker in self._workshop_workers:
                 self._workshop_workers.remove(worker)
-            self._show_bar(self.tr("操作失败"), self._workshop_error_text(error), success=False)
+            show_bar(
+                self.window(), self.tr("操作失败"), self._workshop_error_text(error), success=False
+            )
 
         worker.succeeded.connect(finish)
         worker.failed.connect(failed)
@@ -842,16 +848,34 @@ class TeamManagerTab(CustomTab):
                 return self.tr("外置代码目录“{}”已存在, 请修改目录名称后重试。").format(directory)
             if error.code == WorkshopInstallErrorCode.INVALID_EXTERNAL_DIRECTORY:
                 return self.tr("外置代码目录名称无效")
-        return str(error) or error.__class__.__name__
+        return workshop_error_text(error, self.tr)
 
     def navigate_to_workshop(self) -> None:
         self.command_stack_layout.setCurrentIndex(1)
         self.on_open_workshop()
 
     def on_open_workshop(self) -> None:
-        dialog = WorkshopDialog(self.workshop_repository, self.window())
+        dialog = WorkshopDialog(
+            self.workshop_repository,
+            self.window(),
+            service=self.workshop_service,
+            before_update=self._ensure_workshop_update_idle,
+        )
+        self._active_workshop_dialog = dialog
         dialog.import_requested.connect(self.on_remote_package_requested)
-        dialog.exec()
+        dialog.packages_updated.connect(self._on_packages_updated)
+        try:
+            dialog.exec()
+        finally:
+            self._active_workshop_dialog = None
+
+    def _ensure_workshop_update_idle(self) -> None:
+        if self._workshop_workers:
+            raise RuntimeError(self.tr("请等待当前导入或导出完成后再更新."))
+
+    def _on_packages_updated(self) -> None:
+        self.reload_preset_options()
+        self.reload_presets()
 
     def on_import_package(self) -> None:
         if not confirm_external_code_import(self.window()):
@@ -890,7 +914,14 @@ class TeamManagerTab(CustomTab):
     def _on_package_imported(self, imported) -> None:
         self.reload_preset_options()
         self.reload_presets(imported.preset_id)
-        self._show_bar(self.tr("导入完成"), self.tr("已创建方案: {}").format(imported.preset_name))
+        show_bar(
+            self.window(),
+            self.tr("导入完成"),
+            self.tr("已创建方案: {}").format(imported.preset_name),
+        )
+        dialog = getattr(self, "_active_workshop_dialog", None)
+        if dialog is not None:
+            dialog.reload_catalog()
 
     def _export_slots(self, preset: dict) -> tuple[PackageSlot, ...]:
         slots = []
@@ -920,8 +951,11 @@ class TeamManagerTab(CustomTab):
             return
         defaults = TeamPackage(preset["name"], "", "", "1.0.0", self._export_slots(preset))
         if not defaults.slots:
-            self._show_bar(
-                self.tr("无法导出"), self.tr("当前方案没有可导出的出招表."), success=False
+            show_bar(
+                self.window(),
+                self.tr("无法导出"),
+                self.tr("当前方案没有可导出的出招表."),
+                success=False,
             )
             return
         dialog = PackageMetadataDialog(defaults, self.window(), repository=self.workshop_repository)
@@ -942,14 +976,15 @@ class TeamManagerTab(CustomTab):
         export_path = Path(path)
         self._start_workshop_call(
             lambda: self.workshop_service.export_preset(preset["id"], package, export_path),
-            lambda _result: self._show_bar(self.tr("导出完成"), export_path.name),
+            lambda _result: show_bar(self.window(), self.tr("导出完成"), export_path.name),
         )
 
     def on_upload_package(self) -> None:
         QDesktopServices.openUrl(QUrl(WORKSHOP_REPOSITORY["upload_url"]))
 
     def _set_editor_enabled(self, enabled: bool) -> None:
-        self.preset_name_edit.setEnabled(enabled)
+        self.preset_name_label.setEnabled(enabled)
+        self.rename_preset_btn.setEnabled(enabled)
         self.delete_preset_btn.setEnabled(enabled)
         self.add_character_action.setEnabled(True)
         self.apply_action.setEnabled(enabled)
@@ -964,7 +999,7 @@ class TeamManagerTab(CustomTab):
         for row in self.preset_rows:
             row.set_editor_enabled(enabled)
         if not enabled:
-            self.preset_name_edit.clear()
+            self.preset_name_label.set_name("")
             self.fixed_action.setChecked(False)
 
     def _scroll_to_top(self) -> None:
@@ -986,18 +1021,6 @@ class TeamManagerTab(CustomTab):
     @executor.setter
     def executor(self, value):
         self._executor = value
-
-    def _show_bar(self, title: str, content: str, success=True) -> None:
-        fn = InfoBar.success if success else InfoBar.error
-        fn(
-            title=title,
-            content=content,
-            orient=Qt.Orientation.Horizontal,
-            isClosable=True,
-            position=InfoBarPosition.TOP,
-            duration=2500 if success else 3500,
-            parent=self.window(),
-        )
 
     def _get_task(self) -> DebugCharTask | None:
         if self.task is None and self.executor is not None:
@@ -1059,7 +1082,7 @@ class TeamManagerTab(CustomTab):
         self._loading_preset = True
         self._set_editor_enabled(preset is not None)
         if preset is not None:
-            self.preset_name_edit.setText(preset["name"])
+            self.preset_name_label.set_name(preset["name"])
             for index, row in enumerate(self.preset_rows):
                 slot = preset["slots"][index]
                 row.set_data(slot["char_id"], slot["impl_id"])
@@ -1074,18 +1097,31 @@ class TeamManagerTab(CustomTab):
     def on_create_preset(self) -> None:
         preset = self.manager.create_team_preset(self.tr("新建方案"))
         self.reload_presets(preset["id"])
-        self.preset_name_edit.setFocus()
-        self.preset_name_edit.selectAll()
 
-    def on_preset_name_changed(self) -> None:
-        if self._loading_preset or not self.current_preset_id:
+    def on_rename_preset(self) -> None:
+        if not self.current_preset_id:
             return
         preset = self._current_preset()
-        name = self.preset_name_edit.text().strip()
-        if not preset or name == preset["name"]:
+        if not preset:
+            return
+        existing_names = {
+            other["name"]
+            for other in self.manager.get_team_presets()
+            if other["id"] != self.current_preset_id
+        }
+        dialog = NameInputDialog(
+            preset["name"],
+            name_validator=lambda name: name not in existing_names,
+            error_message=self.tr_preset_save_failed,
+            parent=self.window(),
+        )
+        if not dialog.exec():
+            return
+        name = dialog.get_name()
+        if name == preset["name"]:
             return
         if not self.manager.update_team_preset(self.current_preset_id, name=name):
-            self._show_bar(self.tr("无法保存"), self.tr_preset_save_failed, success=False)
+            show_bar(self.window(), self.tr("无法保存"), self.tr_preset_save_failed, success=False)
             self.render_current_preset()
             return
         self.reload_presets(self.current_preset_id)
@@ -1100,7 +1136,7 @@ class TeamManagerTab(CustomTab):
         if self._loading_preset or not self.current_preset_id:
             return
         if not self.manager.update_team_preset(self.current_preset_id, slots=self._current_slots()):
-            self._show_bar(self.tr("无法保存"), self.tr_duplicate_character, success=False)
+            show_bar(self.window(), self.tr("无法保存"), self.tr_duplicate_character, success=False)
             self.render_current_preset()
 
     def on_add_character(self) -> None:
@@ -1146,7 +1182,8 @@ class TeamManagerTab(CustomTab):
             self.reload_preset_options()
             self.reload_presets()
             if failed_impl_ids:
-                self._show_bar(
+                show_bar(
+                    self.window(),
                     self.tr("方案已删除"),
                     self.tr("部分外置代码删除失败: {}").format(
                         ", ".join(impl_id.removeprefix("external:") for impl_id in failed_impl_ids)
@@ -1154,7 +1191,7 @@ class TeamManagerTab(CustomTab):
                     success=False,
                 )
             else:
-                self._show_bar(self.tr("已删除"), self.tr_deleted_success)
+                show_bar(self.window(), self.tr("已删除"), self.tr_deleted_success)
 
     def on_apply_preset(self) -> None:
         if not self.current_preset_id:
@@ -1163,7 +1200,7 @@ class TeamManagerTab(CustomTab):
         if applied is None:
             return
         self.reload_preset_options()
-        self._show_bar(self.tr("已应用"), self.tr_apply_success.format(len(applied)))
+        show_bar(self.window(), self.tr("已应用"), self.tr_apply_success.format(len(applied)))
 
     def on_toggle_fixed_preset(self) -> None:
         preset = self._current_preset()
@@ -1178,12 +1215,12 @@ class TeamManagerTab(CustomTab):
             return
         self.reload_preset_options()
         self.reload_presets(preset["id"])
-        self._show_bar(self.tr("已应用"), self.tr_apply_success.format(len(applied)))
+        show_bar(self.window(), self.tr("已应用"), self.tr_apply_success.format(len(applied)))
 
     def on_scan_clicked(self) -> None:
         task = self._get_task()
         if task is None:
-            self._show_bar(self.tr("扫描失败"), self.tr_scan_task_missing, success=False)
+            show_bar(self.window(), self.tr("扫描失败"), self.tr_scan_task_missing, success=False)
             return
         self.scan_btn.setEnabled(False)
         self.scan_btn.setText(self.tr_scanning)
@@ -1207,7 +1244,7 @@ class TeamManagerTab(CustomTab):
         self.scan_btn.setEnabled(True)
         self.scan_btn.setText(self.tr_scan_btn)
         if error:
-            self._show_bar(self.tr("扫描失败"), error, success=False)
+            show_bar(self.window(), self.tr("扫描失败"), error, success=False)
             return
         updated_indices = set()
         for result in self.last_scan_results:
@@ -1244,13 +1281,13 @@ class TeamManagerTab(CustomTab):
                     slots[index]["impl_id"] = char_info["impl_id"]
                 filled_count += 1
         if not filled_count:
-            self._show_bar(self.tr("无法填入"), self.tr_fill_failed, success=False)
+            show_bar(self.window(), self.tr("无法填入"), self.tr_fill_failed, success=False)
             return
         if not self.manager.update_team_preset(preset["id"], slots=slots):
-            self._show_bar(self.tr("无法保存"), self.tr_duplicate_character, success=False)
+            show_bar(self.window(), self.tr("无法保存"), self.tr_duplicate_character, success=False)
             return
         self.render_current_preset()
-        self._show_bar(self.tr("已填入"), self.tr("{} 个空槽位").format(filled_count))
+        show_bar(self.window(), self.tr("已填入"), self.tr("{} 个空槽位").format(filled_count))
 
     def show_scan_flyout(self) -> None:
         Flyout.create(
