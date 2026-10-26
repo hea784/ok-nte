@@ -233,6 +233,16 @@ class BaseCombatTask(CharElementUIMixin, CombatCheck):
                 reaction_info.append(f"{reaction_name}: {count}")
         self.info_set("环合反应", reaction_info)
 
+    def can_element_react(self, char_a: "BaseChar", char_b: "BaseChar") -> bool:
+        """检查两名角色的元素能否环合; 满资源状态由切人决策另行检查。"""
+
+        return (
+            char_a is not None
+            and char_b is not None
+            and char_a is not char_b
+            and self._get_element_ring_pair(char_a.element, char_b.element) is not None
+        )
+
     def record_element_reaction(self, char_a: "BaseChar", char_b: "BaseChar") -> bool:
         if char_a is None or char_b is None:
             return False
@@ -313,9 +323,7 @@ class BaseCombatTask(CharElementUIMixin, CombatCheck):
             self.freeze_durations.clear()
             self.freeze_durations.extend(records)
 
-    def time_elapsed_accounting_for_freeze(
-        self, start: float, intro_motion_freeze=False
-    ) -> float:
+    def time_elapsed_accounting_for_freeze(self, start: float, intro_motion_freeze=False) -> float:
         """计算扣除冻结时间后经过的时间。
 
         Args:
@@ -888,16 +896,21 @@ class BaseCombatTask(CharElementUIMixin, CombatCheck):
             error, (NotInCombatException, TaskDisabledException, FinishedException)
         ):
             return
-        source = None
-        for frame, _ in walk_tb(error.__traceback__):
-            candidate = frame.f_locals.get("self")
-            if isinstance(candidate, BaseChar) and getattr(candidate, "task", None) is self:
-                source = candidate
+        source = getattr(error, "_combat_char", None)
+        if not isinstance(source, BaseChar) or getattr(source, "task", None) is not self:
+            source = None
+            for frame, _ in walk_tb(error.__traceback__):
+                candidate = frame.f_locals.get("self")
+                if isinstance(candidate, BaseChar) and getattr(candidate, "task", None) is self:
+                    source = candidate
         character = combo = ""
-        if source is not None and getattr(source, "impl_id", ""):
+        impl_id = getattr(source, "impl_id", "")
+        if impl_id:
             character = source.ufn_name
-            combo = CustomCharManager().get_impl_name(source.impl_id, with_source_prefix=True)
-        message = char_registry.describe_external_error(error, character=character, combo=combo)
+            combo = CustomCharManager().get_impl_name(impl_id, with_source_prefix=True)
+        message = char_registry.describe_external_error(
+            error, character=character, combo=combo, impl_id=impl_id
+        )
         if message is not None:
             self._notify_external_error(message)
 
