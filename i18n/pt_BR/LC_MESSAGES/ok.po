@@ -1361,3 +1361,63 @@ msgstr "O módulo de personagem externo deve definir exatamente uma subclasse de
 
 msgid "角色实现标识重复: {impl_id}"
 msgstr "ID de implementação de personagem duplicado: {impl_id}"
+
+msgid "咔滋!黄金双脆"
+msgstr "Snap! Golden Crackshot"
+
+msgid "从活动详情页或匹配大厅开始, 进入对局后等待指定秒数再退出并重复运行"
+msgstr "Comece na página do evento ou no lobby, espere os segundos configurados após entrar na partida, saia e repita"
+
+msgid "进入后等待秒数"
+msgstr "Espera após entrar (segundos)"
+
+msgid "确认进入对局后等待的秒数, 设置为0则立即退出"
+msgstr "Segundos de espera após confirmar a entrada na partida, use 0 para sair imediatamente"
+
+msgid "本次仅刷所选类型及其目标; 成功结束后才按循环模式更新下次目标。"
+msgstr "Esta execução farma apenas o tipo e o alvo selecionados. O modo de ciclo atualiza o alvo da próxima execução somente após concluir com sucesso."
+
+msgid "每次日常仅刷当前目标, 本次不在多个目标间分配体力。\n停用: 下次仍刷当前目标。\n自动循环序号/目标: 成功结束后切到同类型的下一个序号或奖励目标, 末项后回到首项。\n自定义循环: 成功结束后按下方序列更新下次目标; 失败或跳过时不切换。"
+msgstr "Cada execução diária farma apenas o alvo atual, sem dividir energia entre vários alvos.\nDesativado: manter o alvo atual na próxima execução.\nCiclo automático de números/alvos: após o sucesso, selecionar o próximo número ou alvo de recompensa do mesmo tipo; após o último, voltar ao primeiro.\nCiclo personalizado: após o sucesso, atualizar o alvo da próxima execução conforme a lista abaixo. Falhas e execuções puladas não avançam o ciclo."
+
+msgid "按列表顺序轮换, 末项后回到首项; 每次日常只刷一个目标, 下次运行才刷下一个。\n数字是副本序号, 不是次数; 例如「异能升级材料: 1」表示该类型的第1项。\n首次仍刷上方当前目标; 若其不在序列中, 成功后将下次目标设为序列首项; 空序列不切换。"
+msgstr "Alternar na ordem da lista e voltar ao início após o último item. Cada execução diária farma um único alvo; o próximo é farmado na próxima execução.\nOs números são índices de masmorra, não quantidades de execuções. Por exemplo, Materiais de melhoria de habilidade: 1 indica a primeira masmorra desse tipo.\nA primeira execução usa o alvo atual acima. Se ele não estiver na lista, o sucesso define o primeiro item como alvo da próxima execução. Uma lista vazia não altera o alvo."
+
+#, python-brace-format
+msgid "按今日累计消耗计算, 扣除已消耗体力; 每份奖励{cost}体力, 剩余目标向上取整。\n今日已消耗180体力或活跃度达100时跳过; 体力不足时仅刷可领取的次数。"
+msgstr "Meta de gasto total de energia de hoje, descontando a energia já gasta. Cada recompensa custa {cost}; a meta restante é arredondada para cima.\nPula se já foram gastos 180 de energia hoje ou a atividade chegou a 100. Se faltar energia, resgata apenas as recompensas possíveis."
+
+msgid "筛选"
+msgstr "Filtros"
+
+msgid "阵容关键词"
+msgstr "Palavras-chave da equipe"
+
+msgid "输入关键词后按 Enter 添加"
+msgstr "Digite uma palavra-chave e pressione Enter"
+
+msgid "移除关键词 {}"
+msgstr "Remover palavra-chave {}"
+
+msgid "展开筛选"
+msgstr "Mostrar filtros"
+
+msgid "收起筛选"
+msgstr "Ocultar filtros"
+
+msgid "清空筛选"
+msgstr "Limpar filtros"
+
+#, python-brace-format
+msgid "已安装: {installed}\n最新版本: {latest}"
+msgstr "Versão instalada: {installed}\nVersão mais recente: {latest}"
+
+#, python-brace-format
+msgid "显示 {} / {} 个方案"
+msgstr "Exibindo {} / {} pacotes"
+
+msgid "没有匹配的方案"
+msgstr "Nenhum pacote correspondente"
+
+msgid "Cancel"
+msgstr "Cancelar"

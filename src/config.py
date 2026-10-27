@@ -12,7 +12,7 @@ from src.process_feature import process_feature
 if "PATH" not in os.environ:
     os.environ["PATH"] = ""
 
-version = "v1.4.20"
+version = "v1.4.21"
 # 不需要修改version, Github Action打包会自动修改
 
 key_config_option = ConfigOption(
@@ -206,6 +206,7 @@ config = {
         ["src.tasks.DSDFarmTask", "DSDFarmTask"],
         ["src.tasks.VolleyballTask", "VolleyballTask"],
         ["src.tasks.DartTask", "DartTask"],
+        ["src.tasks.GoldenCrunchTask", "GoldenCrunchTask"],
         # 测试相关
         ["src.tasks.CombatDetectionTestTask", "CombatDetectionTestTask"],
         ["src.tasks.DebugCharTask", "DebugCharTask"],
