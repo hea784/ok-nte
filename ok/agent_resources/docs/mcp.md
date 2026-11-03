@@ -12,7 +12,18 @@ The agent writes and edits project files, starts the local runtime, and reads lo
 
 MCP supplies skills and task execution, not a Python API catalog or `get_api` tool. Use the application's interpreter and inspect its installed package for exact signatures, docstrings, inherited methods, and return behavior. No library checkout is needed. See [agent prompts](en/agent-prompts.md) for API-only discovery and existing-task repair examples.
 
+The server's connection instructions direct agents to `get_skill("generate-templates")`
+before creating named image features: keep full screenshots and COCO annotations
+in `ok_templates`, export split features with `generate_templates`, and use
+`find_feature`/`find_one` in tasks. Those full screenshots can also be used directly
+as regression-test fixtures; `get_skill("write-test")` describes the test workflow.
+These instructions and skills come from the server's installed ok-script version.
+
 ## Install and start
+
+If the project has no environment or MCP runtime yet, start with the
+[agent setup guide](agent-setup.md). Its setup skills can be read before
+installation, without connecting to a running server.
 
 MCP is a required dependency of ok-script starting in 2.0.17. Install the capture
 and OCR profiles your project needs; no separate MCP extra is required.
@@ -60,6 +71,15 @@ Applications using `OK(config).start()` can enable MCP through their config:
 ```python
 "mcp": {"enabled": True, "port": 8765, "artifact_directory": "logs/mcp"}
 ```
+
+MCP artifacts use a seven-day retention period by default. Set `mcp.retention_days`
+to a nonnegative number of days, or `0` to disable cleanup. Cleanup runs on startup
+and at most once per hour when submitting runs/reloads or requesting screenshots.
+It removes expired completed run directories (including their logs, status and
+custom artifacts), their in-memory status records, and old observation images.
+Run age is measured from `finished_at`; observation age uses the image file's
+modification time. Active/nonterminal runs, unrecognized files and connection
+records are preserved. Copy evidence elsewhere if it must outlive retention.
 
 The server binds only to IPv4 loopback and validates HTTP Host and Origin.
 Each instance writes `logs/mcp/connections/<pid>-<port>.json` containing its URL,
@@ -132,7 +152,7 @@ Clients supporting MCP resources can also discover these skills through
 
 States are `queued`, `running`, `stopping`, `succeeded`, `failed`, and
 `cancelled`. Only the last three are terminal. Run IDs are scoped to the current
-process; saved artifacts remain available after restarting it.
+process; saved artifacts remain available after restarting it until retention cleanup.
 
 ## Preferred workflow for existing tasks
 
