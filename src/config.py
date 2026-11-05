@@ -12,7 +12,7 @@ from src.process_feature import process_feature
 if "PATH" not in os.environ:
     os.environ["PATH"] = ""
 
-version = "v1.4.23"
+version = "v1.5.0"
 # 不需要修改version, Github Action打包会自动修改
 
 key_config_option = ConfigOption(
@@ -206,7 +206,6 @@ config = {
         ["src.tasks.DSDFarmTask", "DSDFarmTask"],
         ["src.tasks.VolleyballTask", "VolleyballTask"],
         ["src.tasks.DartTask", "DartTask"],
-        ["src.tasks.GoldenCrunchTask", "GoldenCrunchTask"],
         # 测试相关
         ["src.tasks.CombatDetectionTestTask", "CombatDetectionTestTask"],
         ["src.tasks.DebugCharTask", "DebugCharTask"],
@@ -236,8 +235,8 @@ config = {
     ],
     "scene": ["src.scene.NTEScene", "NTEScene"],
     "update_pyappify": {
-        "to_version": "1.2.5",
-        "zip_url": "https://github.com/BnanZ0/ok-nte/releases/download/v1.4.14/ok-nte-win32.zip",
-        "sha256": "b9552c209d2b11bd4921e023387ff8a9ab6591c267b3677ae5472db65d1d7e73",
+        "to_version": "1.2.6",
+        "zip_url": "https://github.com/BnanZ0/ok-nte/releases/download/v1.5.0/ok-nte-win32.zip",
+        "sha256": "2d2a6dee7970e626cc3ed4ec8a3078f0808c3a01b9cf45551a94403a0c1749b2",
     },
 }
