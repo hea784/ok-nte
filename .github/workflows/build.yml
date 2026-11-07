@@ -18,11 +18,13 @@ env:
   PYTHONFAULTHANDLER: '1'
   PYTHONIOENCODING: 'UTF-8'
   PYTHONLEGACYWINDOWSSTDIO: 'UTF-8'
-  SIGN_BUILD: 'true'
+  # Fork build: no SignPath credentials, ship unsigned.
+  SIGN_BUILD: 'false'
   SIGN_SETUP: 'false'
-  # Set to the final release API URL after preparing its launcher prerelease.
-  # An older release URL still reuses its EXE; empty builds a new EXE.
-  USE_RELEASE: 'https://api.github.com/repos/BnanZ0/ok-nte/releases/tags/v1.5.0'
+  # Fork build: empty builds the launcher EXE from source so its embedded
+  # update sources come from this fork's pyappify.yml (reusing upstream's EXE
+  # would point install/updates at upstream repos and drop the fixes).
+  USE_RELEASE: ''
   SYNC_GITHUB_REPO: 'false'
   # Fork build: no CNB/MirrorChyan credentials — skip the update-repo sync
   # and MirrorChyan publication, release assets are published on this fork.
