@@ -3,7 +3,7 @@ import time
 from dataclasses import dataclass
 from threading import Event
 
-from ok import TaskDisabledException
+from ok import CannotFindException, TaskDisabledException
 
 from src import text_white_color
 from src.combat.BaseCombatTask import BaseCombatTask
@@ -149,6 +149,8 @@ class AutoHeistTask(NTEOneTimeTask, BaseCombatTask):
     DEFAULT_SLEEP_CHECK_INTERVAL = 1
     FAST_SLEEP_CHECK_INTERVAL = 0.1
     SWITCH_CHECK_DURATION = 1
+    ROUND_RETRY_LIMIT = 3
+    ROUND_RETRY_WAIT = 5
     QUICK_PICK_START_DELAY = 0.3
     QUICK_PICK_INTERVAL = 0.2
 
@@ -232,17 +234,34 @@ class AutoHeistTask(NTEOneTimeTask, BaseCombatTask):
         self.info_set("总方斯获取数", 0)
         self.info_set("总粉爪币获取数", 0)
 
+        consecutive_failures = 0
         while self.has_remaining_rounds():
-            self.ensure_main()
-            if not self._ensure_heist_entrance():
+            try:
+                self.ensure_main()
+                if not self._ensure_heist_entrance():
+                    self.next_frame()
+                    continue
+
+                if not self.begin_round():
+                    continue
+                self._prepare_round()
+
+                self._run_heist_round()
+            except CannotFindException as e:
+                # 单轮检测失败（截图断流、瞬时识别不到主界面等）只应重试本轮；
+                # 游戏窗口已关闭或连续多次失败时才向上抛出终止任务。
+                consecutive_failures += 1
+                if not self.executor.connected() or consecutive_failures > self.ROUND_RETRY_LIMIT:
+                    raise
+                self.log_warning(
+                    f"第 {self.current_round} 轮检测失败 "
+                    f"({consecutive_failures}/{self.ROUND_RETRY_LIMIT})，"
+                    f"{self.ROUND_RETRY_WAIT}s 后重试: {e}"
+                )
+                self.sleep(self.ROUND_RETRY_WAIT)
                 self.next_frame()
                 continue
-
-            if not self.begin_round():
-                continue
-            self._prepare_round()
-
-            self._run_heist_round()
+            consecutive_failures = 0
 
             self.next_frame()
 
@@ -475,7 +494,13 @@ class AutoHeistTask(NTEOneTimeTask, BaseCombatTask):
         self._reset_route_checks()
 
         try:
-            self.ensure_main(in_world=False)
+            try:
+                self.ensure_main(in_world=False)
+            except CannotFindException as e:
+                # 恢复失败（常见于截图断流等瞬时问题）只应让本轮失败，
+                # 由外层循环下一轮重新 ensure_main 恢复，而不是终止整个任务。
+                self.log_warning(f"退出粉爪副本时主界面检测失败，跳过本轮清理: {e}")
+                return False
 
             if self.is_in_team_outside_heist():
                 self.log_round_info("当前已在队伍界面且不在粉爪副本中，跳过退出副本")

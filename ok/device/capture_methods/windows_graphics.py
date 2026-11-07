@@ -21,6 +21,11 @@ from ok.task.exceptions import CaptureBusyException
 logger = Logger.get_logger(__name__)
 
 WGC_FRAME_WAIT_TIMEOUT = 4.0
+# WGC only fires FrameArrived when the captured content changes. Serving the
+# last converted frame keeps requests alive on static screens (loading screens,
+# throttled background windows) for this long before falling back to None and
+# letting the restart heuristic revalidate the session.
+WGC_STATIC_FRAME_MAX_AGE = 10.0
 
 
 class WindowsGraphicsCaptureMethod(BaseWindowsCaptureMethod):
@@ -58,6 +63,9 @@ class WindowsGraphicsCaptureMethod(BaseWindowsCaptureMethod):
         self.dxdevice = None
         self.immediatedc = None
         self.last_frame = None
+        # Last successfully converted frame. Kept so requests during a static
+        # screen can be served without waiting for a content change.
+        self.last_content_frame = None
         self.last_size = None
         self.last_start_failure_key = None
         self.last_start_failure_time = 0
@@ -86,6 +94,7 @@ class WindowsGraphicsCaptureMethod(BaseWindowsCaptureMethod):
                     next_frame.Close()
             if frame is not None:
                 self.last_frame = frame
+                self.last_content_frame = frame
                 self.frame_requested.clear()
                 self.frame_event.set()
 
@@ -205,6 +214,10 @@ class WindowsGraphicsCaptureMethod(BaseWindowsCaptureMethod):
             if self.frame_pool is not None and self.capture_target_signature != target_signature:
                 logger.info(
                     f'start_or_stop WGC target changed from {self.capture_target_signature} to {target_signature}')
+                with self.lock:
+                    # Content from the old target must never be served as a
+                    # static-screen fallback for the new one.
+                    self.last_content_frame = None
                 self.close()
 
             failure_key = capture_hwnd
@@ -365,6 +378,54 @@ class WindowsGraphicsCaptureMethod(BaseWindowsCaptureMethod):
         finally:
             self.get_frame_lock.release()
 
+    def _try_pull_frame(self):
+        """Pull the latest unconsumed frame from the pool without an event.
+
+        FrameArrived only fires on content change, and the callback drops
+        frames while no request is pending. A frame that arrived between
+        requests (or right after a restart, before the request was armed)
+        still sits in the pool; pull it directly instead of waiting for a
+        change that may never come.
+        """
+        with self.lock:
+            if self.frame_pool is None or self.exit_event.is_set() or not self.frame_requested.is_set():
+                return None
+            next_frame = None
+            try:
+                next_frame = self.frame_pool.TryGetNextFrame()
+                if next_frame is None:
+                    return None
+                self.last_frame_time = time.time()
+                frame = self.convert_dx_frame(next_frame)
+                if frame is not None:
+                    self.last_content_frame = frame
+                    self.frame_requested.clear()
+                    self.frame_event.set()
+                return frame
+            except Exception as e:
+                logger.error(f"_try_pull_frame error {e}", e)
+                return None
+            finally:
+                if next_frame is not None and hasattr(next_frame, 'Close'):
+                    next_frame.Close()
+
+    def _static_content_frame(self):
+        """Serve the last converted frame while the captured content is static.
+
+        The content has not changed since that frame, so it still matches the
+        screen; this keeps detection alive through loading screens and
+        background render throttling instead of stalling every request for
+        the full wait timeout. The age bound stops a dead window from being
+        served indefinitely; afterwards the restart heuristic revalidates.
+        """
+        with self.lock:
+            if self.frame_pool is None:
+                return None
+            frame = self.last_content_frame
+            if frame is None or time.time() - self.last_frame_time > WGC_STATIC_FRAME_MAX_AGE:
+                return None
+        return frame
+
     def _do_get_frame(self, frame_deadline=None):
         if self.exit_event.is_set():
             return None
@@ -385,6 +446,13 @@ class WindowsGraphicsCaptureMethod(BaseWindowsCaptureMethod):
                 self.last_frame = None
                 self.frame_event.clear()
                 self.frame_requested.set()
+
+            # Grab any frame already sitting in the pool before waiting for a
+            # content change; a static screen never raises FrameArrived again.
+            frame = self._try_pull_frame()
+            if frame is not None and cancel_generation != self._frame_cancel_generation:
+                return None
+            static_served = False
 
             deadline = frame_deadline
             if deadline is None:
@@ -408,8 +476,13 @@ class WindowsGraphicsCaptureMethod(BaseWindowsCaptureMethod):
                         frame = self.last_frame
                         self.last_frame = None
                         self.frame_event.clear()
-                        if frame is None:
+                    if frame is None:
+                        frame = self._try_pull_frame()
+                    if frame is None:
+                        with self.lock:
                             self.frame_requested.clear()
+                        frame = self._static_content_frame()
+                        static_served = frame is not None
                     break
 
                 # ExitEvent cannot directly wake threading.Event, so sample it
@@ -427,10 +500,14 @@ class WindowsGraphicsCaptureMethod(BaseWindowsCaptureMethod):
             if frame is None:
                 return None
 
-            latency = time.time() - self.last_frame_time
-            if latency > 2:
-                logger.warning(f"latency too large return None frame: {latency}")
-                return None
+            # A static-screen fallback is old by definition: its whole point is
+            # that no content change was delivered, so only freshly delivered
+            # frames go through the latency guard.
+            if not static_served:
+                latency = time.time() - self.last_frame_time
+                if latency > 2:
+                    logger.warning(f"latency too large return None frame: {latency}")
+                    return None
 
             frame = self.crop_image(frame)
 
@@ -452,6 +529,10 @@ class WindowsGraphicsCaptureMethod(BaseWindowsCaptureMethod):
             self.cputex = None
         if reset_device:
             self.create_device()
+        with self.lock:
+            # The size change invalidates the stored content; new frames will
+            # refresh it.
+            self.last_content_frame = None
         self.frame_pool.Recreate(self.rtdevice,
                                  self.pixel_format, 2, size)
 
