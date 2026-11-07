@@ -1,0 +1,182 @@
+import tempfile
+import unittest
+from pathlib import Path
+from types import SimpleNamespace
+from unittest.mock import patch
+
+from PySide6.QtWidgets import QApplication
+
+from src.char.core.CharRegistry import CharRegistry
+from src.char.custom.CustomCharDb import CustomCharDb
+from src.char.custom.CustomCharManager import CustomCharManager
+from src.ui.CharManagerTab import CharManagerTab
+
+
+class CopyBuiltinCharTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.qt_app = QApplication.instance() or QApplication([])
+
+    def setUp(self):
+        self.temp_dir = tempfile.TemporaryDirectory()
+        root = Path(self.temp_dir.name)
+        self.external_chars_dir = root / "external_chars"
+        self.registry = CharRegistry(external_dir=self.external_chars_dir)
+        app = SimpleNamespace(
+            debug=False,
+            locale=SimpleNamespace(name=lambda: "zh_CN"),
+            tr=lambda text: text,
+        )
+        self.patchers = [
+            patch("src.char.custom.CustomCharManager.CUSTOM_CHARS_DIR", str(root)),
+            patch("src.char.custom.CustomCharManager.FEATURES_DIR", str(root / "features")),
+            patch("src.char.custom.CustomCharManager.DB_PATH", str(root / "db.json")),
+            patch(
+                "src.char.custom.CustomCharManager.EXTERNAL_CHARS_DIR",
+                str(self.external_chars_dir),
+            ),
+            patch("src.char.core.CharRegistry.char_registry", self.registry),
+            patch("src.ui.CharManagerTab.og.app", app),
+            patch("src.ui.CharManagerTab.char_registry", self.registry),
+        ]
+        for patcher in self.patchers:
+            patcher.start()
+
+        CustomCharManager._instance = None
+        CustomCharDb.reset_instance()
+        self.manager = CustomCharManager()
+        self.test_directory = "copy_tests"
+        self.test_filename = "test_copy_builtin_shinku"
+        self.test_target_file = (
+            self.external_chars_dir / self.test_directory / f"{self.test_filename}.py"
+        )
+
+    def tearDown(self):
+        CustomCharManager._instance = None
+        CustomCharDb.reset_instance()
+        for patcher in reversed(self.patchers):
+            patcher.stop()
+        self.temp_dir.cleanup()
+
+    def test_get_builtin_impl_source(self):
+        # Shinku builtin character
+        source = self.manager.get_builtin_impl_source("builtin:shinku")
+        self.assertTrue(bool(source))
+        self.assertIn("class Shinku(BaseChar):", source)
+        self.assertIn('cn_name = "真红"', source)
+
+    def test_copy_builtin_to_external_and_delete(self):
+        # 1. Copy builtin:shinku to external
+        success, new_impl_id, err = self.manager.copy_builtin_to_external(
+            "builtin:shinku",
+            self.test_directory,
+            self.test_filename,
+        )
+        self.assertTrue(success, f"Copy failed with error: {err}")
+        self.assertEqual(new_impl_id, f"external:{self.test_directory}/{self.test_filename}")
+        self.assertTrue(self.test_target_file.exists())
+
+        # 2. Check the copied source content
+        copied_source = self.manager.get_external_impl_source(new_impl_id)
+        self.assertIn('cn_name = "真红"', copied_source)
+
+        # 3. Check registered entry in CharRegistry
+        entry = self.registry.get(new_impl_id)
+        self.assertIsNotNone(entry)
+        self.assertEqual(entry.source, "external")
+        self.assertEqual(entry.cn_name, "真红")
+
+        # 4. Clean up via delete_external_impl
+        deleted = self.manager.delete_external_impl(new_impl_id)
+        self.assertTrue(deleted)
+        self.assertFalse(self.test_target_file.exists())
+        self.assertIsNone(self.registry.get(new_impl_id))
+
+    def test_copy_builtin_uses_directory_and_filename_extension(self):
+        success, new_impl_id, err = self.manager.copy_builtin_to_external(
+            "builtin:shinku",
+            "测试目录",
+            "shinku_copy.py",
+        )
+
+        self.assertTrue(success, f"Copy failed with error: {err}")
+        self.assertEqual(new_impl_id, "external:测试目录/shinku_copy")
+        self.assertTrue((self.external_chars_dir / "测试目录" / "shinku_copy.py").exists())
+        self.assertEqual(self.registry.get(new_impl_id).cn_name, "真红")
+
+    def test_copy_builtin_rejects_hidden_or_uncreatable_directory(self):
+        success, _, err = self.manager.copy_builtin_to_external(
+            "builtin:shinku",
+            "_hidden",
+            self.test_filename,
+        )
+        self.assertFalse(success)
+        self.assertIn("underscore", err)
+
+        with patch("src.char.custom.CustomCharManager.logger.error"), patch(
+            "pathlib.Path.mkdir", side_effect=OSError("denied")
+        ):
+            success, _, err = self.manager.copy_builtin_to_external(
+                "builtin:shinku",
+                self.test_directory,
+                self.test_filename,
+            )
+        self.assertFalse(success)
+        self.assertIn("denied", err)
+
+    def test_update_external_source_restores_previous_code_when_reload_fails(self):
+        success, new_impl_id, err = self.manager.copy_builtin_to_external(
+            "builtin:shinku",
+            self.test_directory,
+            self.test_filename,
+        )
+        self.assertTrue(success, f"Copy failed with error: {err}")
+        previous_source = self.manager.get_external_impl_source(new_impl_id)
+
+        success, err = self.manager.update_external_impl_source(
+            new_impl_id,
+            "class InvalidExternalCharacter:\n    pass\n",
+        )
+
+        self.assertFalse(success)
+        self.assertTrue(err)
+        self.assertEqual(self.manager.get_external_impl_source(new_impl_id), previous_source)
+        self.assertIsNotNone(self.registry.get(new_impl_id))
+
+    def test_main_editor_previews_builtin_and_edits_external_source(self):
+        success, new_impl_id, err = self.manager.copy_builtin_to_external(
+            "builtin:shinku",
+            self.test_directory,
+            self.test_filename,
+        )
+        self.assertTrue(success, f"Copy failed with error: {err}")
+
+        tab = CharManagerTab()
+        self.addCleanup(tab.deleteLater)
+
+        tab.on_combo_changed("[内置代码] 真红", "builtin:shinku")
+        self.assertTrue(tab.combo_text.isReadOnly())
+        self.assertFalse(tab.ask_ai_btn.isEnabled())
+        self.assertIn("class Shinku(BaseChar):", tab.combo_text.toPlainText())
+
+        tab.on_combo_changed("[外置代码] copy_tests - 真红", new_impl_id)
+        self.assertFalse(tab.combo_text.isReadOnly())
+        self.assertTrue(tab.ask_ai_btn.isEnabled())
+        self.assertIn('cn_name = "真红"', tab.combo_text.toPlainText())
+
+        tab._set_combo_selection_by_id(new_impl_id)
+        with patch("src.ui.CharManagerTab.show_info_bar"):
+            tab.on_ask_ai()
+        prompt = self.qt_app.clipboard().text()
+        self.assertIn("```python", prompt)
+        self.assertIn("class Shinku(BaseChar):", prompt)
+        self.assertIn("请修改上面完整的 Shinku 角色自动化代码。", prompt)
+
+        tab.combo_text.setPlainText(f"{tab.combo_text.toPlainText()}\n# unsaved")
+        with patch("src.ui.CharManagerTab.InfoBar.warning") as warning:
+            tab.on_test_combo()
+        warning.assert_called_once()
+
+
+if __name__ == "__main__":
+    unittest.main()

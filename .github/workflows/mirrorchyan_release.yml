@@ -1,0 +1,31 @@
+name: mirrorchyan_release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag, or leave empty to use the latest release.
+        type: string
+        default: ''
+        required: false
+
+permissions:
+  contents: read
+
+jobs:
+  mirrorchyan:
+    if: ${{ github.repository_owner == 'BnanZ0' }}
+    runs-on: macos-latest
+    steps:
+      - name: Upload frozen full package from release
+        uses: MirrorChyan/uploading-action@v1
+        with:
+          filetype: latest-release
+          filename: 'ok-nte-win-x86_64-*-full.zip'
+          mirrorchyan_rid: ok-nte-zip
+          tag: ${{ inputs.tag }}
+          channel: stable
+          owner: BnanZ0
+          repo: ok-nte
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          upload_token: ${{ secrets.MirrorChyanUploadToken }}

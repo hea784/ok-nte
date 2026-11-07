@@ -1,0 +1,14 @@
+src
+ok
+main.py
+main_debug.py
+icons
+requirements.txt
+README.md
+SPONSOR.md
+i18n
+pyappify
+assets
+mid_lib
+pyappify.yml
+docs
