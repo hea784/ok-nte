@@ -747,6 +747,38 @@ class OCR(FindFeature):
         super().__init__(*args, **kwargs)
         self.ocr_default_threshold = 0.2
         self.ocr_target_height = 0
+        # Per-frame OCR result cache: within one captured frame the same
+        # region OCR'd with the same parameters always yields the same text,
+        # so wait_until-style polling can skip repeated det+rec inference.
+        # Keyed by the executor's frame sequence, invalidated on every new
+        # frame; guarded by a lock because periodic tasks run off the
+        # executor thread.
+        self._ocr_cache = {}
+        self._ocr_cache_seq = None
+        self._ocr_cache_lock = threading.Lock()
+
+    @staticmethod
+    def _ocr_cache_key(box, match, threshold, use_grayscale, target_height, frame_processor, lib):
+        try:
+            fp = repr(frame_processor) if frame_processor is not None else None
+            return (box.x, box.y, box.width, box.height,
+                    repr(match), threshold, use_grayscale, target_height, fp, lib)
+        except AttributeError:
+            return None
+
+    def _ocr_cache_lookup(self, frame_seq, key):
+        with self._ocr_cache_lock:
+            if self._ocr_cache_seq != frame_seq:
+                self._ocr_cache.clear()
+                self._ocr_cache_seq = frame_seq
+            return self._ocr_cache.get(key)
+
+    def _ocr_cache_store(self, frame_seq, key, boxes):
+        with self._ocr_cache_lock:
+            if self._ocr_cache_seq != frame_seq:
+                self._ocr_cache.clear()
+                self._ocr_cache_seq = frame_seq
+            self._ocr_cache[key] = boxes
 
     def ocr(self, x=0, y=0, to_x=1, to_y=1, match=None, width=0, height=0, box=None, name=None,
             threshold=0, frame=None, target_height=0, use_grayscale=False, log=False,
@@ -792,6 +824,24 @@ class OCR(FindFeature):
             image = image[box.y:box.y + box.height, box.x:box.x + box.width]
             if not box.name and match:
                 box.name = str(match)
+
+        # Per-frame OCR cache: identical region + parameters on the same
+        # captured frame cannot yield different text, so wait_until-style
+        # polling skips repeated det+rec inference. Explicit `frame`
+        # arguments carry no reliable identity and are never cached.
+        frame_seq = getattr(self.executor, '_frame_seq', None)
+        cache_key = None
+        if frame is None and not screenshot and box is not None and frame_seq is not None:
+            cache_key = self._ocr_cache_key(box, match, threshold, use_grayscale,
+                                            target_height, frame_processor, lib)
+            if cache_key is not None:
+                cached = self._ocr_cache_lookup(frame_seq, cache_key)
+                if cached is not None:
+                    communicate.emit_draw_box("ocr" + join_list_elements(name), cached, "red")
+                    communicate.emit_draw_box("ocr_zone" + join_list_elements(name), [box] if box else [],
+                                              "blue")  # ensure list for drawing
+                    return [b.copy() for b in cached]
+
         if use_grayscale:
             image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
@@ -817,7 +867,10 @@ class OCR(FindFeature):
                 f"ocr_zone {box} found result: {detected_boxes}) time: {(time.time() - start):.2f} scale_factor: {scale_factor:.2f} target_height:{target_height} resized_shape:{image.shape} all_boxes: {ocr_boxes}")
         if level and not detected_boxes and ocr_boxes:
             level(f'ocr detected but no match: {match} {ocr_boxes}')
-        return sort_boxes(detected_boxes)
+        result = sort_boxes(detected_boxes)
+        if cache_key is not None and frame_seq is not None:
+            self._ocr_cache_store(frame_seq, cache_key, result)
+        return result
 
     def ocr_fun(self, lib):
         lib_name = self.executor.config.get('ocr').get(lib).get('lib')

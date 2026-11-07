@@ -336,6 +336,8 @@ class TaskExecutor:
                     if height <= 0 or width <= 0:
                         logger.warning(f"captured wrong size frame: {width}x{height}")
                     self._frame = frame
+                    self._frame_seq = getattr(self, '_frame_seq', 0) + 1
+                    self._frame_retry_attempt = 0
                     self._last_frame_time = time.time()
                     if getattr(self, '_snapshot_enabled', False):
                         snapshot = (frame.copy(), self._last_frame_time)
@@ -346,7 +348,10 @@ class TaskExecutor:
                     return self._frame
             if time_out is not None and time.time() - start >= time_out:
                 return None
-            sleep_time = 1
+            # Exponential backoff: recover quickly (0.2s) right after a stall
+            # ends, then settle at 1s like before. The happy path never sleeps.
+            self._frame_retry_attempt = getattr(self, '_frame_retry_attempt', 0) + 1
+            sleep_time = min(1.0, 0.2 * (2 ** (self._frame_retry_attempt - 1)))
             if time_out is not None:
                 sleep_time = min(sleep_time, max(0, time_out - (time.time() - start)))
             self.sleep(sleep_time)
