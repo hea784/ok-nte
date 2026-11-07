@@ -5,6 +5,9 @@ on:
   push:
     tags:
       - 'v*'
+  # Fork build: fresh forks gate automatic push events behind a UI banner;
+  # manual dispatch from a tag ref produces the same release.
+  workflow_dispatch:
 
 concurrency:
   group: windows-release-${{ github.ref }}
